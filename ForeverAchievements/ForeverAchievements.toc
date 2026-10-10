@@ -1,0 +1,30 @@
+## Interface: 16001, 120100
+## Title: Forever Achievements
+## Notes: WotLK-style achievements for WoW Forever: quests, exploration, professions, dungeons, reputation, PvP, feats, tracker, chat links and comparing.
+## Author: Piotr
+## IconTexture: Interface\AddOns\ForeverAchievements\Media\icon
+## Version: 0.4.5-alpha
+## SavedVariables: ForeverAchievementsDB
+## SavedVariablesPerCharacter: ForeverAchievementsCharDB
+## OptionalDeps: QuestieDB, QuickFish
+
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\lib.xml
+
+AlphaUI.lua
+Data.lua
+DataQuests.lua
+DataProfDungeons.lua
+DataExtra.lua
+ForeverAchievements.lua
+Social.lua
+Tooltips.lua
+Tracker.lua
+Views.lua
+Minimap.lua
+Themes.lua
+Welcome.lua
+Diagnostics\LegacyInspector.lua
