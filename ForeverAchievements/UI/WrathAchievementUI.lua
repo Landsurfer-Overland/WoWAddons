@@ -53,7 +53,9 @@ function U.StatOnLoad(self) bind(self, { "BG", "Title", "Value", "HeaderLeft", "
 function U.TabOnLoad(self)
     self.text = region(self, "Text")
     for _, suffix in ipairs({ "Left", "Middle", "Right" }) do region(self, suffix):SetVertexColor(.6, .6, .6) end
-    region(self, "LeftDisabled"):SetPoint("TOPLEFT", 0, 2)
+    region(self, "LeftDisabled"):ClearAllPoints()
+    region(self, "LeftDisabled"):SetPoint("TOPLEFT", 0, 0)
+    self.text:ClearAllPoints(); self.text:SetPoint("CENTER", 0, -8)
 end
 function U.CardOnLoad(self)
     bind(self, { "Label", "Description", "HiddenDescription", "Reward", "RewardBackground", "Icon", "Shield",
@@ -71,7 +73,8 @@ function U.CardOnLoad(self)
     self.scopeText = font(self.objectives, "GameFontNormalSmall")
     self.scopeText:SetPoint("TOPLEFT", 0, 0); self.scopeText:SetHeight(18); self.scopeText:Hide()
     self.completionText = font(self.objectives, "GameFontNormalSmall")
-    self.completionText:SetPoint("TOPLEFT", 0, -22); self.completionText:SetHeight(18); self.completionText:Hide()
+    self.completionText:SetPoint("TOPLEFT", 0, 0); self.completionText:SetHeight(18)
+    self.completionText:SetJustifyH("LEFT"); self.completionText:Hide()
     self.otherCompletion = font(self, "GameFontNormalSmall")
     self.otherCompletion:SetPoint("BOTTOMRIGHT", -9, 6); self.otherCompletion:SetHeight(16)
     self.otherCompletion:SetJustifyH("RIGHT"); self.otherCompletion:Hide()
@@ -137,26 +140,27 @@ end
 function U.CardEnter(self) if self.record then self.highlight:Show() end end
 function U.CardLeave(self) if not self.selected then self.highlight:Hide() end end
 local function completionDetail(row)
-    -- Adapters verify character identity and completion provenance. This view
-    -- displays their result without deriving an earner from source or scope.
-    if type(row.completionDetail) == "string" and row.completionDetail ~= "" then return row.completionDetail end
-    if row.completed == nil then return "Completion unavailable" end
-end
-local function completionState(row)
-    if row.completed == true then return "Complete" end
-    if row.completed == false then return "Incomplete" end
-    return "Unavailable"
+    -- A named earner helps explain a Legacy relationship, but ordinary custom
+    -- achievements remain character-specific without surfacing account history.
+    local component
+    if row.source == "combined" then component = row.character
+    elseif row.source == "legacy" then component = row end
+    if not component or component.completedByOtherCharacter ~= true then return end
+    if row.source == "combined" and component.completed == true then return end
+    local name = component.completedByName
+    if type(name) == "string" and name ~= "" then return "Completed by " .. name end
+    -- Older adapter snapshots may have a verified named detail but no separate
+    -- name field. Never turn their generic "another character" into an earner.
+    local detail = component.completionDetail
+    if type(detail) == "string" and detail:match("^Completed by .+")
+        and detail ~= "Completed by another character" then return detail end
 end
 local function pointValue(row)
     if row.pointValue ~= nil then return row.pointValue end
     if row.pointType == nil then return row.points end
 end
 local function pointLabel(points)
-    return points == nil and "points unavailable" or points .. (points == 1 and " point" or " points")
-end
-local function scopeLabel(row)
-    local scopes = { character = "Character", account = "Account", unknown = "Unknown" }
-    return scopes[row.scopeType] or row.scope or "Unknown"
+    return points ~= nil and points .. (points == 1 and " point" or " points") or nil
 end
 local function criteriaSections(row, data)
     -- Relationships are established by the presentation adapter. The view
@@ -172,62 +176,85 @@ local function criteriaSections(row, data)
     return { { source = row.source, record = row, data = data } }
 end
 local function sectionHeading(section)
-    local row = section.record
-    local name = section.source == "legacy" and "Native Legacy" or "Character Achievement"
-    local points = pointValue(row)
-    return name .. ": " .. completionState(row) .. " — " .. pointLabel(points)
+    return section.source == "legacy" and "Legacy criteria" or "Achievement criteria"
 end
-local function sectionDetail(section, combined)
-    if combined and section.source == "legacy" then
-        local detail = completionDetail(section.record)
-        return "Scope: " .. scopeLabel(section.record) .. (detail and " · " .. detail or "")
+local function isMoney(row)
+    return row.source == "custom" and (row.money == true or row.achievement and row.achievement.money == true)
+end
+local function moneyText(copper)
+    if type(copper) ~= "number" or copper < 0 then return end
+    if ns.FA and type(ns.FA.Money) == "function" then
+        local ok, result = pcall(ns.FA.Money, copper)
+        if ok and type(result) == "string" then return result end
     end
+    return copper .. " copper"
 end
 local function quantityText(item, row)
-    if type(item.quantityText) == "string" and item.quantityText ~= "" then return item.quantityText end
+    local supplied = type(item.quantityText) == "string" and item.quantityText ~= "" and item.quantityText
+    if supplied and not isMoney(row) then return supplied end
+    if supplied and isMoney(row) then
+        -- New adapters provide plain amounts. Keep older in-memory snapshots
+        -- readable without exposing their tracking/provenance annotation.
+        supplied = supplied:gsub("%s*%([^)]*[Ii]teration[^)]*%)%s*$", "")
+            :gsub("%s*%(lifetime%)%s*$", "")
+            :gsub("%s*%([^)]*unsupported[^)]*%)%s*$", "")
+            :gsub("%s*%(tracking unavailable%)%s*$", "")
+        if not supplied:find("Unavailable", 1, true) then return supplied end
+    end
     -- Copper is the internal unit. Convert only custom money display, using
     -- the authored definition instead of guessing from a title or large value.
-    if row.source == "custom" and row.achievement and row.achievement.money == true
-        and item.current ~= nil and item.required ~= nil then
-        if ns.FA and type(ns.FA.Money) == "function" then
-            local okCurrent, current = pcall(ns.FA.Money, item.current)
-            local okRequired, required = pcall(ns.FA.Money, item.required)
-            if okCurrent and okRequired and type(current) == "string" and type(required) == "string" then
-                return current .. " / " .. required
-            end
-        end
-        return item.current .. " copper / " .. item.required .. " copper"
+    if isMoney(row) then
+        local current, required = moneyText(item.current), moneyText(item.required)
+        if required then return (current or "—") .. " / " .. required end
+        return current
     end
     if item.current ~= nil and item.required ~= nil then return item.current .. " / " .. item.required end
+end
+local function criterionLabel(frame, width, hasCheck)
+    -- Explicitly reset pooled anchors and justification. The font's inherited
+    -- centering otherwise leaves a check far from a short criterion name.
+    frame.label:ClearAllPoints(); frame.label:SetJustifyH("LEFT")
+    frame.check:ClearAllPoints(); frame.check:SetSize(20, 16)
+    if hasCheck then
+        frame.check:SetPoint("LEFT", frame, "LEFT", 0, 0)
+        frame.label:SetPoint("LEFT", frame.check, "RIGHT", 4, 0)
+        frame.label:SetWidth(width - 24)
+    else
+        frame.label:SetPoint("LEFT", frame, "LEFT", 0, 0)
+        frame.label:SetWidth(width)
+    end
+end
+local function criterionText(item, row)
+    local quantity = quantityText(item, row)
+    if isMoney(row) then return quantity or "—" end
+    return item.name .. (quantity and ": " .. quantity or "")
 end
 function U.ShieldEnter(self)
     local row, tooltip = self:GetParent().record, GameTooltip
     if not row or not tooltip then return end
     tooltip:SetOwner(self, "ANCHOR_RIGHT")
     if row.source == "combined" and row.character and row.native then
-        tooltip:SetText("Character Achievement + Native Legacy")
+        tooltip:SetText("Achievement and Legacy Points")
         for _, component in ipairs({ row.character, row.native }) do
             local native = component == row.native
             local points = pointValue(component)
-            tooltip:AddLine((native and "Legacy Points: " or "Character Achievement Points: ")
-                .. (points == nil and "Unavailable" or tostring(points)), native and .63 or 1, native and .79 or .82, native and 1 or 0)
-            tooltip:AddLine((native and "Native Legacy: " or "Character achievement: ") .. completionState(component), 1, 1, 1)
-            tooltip:AddLine("Scope: " .. scopeLabel(component), .7, .7, .7)
-            local detail = completionDetail(component)
-            if detail then tooltip:AddLine(detail, .7, .7, .7, true) end
+            tooltip:AddLine((native and "Legacy Points: " or "Achievement Points: ")
+                .. (points == nil and "—" or tostring(points)), native and .63 or 1, native and .79 or .82, native and 1 or 0)
+            if component.completed == true then
+                tooltip:AddLine(native and "Legacy completed" or "Achievement completed", native and .63 or 1, native and .79 or .82, native and 1 or 0)
+            end
         end
+        local detail = completionDetail(row)
+        if detail then tooltip:AddLine(detail, .65, .7, .8, true) end
         tooltip:Show(); return
     end
-    local titles = { legacy = "Legacy Points", character = "Character Achievement Points", none = "No point reward", unknown = "Point system unavailable" }
-    tooltip:SetText(titles[row.pointType] or (row.source == "legacy" and "Legacy Points" or "Character Achievement Points"))
+    local titles = { legacy = "Legacy Points", character = "Achievement Points", none = "No point reward", unknown = "Points" }
+    tooltip:SetText(titles[row.pointType] or (row.source == "legacy" and "Legacy Points" or "Achievement Points"))
     local points = row.pointValue
     if points == nil and row.pointType == nil then points = row.points end
-    tooltip:AddLine(points == nil and "Point value unavailable" or tostring(points), 1, 1, 1)
-    tooltip:AddLine((row.sourceType == "native_legacy" or row.source == "legacy") and "Source: Native Legacy Challenge" or "Source: Character Achievement", .7, .7, .7)
-    local scopes = { character = "Character", account = "Account", unknown = "Unknown" }
-    tooltip:AddLine("Scope: " .. (scopes[row.scopeType] or row.scope or "Unknown"), 1, .82, 0)
-    if row.achievementType == "feat_of_strength" then tooltip:AddLine("Feat of Strength", 1, .82, 0)
-    elseif row.achievementType == "unknown" then tooltip:AddLine("Achievement classification unavailable", .7, .7, .7) end
+    tooltip:AddLine(points == nil and "—" or tostring(points), 1, 1, 1)
+    if row.achievementType == "feat_of_strength" then tooltip:AddLine("Feat of Strength", 1, .82, 0) end
+    if row.source == "legacy" and row.completed == true then tooltip:AddLine("Legacy completed", .63, .79, 1) end
     local detail = completionDetail(row)
     if detail then tooltip:AddLine(detail, .7, .7, .7, true) end
     tooltip:Show()
@@ -237,12 +264,18 @@ function U.CategoryClick(self)
         local cat = self.category
         if self.navigation == "statistics" then owner.statisticsCategory = cat.key
         else owner.category, owner.focus, owner.selected = cat.key, nil, nil end
+        if #(cat.children or {}) > 0 then
+            local expanded = self.navigation == "statistics" and owner.statisticsExpanded or owner.expanded
+            expanded[cat.key] = not expanded[cat.key]
+            owner.navigationVersion = (owner.navigationVersion or 0) + 1
+        end
         resetScroll(owner); owner:Render()
     end)
 end
 function U.CategoryExpand(self)
     action(self, function(owner)
         local row = self:GetParent()
+        if not row.category or #(row.category.children or {}) == 0 then return end
         local expanded = row.navigation == "statistics" and owner.statisticsExpanded or owner.expanded
         expanded[row.category.key] = not expanded[row.category.key]
         owner.navigationVersion = (owner.navigationVersion or 0) + 1
@@ -292,8 +325,11 @@ function U.Create(cover, guard, refresh, callbacks)
         expanded = {}, statisticsExpanded = {}, statisticsCategory = "stats:summary", scrollOffsets = {}, sidebarOffsets = {},
         categories = {}, cards = {}, bars = {}, stats = {}, headings = {}, callbacks = callbacks or {} }
     self.root = CreateFrame("Frame", "FAWrathAchievementFrame", cover, "FAWrathWindowTemplate")
-    self.root:SetSize(900, 620)
-    self.root:SetPoint("TOP", cover, "TOP", 0, -72)
+    self.root:SetSize(1024, 720)
+    self.root:SetPoint("TOP", cover, "TOP", 0, -82)
+    -- This is the original BACKDROP_ACHIEVEMENTS_0_64 geometry. Corner art
+    -- alone leaves the long outer edges missing when the body grows.
+    self.root:SetBackdrop({ edgeFile = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder", edgeSize = 64, tileEdge = true })
     self.contentBackground = self.root:CreateTexture(nil, "BACKGROUND")
     self.contentBackground:SetPoint("TOPLEFT", 219, -23); self.contentBackground:SetPoint("BOTTOMRIGHT", -25, 23)
     self.contentBackground:SetTexture("Interface\\AchievementFrame\\UI-Achievement-AchievementBackground")
@@ -329,12 +365,16 @@ function U.Create(cover, guard, refresh, callbacks)
         self.scrollRendering = false
     end)
     self.notice = font(self.root, "GameFontNormalSmall")
-    self.notice:SetPoint("TOPLEFT", 238, -47); self.notice:SetWidth(491); self.notice:SetHeight(24)
+    self.notice:SetPoint("TOPLEFT", 238, -51); self.notice:SetWidth(491); self.notice:SetHeight(14)
     self.notice:SetJustifyH("LEFT")
     self.searchBox = CreateFrame("EditBox", "FAWrathSearch", self.root, "InputBoxTemplate")
-    self.searchBox:SetSize(250, 24)
+    self.searchBox:SetSize(360, 24)
+    if type(self.searchBox.SetTextInsets) == "function" then self.searchBox:SetTextInsets(23, 22, 0, 0) end
     self.searchBox:SetAutoFocus(false); self.searchBox:SetMaxLetters(100)
-    self.searchBox:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
+    self.searchBox:SetScript("OnEscapePressed", function(box)
+        if self.filterMenu then self.filterMenu:Hide() end
+        box:ClearFocus()
+    end)
     self.searchBox:SetScript("OnTextChanged", function(box, userInput)
         if self.suppressSearchChange then return end
         guard(function()
@@ -356,10 +396,10 @@ function U.Create(cover, guard, refresh, callbacks)
     end)
     self.searchBox:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
     self.searchHint = font(self.searchBox, "GameFontDisableSmall", "Search achievements...")
-    self.searchHint:SetPoint("LEFT", 2, 0); self.searchHint:SetJustifyH("LEFT")
+    self.searchHint:SetPoint("LEFT", 23, 0); self.searchHint:SetJustifyH("LEFT")
     self.searchIcon = self.searchBox:CreateTexture(nil, "OVERLAY")
     self.searchIcon:SetTexture("Interface\\Common\\UI-Searchbox-Icon")
-    self.searchIcon:SetSize(16, 16); self.searchIcon:SetPoint("RIGHT", self.searchBox, "LEFT", -5, 0)
+    self.searchIcon:SetSize(16, 16); self.searchIcon:SetPoint("LEFT", self.searchBox, "LEFT", 5, 0)
     self.searchBox:SetScript("OnEnter", function(box)
         if not GameTooltip then return end
         GameTooltip:SetOwner(box, "ANCHOR_TOP")
@@ -375,21 +415,78 @@ function U.Create(cover, guard, refresh, callbacks)
     self.searchClear:SetScript("OnClick", function() guard(function()
         self.search, self.filter, self.focus = "", "All", nil
         self.searchQueued, self.suppressSearchChange = false, true
-        self.searchBox:SetText(""); self.suppressSearchChange = false; self.filterButton.label:SetText("All")
+        self.searchBox:SetText(""); self.suppressSearchChange = false; self.setFilter("All")
+        self.filterMenu:Hide()
         self.searchBox:ClearFocus(); resetScroll(self); self:Render()
     end) end)
     self.filterButton = CreateFrame("Button", "FAWrathFilter", self.root, "FAWrathCategoryTemplate")
-    self.filterButton:SetSize(155, 24); self.filterButton:SetPoint("TOPRIGHT", -28, -25)
-    self.filterButton.label:SetWidth(145); self.filterButton.label:SetFontObject(GameFontNormalSmall)
+    self.filterButton:SetSize(168, 24)
+    self.filterButton.background:SetAllPoints(self.filterButton)
+    self.filterButton.label:ClearAllPoints(); self.filterButton.label:SetPoint("LEFT", 9, 0)
+    self.filterButton.label:SetSize(135, 16); self.filterButton.label:SetJustifyV("MIDDLE")
+    self.filterButton.label:SetFontObject(GameFontNormalSmall)
     self.filterButton.label:SetText("All")
+    self.filterArrow = self.filterButton:CreateTexture(nil, "OVERLAY")
+    self.filterArrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+    self.filterArrow:SetSize(16, 16); self.filterArrow:SetPoint("RIGHT", -5, 0)
+    -- Five owned options are created once. Opening this menu never touches the
+    -- native dropdown/search globals, catalog, providers or refresh callbacks.
+    self.filterDismiss = CreateFrame("Button", nil, self.root)
+    self.filterDismiss:SetAllPoints(cover); self.filterDismiss:SetFrameLevel(self.root:GetFrameLevel() + 100)
+    self.filterDismiss:Hide()
+    self.filterMenu = CreateFrame("Frame", "FAWrathFilterMenu", self.root, "BackdropTemplate")
+    self.filterMenu:SetFrameLevel(self.filterDismiss:GetFrameLevel() + 1)
+    self.filterMenu:SetSize(168, 142); self.filterMenu:SetPoint("TOPRIGHT", self.filterButton, "BOTTOMRIGHT", 0, -3)
+    self.filterMenu:SetBackdrop({ bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+    self.filterMenu:SetBackdropColor(.12, .09, .05, 1)
+    self.filterMenu:EnableMouse(true); self.filterMenu:Hide()
+    self.filterChoices = {}
+    for i, value in ipairs({ "All", "Completed", "Incomplete", "Character Achievements", "Legacy Challenges" }) do
+        local choice = CreateFrame("Button", nil, self.filterMenu)
+        choice:SetSize(156, 26); choice:SetPoint("TOPLEFT", 6, -6 - (i - 1) * 26)
+        choice.value = value
+        choice.label = font(choice, "GameFontHighlightSmall", value)
+        choice.label:SetPoint("LEFT", 19, 0); choice.label:SetSize(135, 16); choice.label:SetJustifyH("LEFT")
+        choice.check = choice:CreateTexture(nil, "OVERLAY")
+        choice.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        choice.check:SetSize(16, 16); choice.check:SetPoint("LEFT", 0, 0); choice.check:Hide()
+        choice.highlight = choice:CreateTexture(nil, "BACKGROUND")
+        choice.highlight:SetAllPoints(choice); choice.highlight:SetColorTexture(1, .82, .25, .16); choice.highlight:Hide()
+        choice:SetScript("OnEnter", function(button) button.highlight:Show() end)
+        choice:SetScript("OnLeave", function(button) button.highlight:Hide() end)
+        choice:SetScript("OnClick", function(button) guard(function()
+            self.setFilter(button.value); self.focus = nil; self.filterMenu:Hide()
+            resetScroll(self); self:Render()
+        end) end)
+        self.filterChoices[i] = choice
+    end
+    self.setFilter = function(value)
+        self.filter = value; self.filterButton.label:SetText(value)
+        for _, choice in ipairs(self.filterChoices) do show(choice.check, choice.value == value) end
+    end
+    self.setFilter("All")
+    self.filterDismiss:SetScript("OnClick", function() self.filterMenu:Hide() end)
+    self.filterMenu:SetScript("OnHide", function()
+        self.filterDismiss:Hide()
+        if type(self.filterMenu.EnableKeyboard) == "function" then self.filterMenu:EnableKeyboard(false) end
+    end)
+    if type(self.filterMenu.EnableKeyboard) == "function" and type(self.filterMenu.SetPropagateKeyboardInput) == "function" then
+        self.filterMenu:SetScript("OnKeyDown", function(menu, key)
+            menu:SetPropagateKeyboardInput(key ~= "ESCAPE")
+            if key == "ESCAPE" then menu:Hide() end
+        end)
+        self.filterMenu:SetScript("OnShow", function(menu)
+            menu:SetPropagateKeyboardInput(true); menu:EnableKeyboard(true)
+        end)
+    end
+    self.filterButton:SetScript("OnHide", function() self.filterMenu:Hide() end)
+    self.root:HookScript("OnHide", function() self.filterMenu:Hide() end)
     self.filterButton:SetScript("OnClick", function()
         guard(function()
-            local filters = { "All", "Completed", "Incomplete", "Character Achievements", "Legacy Challenges" }
-            local current = 1
-            for i, value in ipairs(filters) do if value == self.filter then current = i; break end end
-            self.filter = filters[current % #filters + 1]
-            self.filterButton.label:SetText(self.filter); self.focus = nil
-            resetScroll(self); self:Render()
+            if self.filterMenu:IsShown() then self.filterMenu:Hide()
+            else self.setFilter(self.filter); self.filterDismiss:Show(); self.filterMenu:Show() end
         end)
     end)
     self.tabs = {}
@@ -397,27 +494,28 @@ function U.Create(cover, guard, refresh, callbacks)
         { "achievements", "Achievements", 142 }, { "rewards", "Legacy Rewards", 151 },
         { "trees", "Legacy Trees", 135 }, { "statistics", "Statistics", 123 },
     }
-    local x = 11
+    local x = 20
     for i, definition in ipairs(tabDefinitions) do
         local view, label, width = unpack(definition)
         local tab = CreateFrame("Button", "FAWrathTab" .. i, self.root, "FAWrathTabTemplate")
-        tab:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", x, 0)
+        tab:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", x, 2)
         tab:SetSize(width, 32); tab:SetText(label)
         for _, suffix in ipairs({ "Middle", "MiddleDisabled" }) do region(tab, suffix):SetWidth(width - 39) end
         tab.owner, tab.view = self, view; self.tabs[i] = tab
-        x = x + width - 5
+        x = x + width + 3
     end
     self.nativePoints = region(self.root, "HeaderLegacyPoints")
     region(self.root, "HeaderLegacyShield"):SetVertexColor(.63, .79, 1)
     self.sizeButton = CreateFrame("Button", "FAWrathSizePreset", self.root, "FAWrathCategoryTemplate")
-    self.sizeButton:SetSize(110, 24); self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -25, -15)
-    self.sizeButton.label:SetText("Standard")
+    self.sizeButton:SetSize(110, 24); self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -25, -18)
+    self.sizeButton.background:SetAllPoints(self.sizeButton)
+    self.sizeButton.label:SetText("Large")
     self.sizeButton:SetScript("OnClick", function() guard(function()
         if self.callbacks.onSizePresetCycle then self.callbacks.onSizePresetCycle() end
     end) end)
     -- Explicit method table keeps our controller out of Blizzard globals.
     for _, name in ipairs({ "Fit", "Layout", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
-    self:Layout(900, 620)
+    self:Layout(1024, 720)
     return self
 end
 function U.Fit(self, page, suppressRender)
@@ -427,7 +525,7 @@ function U.Fit(self, page, suppressRender)
     self:Layout(width, height - 140, suppressRender)
     self.root:ClearAllPoints()
     -- Offsets use the scaled child's coordinate space.
-    self.root:SetPoint("TOP", page, "TOP", 0, -72)
+    self.root:SetPoint("TOP", page, "TOP", 0, -82)
 end
 function U.Layout(self, width, height, suppressRender)
     assert(width >= 768 and height >= 500, "Wrath window requires at least Compact logical dimensions")
@@ -444,21 +542,28 @@ function U.Layout(self, width, height, suppressRender)
     self.nativeHost:SetSize(width - 50, height - 46)
     self.categoryScroll:SetSize(self.sidebarWidth - 26, self.categoryHeight)
     self.categoryChild:SetWidth(self.sidebarWidth - 26)
-    region(self.root, "CategoriesBG"):SetWidth(self.sidebarWidth)
+    local categoryBackground = region(self.root, "CategoriesBG")
+    categoryBackground:SetWidth(self.sidebarWidth)
+    -- Both panes sample their matching section of one continuous page rather
+    -- than restarting unrelated dark and light parchment sheets at the seam.
+    local split = self.sidebarWidth / (width - 50)
+    categoryBackground:SetTexCoord(0, split, 0, .5)
+    self.contentBackground:SetTexCoord(split, 1, 0, .5)
     local watermark = region(self.root, "WaterMark")
     watermark:SetWidth(self.sidebarWidth); watermark:SetTexCoord(0, self.sidebarWidth / 256, 0, 1)
     for _, suffix in ipairs({ "MetalBorderLeft", "MetalBorderRight" }) do region(self.root, suffix):SetHeight(height - 64) end
     for _, suffix in ipairs({ "MetalBorderTop", "MetalBorderBottom" }) do region(self.root, suffix):SetWidth(width - 56) end
     local header = region(self.root, "Header")
-    header:ClearAllPoints(); header:SetPoint("BOTTOM", self.root, "TOP", 0, -39)
+    header:ClearAllPoints(); header:SetPoint("BOTTOM", self.root, "TOP", 0, -31)
     -- The ornate roof and corner ornaments retain their original pixel size.
     -- Only plain border strips and the parchment centers grow with the panes.
-    self.searchBox:ClearAllPoints(); self.searchBox:SetPoint("TOPRIGHT", self.root, "TOPRIGHT", -217, -25)
-    self.searchBox:SetWidth(math.min(290, self.contentWidth - 200))
-    self.searchHint:SetWidth(self.searchBox:GetWidth() - 8)
-    self.searchClear:ClearAllPoints(); self.searchClear:SetPoint("LEFT", self.searchBox, "RIGHT", 4, 0)
-    self.filterButton:SetSize(155, 24)
-    self.notice:ClearAllPoints(); self.notice:SetPoint("TOPLEFT", self.contentLeft + 4, -47)
+    self.searchBox:ClearAllPoints(); self.searchBox:SetPoint("TOPLEFT", self.root, "TOPLEFT", self.contentLeft, -25)
+    self.searchBox:SetWidth(self.contentWidth - 180)
+    self.searchHint:SetWidth(self.searchBox:GetWidth() - 46)
+    self.searchClear:ClearAllPoints(); self.searchClear:SetPoint("RIGHT", self.searchBox, "RIGHT", -2, 0)
+    self.filterButton:ClearAllPoints(); self.filterButton:SetPoint("LEFT", self.searchBox, "RIGHT", 12, 0)
+    self.filterButton:SetSize(168, 24)
+    self.notice:ClearAllPoints(); self.notice:SetPoint("TOPLEFT", self.contentLeft + 4, -51)
     self.notice:SetWidth(self.contentWidth - 8)
     self.layoutName = "Standard"
     for name, preset in pairs(U.PRESETS) do if preset[1] == width and preset[2] == height then self.layoutName = name; break end end
@@ -531,12 +636,13 @@ function U.RenderCategories(self)
             b.expandButton:SetScript("OnClick", U.CategoryExpand)
         end
         local indent = math.min(depth, 3) * 14
-        local height = depth == 0 and 26 or 23
+        local height = depth == 0 and 29 or 26
         b:SetSize(self.categoryScroll:GetWidth() - indent - 5, height)
         b:SetPoint("TOPLEFT", indent, -y)
         b.owner, b.category, b.depth = self, cat, depth
         b.navigation = statistics and "statistics" or "achievements"
         b.expandButton.owner = self
+        b.expandButton:SetSize(18, height - 4)
         b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 21, 0)
         b.label:SetWidth(b:GetWidth() - 25); b.label:SetWordWrap(false)
         b.label:SetFontObject(depth == 0 and GameFontNormal or GameFontNormalSmall)
@@ -638,19 +744,16 @@ function U.RenderCard(self, row, index, y)
     if row.source == "combined" and native then
         local nativePoints = pointValue(native)
         c.nativeStatus:SetWidth(width - 90)
-        c.nativeStatus:SetText("Legacy: " .. pointLabel(nativePoints) .. " · " .. completionState(native))
+        local label = pointLabel(nativePoints)
+        c.nativeStatus:SetText("Legacy" .. (label and ": " .. label or "") .. (nativeDone and " · Complete" or ""))
         c.nativeStatus:SetTextColor(nativeDone and .35 or .45, nativeDone and .65 or .56, nativeDone and .95 or .75)
         c.nativeStatus:Show()
-    elseif row.source == "custom" and row.completed ~= true and row.completedByOtherCharacter == true
-        and type(row.completionDetail) == "string" and row.completionDetail ~= "" and reward == "" then
-        c.otherCompletion:SetWidth(width - 90); c.otherCompletion:SetText(row.completionDetail)
-        c.otherCompletion:SetTextColor(.65, .65, .65); c.otherCompletion:Show()
     end
     show(c.highlight, c.selected)
     show(c.check, row.tracked)
     show(c.tracked, (row.source == "custom" or row.source == "combined") and not row.completed and (c.selected or row.tracked))
     c.tracked:SetChecked(row.tracked == true)
-    -- Every card can expand a long description or report unavailable criteria.
+    -- Every card can expand a long description or its loaded criteria.
     c.plusMinus:Show()
     c.plusMinus:SetTexCoord(row.completed and 0 or .5, row.completed and .5 or 1, c.selected and .25 or 0, c.selected and .5 or .25)
     hidePool(c.criteriaPool); hidePool(c.progressPool); hidePool(c.metaPool)
@@ -660,15 +763,10 @@ function U.RenderCard(self, row, index, y)
         local data = P.Criteria(row)
         local descHeight = c.description:GetHeight()
         c.objectives:ClearAllPoints(); c.objectives:SetPoint("TOPLEFT", 78, -36 - descHeight)
-        local scopes = { character = "Character", account = "Account", unknown = "Unknown" }
-        c.scopeText:SetWidth(textWidth)
-        c.scopeText:SetText("Scope: " .. (scopes[row.scopeType] or row.scope or "Unknown"))
-        c.scopeText:SetTextColor(row.completed and .3 or .7, row.completed and .22 or .7, row.completed and .12 or .7)
-        c.scopeText:Show(); cy = 22
         local detail = completionDetail(row)
         if detail then
             c.completionText:SetWidth(textWidth); c.completionText:SetText(detail)
-            c.completionText:SetTextColor(row.completed and .3 or .7, row.completed and .22 or .7, row.completed and .12 or .7)
+            c.completionText:SetTextColor(.45, .6, .75)
             c.completionText:Show(); cy = cy + 22
         end
         local texts, bars, metas = 0, 0, 0
@@ -676,7 +774,7 @@ function U.RenderCard(self, row, index, y)
             texts = texts + 1
             local f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
             f:SetPoint("TOPLEFT", 0, -cy); f:SetSize(textWidth, lineHeight or 20)
-            f.label:SetWidth(textWidth - 12); f.label:SetText(text)
+            criterionLabel(f, textWidth, false); f.label:SetText(text)
             f.label:SetTextColor(unpack(color)); f.check:Hide(); f:Show(); cy = cy + (lineHeight or 20) + 4
         end
         local combined, renderedCriteria = row.source == "combined", 0
@@ -686,8 +784,6 @@ function U.RenderCard(self, row, index, y)
             if combined then
                 textLine(sectionHeading(section), nativeSection and { .35, .65, .95 }
                     or sectionRow.completed and { 1, .82, 0 } or { .65, .65, .65 })
-                local nativeDetail = sectionDetail(section, true)
-                if nativeDetail then textLine(nativeDetail, { .65, .65, .65 }) end
             end
             local omitted = false
             for _, item in ipairs(sectionData.items or {}) do
@@ -702,32 +798,31 @@ function U.RenderCard(self, row, index, y)
                     local target = P.Resolve(self.model, item.link)
                     f.owner, f.link = self, item.link
                     f.icon:SetTexture(target and target.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+                    f.label:ClearAllPoints(); f.label:SetJustifyH("LEFT")
+                    f.label:SetPoint("LEFT", f, "LEFT", 54, 0)
                     f.label:SetText(item.name); f.label:SetWidth(textWidth - 54)
-                    show(f.check, item.completed); colors(f.label, item.completed, sectionRow.completed)
+                    f.check:ClearAllPoints(); f.check:SetSize(20, 16)
+                    f.check:SetPoint("RIGHT", f.label, "LEFT", -4, 0)
+                    show(f.check, item.completed == true); colors(f.label, item.completed, sectionRow.completed)
                     f:SetSize(textWidth, 30)
                 elseif item.current and item.required and item.required > 1 and item.current >= 0 then
                     bars = bars + 1
                     f = pool(c, "progressPool", bars, "StatusBar", c.objectives, "FAWrathProgressTemplate")
                     f:SetSize(textWidth - 2, 14); f:SetMinMaxValues(0, item.required); f:SetValue(item.current)
                     f:SetStatusBarColor(nativeSection and .25 or 0, nativeSection and .5 or .6, nativeSection and .85 or 0, 1)
-                    f.text:SetText(item.name .. ": " .. (quantityText(item, sectionRow) or "Progress unavailable"))
+                    f.text:SetText(criterionText(item, sectionRow))
                     f.text:SetWidth(textWidth - 7)
                 else
                     texts = texts + 1
                     f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
-                    f:SetSize(textWidth, 18); f.label:SetWidth(textWidth - 32)
-                    local unavailable = item.completed == nil and " (completion unavailable)"
-                        or item.required and item.required > 1 and item.current == nil and " (progress unavailable)" or ""
-                    local quantity = quantityText(item, sectionRow)
-                    f.label:SetText(item.name .. (quantity and ": " .. quantity or unavailable))
-                    show(f.check, item.completed); colors(f.label, item.completed, sectionRow.completed)
+                    f:SetSize(textWidth, 18); criterionLabel(f, textWidth, true)
+                    f.label:SetText(criterionText(item, sectionRow))
+                    show(f.check, item.completed == true); colors(f.label, item.completed, sectionRow.completed)
                 end
                 f:SetPoint("TOPLEFT", 0, -cy); f:Show()
                 cy = cy + math.max(23, f:GetHeight() + 4)
             end
-            if not sectionData.available or not sectionData.complete or omitted then
-                textLine(sectionData.available and "Some criteria unavailable or omitted." or "Criteria / progress unavailable.", { .65, .65, .65 })
-            end
+            if omitted then textLine("More objectives…", { .65, .65, .65 }) end
         end
         height = math.max(110, 36 + descHeight + cy + 32)
     end
@@ -747,19 +842,18 @@ function U.MeasureCard(self, row)
     local data = P.Criteria(row)
     self.measureFont:SetWidth(self.contentWidth - 166); self.measureFont:SetText(row.description or "")
     local descHeight = math.max(36, self.measureFont:GetStringHeight())
-    local cy, measuredCriteria = completionDetail(row) and 44 or 22, 0
+    local cy, measuredCriteria = completionDetail(row) and 22 or 0, 0
     for _, section in ipairs(criteriaSections(row, data)) do
         local sectionData, omitted = section.data, false
         if row.source == "combined" then
             cy = cy + 24
-            if sectionDetail(section, true) then cy = cy + 24 end
         end
         for _, item in ipairs(sectionData.items or {}) do
             if measuredCriteria >= 256 then omitted = true; break end
             measuredCriteria = measuredCriteria + 1
             cy = cy + (item.link and 34 or 23)
         end
-        if not sectionData.available or not sectionData.complete or omitted then cy = cy + 24 end
+        if omitted then cy = cy + 24 end
     end
     local advance = math.max(110, 36 + descHeight + cy + 32) + 4
     self.measureCache = { row = row, generation = self.modelGeneration, width = self.contentWidth,
@@ -1018,6 +1112,7 @@ function U.RenderPass(self, reason)
     show(self.notice, achievements and self.model.native.notice ~= nil)
     show(self.searchHint, achievements and self.search == "")
     show(self.searchBox, achievements); show(self.filterButton, achievements); show(self.searchIcon, achievements)
+    if not achievements then self.filterMenu:Hide() end
     show(self.searchClear, achievements and (self.search ~= "" or self.filter ~= "All"))
     show(self.categoryScroll, sidebar); show(self.contentScroll, not nativePage)
     show(self.nativeHost, nativePage)

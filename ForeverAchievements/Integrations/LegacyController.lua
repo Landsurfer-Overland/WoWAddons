@@ -102,7 +102,7 @@ local anchors = { TOPLEFT = { 0, 1 }, TOP = { .5, 1 }, TOPRIGHT = { 1, 1 }, LEFT
 function C:Preset()
     local name = R.Text(FA.Settings().legacyUISize)
     local sizes = ns.WrathAchievementUI.PRESETS
-    if not name or not sizes[name] then name = "Standard" end
+    if not name or not sizes[name] then name = "Large" end
     return name, sizes[name]
 end
 function C:RestorePosition()

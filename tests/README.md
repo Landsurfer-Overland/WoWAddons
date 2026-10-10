@@ -114,6 +114,23 @@ points, unit formatting, merged recents and canonical linked-card navigation.
 Follow the [Iteration 4 client plan](../docs/iteration4-regression-plan.md) for actual
 login, disk persistence, progression, source formats, visual and stability verification.
 
+## Iteration 5 checks
+
+UI fixtures cover restored backdrop/header assets, larger defaults with preserved
+saved presets, balanced counters/crest, footer geometry, owned filter selection and
+bounded reuse, whole-parent versus indicator/leaf interactions, direct broad parent
+lists, quiet unknown/card metadata, Legacy-only recorded earner notes, money labels,
+and criteria/check alignment. Native fit fixtures cover uniform bounded enlargement,
+distinct effective scales, unchanged ancestry/scripts/data, idempotent mounting,
+preflight failure, combat guards and exact restoration. Targeted historical Moonglade
+fixtures preserve raw history while separating unverified display/points from actual
+local evidence and independent native completion; unrelated historical zones remain
+compatible. The existing stability, frame-pool and source-authority suites remain active.
+
+Follow the [Iteration 5 client checklist](../docs/iteration5-regression-plan.md) for
+actual texture quality, input behavior, native interaction, two-character history
+and live timing checks. These remain pending until performed in the Forever client.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

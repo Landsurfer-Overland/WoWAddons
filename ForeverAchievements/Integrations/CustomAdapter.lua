@@ -72,7 +72,12 @@ local function otherCharacterCompletions()
             local done = R.Field(snapshot, "done")
             if type(done) == "table" and R.Safe(done) then
                 for savedKey, timestamp in pairs(done) do
-                    if R.Text(savedKey) and completionTime(timestamp) then
+                    local states = R.Field(snapshot, "completionStates")
+                    local validationVersion = R.Field(snapshot, "completionValidationVersion")
+                    local reviewed = savedKey == "explore855" or savedKey == "exploreKal" or savedKey == "worldexplorer"
+                    local verified = validationVersion == 1 and R.Field(states, savedKey) == "verified"
+                        or validationVersion == nil and not reviewed
+                    if R.Text(savedKey) and completionTime(timestamp) and verified then
                         local names = other[savedKey]
                         if not names then names = {}; other[savedKey] = names end
                         local display = identity.name .. (identity.surname and identity.surname ~= "" and (" " .. identity.surname) or "")
@@ -134,6 +139,15 @@ local function catalog()
                     -- A copied/mismatched per-character database remains intact,
                     -- but cannot supply current-character completion or progress.
                     local progress = characterScope and R.Call(a.progress) or nil
+                    local completionReason
+                    if characterScope and type(FA.CompletionStatus) == "function" then
+                        -- Read after progress: a local re-observation can verify
+                        -- retained history without replacing its original date.
+                        local status = R.Call(FA.CompletionStatus, a.key)
+                        completed = status and R.Bool(status[1])
+                        timestamp = completed == true and completionTime(status[2]) or nil
+                        completionReason = status and R.Text(status[3])
+                    end
                     local uniqueID = "custom:" .. a.key
                     local points, kind = R.Number(a.pts), achievementType(a, key)
                     local zone = zones[a.key]
@@ -146,6 +160,7 @@ local function catalog()
                         achievement = a, name = a.name, description = a.desc or "",
                         money = a.money == true, moneyMetric = R.Text(a.moneyMetric),
                         completed = completed, completionState = R.CompletionState(completed), timestamp = timestamp,
+                        historicalTimestamp = completionTime(savedCompletion), completionVerificationReason = completionReason,
                         scope = "Character", scopeType = "character", achievementType = kind,
                         achievementTypeEvidence = R.Text(a.achievementType) and "Explicit custom definition" or "Authored custom category",
                         icon = a.icon or ns.ICONS[a.id], pointValue = points, points = points, pts = points,

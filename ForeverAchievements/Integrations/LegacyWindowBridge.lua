@@ -55,13 +55,33 @@ local function geometry(frame)
     end
     local strata = R.Method(frame, "GetFrameStrata")
     data.FrameStrata = strata and R.Text(strata[1])
-    assert(data.Width > 0 and data.Height > 0 and data.Scale > 0 and data.FrameStrata,
+    assert(data.Width > 0 and data.Width <= 8192 and data.Height > 0 and data.Height <= 8192
+        and data.Scale > 0 and data.FrameStrata,
         "Unsupported native page dimensions")
     for _, key in ipairs({ "Background", "VerticalDivider" }) do
         local object = R.Field(frame, key)
         if object then data.decorations[#data.decorations + 1] = { object = object, shown = shown(object) } end
     end
     return data
+end
+local function fitScale(root, host, data)
+    local function metric(frame, method)
+        local result = R.Method(frame, method)
+        return result and R.Number(result[1])
+    end
+    local width, height = metric(host, "GetWidth"), metric(host, "GetHeight")
+    local hostScale, rootScale = metric(host, "GetEffectiveScale"), metric(root, "GetEffectiveScale")
+    assert(width and width > 0 and width <= 8192 and height and height > 0 and height <= 8192,
+        "Native page content area is unavailable")
+    assert(hostScale and hostScale > 0 and rootScale and rootScale > 0,
+        "Unavailable native page effective scale")
+    -- Fit the original aspect ratio inside the host, including enlargement for
+    -- Large. Keep native descendants and dimensions intact. Only unusually
+    -- oversized hosts hit the cap, limiting magnification of native artwork.
+    local fit = math.min(1.5, width / data.Width, height / data.Height)
+    local scale = R.Number(fit * hostScale / rootScale)
+    assert(scale and scale > 0, "Native page effective scale is unavailable")
+    return scale
 end
 function B.New(root)
     assert(not B.Blocked(root), "Native Legacy frame is protected or forbidden")
@@ -117,16 +137,13 @@ function B:Mount(view, host)
     local id = view == "rewards" and 1 or view == "trees" and 3 or 2
     local data = self.pages[id]
     self:Check()
+    -- Preflight host geometry before selecting or suppressing native pages.
+    -- The controller's existing fallback can then restore any previous mount.
+    local scale = data and fitScale(self.root, host, data)
     self.active = true
     self:Select(id)
     self:Suppress(data and data.frame)
     if not data then return end
-    local targetScale = R.Method(host, "GetEffectiveScale")
-    local rootScale = R.Method(self.root, "GetEffectiveScale")
-    targetScale, rootScale = targetScale and R.Number(targetScale[1]), rootScale and R.Number(rootScale[1])
-    assert(targetScale and rootScale and rootScale > 0, "Unavailable native page effective scale")
-    local scale = math.min(1, host:GetWidth() / data.Width, host:GetHeight() / data.Height) * targetScale / rootScale
-    assert(scale > 0, "Native page content area is unavailable")
     local page = data.frame
     local point, count = R.Method(page, "GetPoint", 1), R.Method(page, "GetNumPoints")
     if not count or count[1] ~= 1 or not point or point[1] ~= "CENTER" or point[2] ~= host

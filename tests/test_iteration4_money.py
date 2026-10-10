@@ -87,7 +87,7 @@ class MoneyTrackingTests(unittest.TestCase):
         self.check('''
             stats[326]="38"
             local cur,need,quantity=M.Progress(db,"breadwinner")
-            assert(cur==nil and need==1000000 and quantity=="Unavailable / 100g (tracking unavailable)")
+            assert(cur==nil and need==1000000 and quantity=="— / 100g")
             GetStatistic=function() error("Unavailable") end
             assert(M.Progress(db,"breadwinner")==nil)
             GetAchievementInfo=function() error("Unavailable") end

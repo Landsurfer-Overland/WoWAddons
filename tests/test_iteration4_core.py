@@ -165,7 +165,9 @@ class Iteration4CoreTests(unittest.TestCase):
             saved.done.explore855=123456
             C_Map=nil; C_MapExplorationInfo=nil
             ns.FA.CheckAll(true)
-            assert(saved.done.explore855==123456 and ns.FA.Earned("explore855")==123456)
+            assert(saved.done.explore855==123456 and ns.FA.Earned("explore855")==nil)
+            local completed,timestamp,reason=ns.FA.CompletionStatus("explore855")
+            assert(completed==nil and timestamp==nil and reason:find("retained",1,true))
             assert(ns.FA.CompletionAttribution("explore855")==nil)
             ns.FA.SLASH.correctachievement("explore855")
             local pending=ns.FA.ProgressionDiagnostics.PendingCorrection()

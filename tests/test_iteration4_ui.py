@@ -96,16 +96,17 @@ class Iteration4UITests(unittest.TestCase):
             row.completionDetail='Completion scope unavailable'; view.selected=row.key
             view:RenderCard(row,1,0); local c=view.cards[1]
             assert(not c.nativeCompleted and not c.characterCompleted and not c.saturated)
-            assert(not c.dateCompleted:IsShown() and c.scopeText:GetText()=='Scope: Unknown')
-            assert(c.completionText:GetText()=='Completion scope unavailable' and #calls==0)
+            assert(not c.dateCompleted:IsShown() and not c.scopeText:IsShown())
+            assert(not c.completionText:IsShown() and row.completionDetail=='Completion scope unavailable' and #calls==0)
         """)
 
-    def test_recorded_other_character_note_never_awards_current_completion(self):
+    def test_ordinary_custom_other_character_history_is_preserved_without_visible_note(self):
         self.check("""
             local row=view.model.byKey['custom:second']
             row.completed=false; row.completedByOtherCharacter=true; row.completionDetail='Completed by Aldrin Stone'
             view.selected=nil; view:RenderCard(row,1,0); local c=view.cards[1]
-            assert(c.otherCompletion:IsShown() and c.otherCompletion:GetText()=='Completed by Aldrin Stone')
+            assert(not c.otherCompletion:IsShown() and not c.completionText:IsShown())
+            assert(row.completionDetail=='Completed by Aldrin Stone' and row.completedByOtherCharacter==true)
             assert(not c.saturated and c.shield.icon.coords[1]==.5 and not c.dateCompleted:IsShown())
             assert(view.model.custom.points==10 and saved.done.second==nil)
             row.completionDetail=nil; view:RenderCard(row,1,0)
@@ -124,7 +125,7 @@ class Iteration4UITests(unittest.TestCase):
             assert(c.nativeStatus:IsShown() and c.nativeStatus:GetText()=='Legacy: 1 point · Complete')
             assert(c.nativeStatus.color[1]<c.nativeStatus.color[3] and c.borderColor[1]<c.borderColor[3])
             assert(not c.dateCompleted:IsShown() and c.completionText:GetText()=='Completed by Aldrin Stone')
-            assert(c.scopeText:GetText()=='Scope: Character' and c.tracked:IsShown())
+            assert(not c.scopeText:IsShown() and c.tracked:IsShown())
             assert(c.progressPool[1].value==3 and c.progressPool[2].value==5)
             assert(c.progressPool[1].barColor[3]==0 and c.progressPool[2].barColor[3]==.85)
             assert(saved.done.second==nil and custom.completed==false and native.completed==true and #calls==0)
@@ -140,28 +141,30 @@ class Iteration4UITests(unittest.TestCase):
             assert(c.characterCompleted and not c.nativeCompleted and c.saturated)
             assert(c.shield.points:GetText()=='20' and c.shield.icon.coords[1]==0)
             assert(c.borderColor[1]>c.borderColor[3] and c.dateCompleted:GetText()=='10/09/26')
-            assert(c.nativeStatus:GetText()=='Legacy: 1 point · Incomplete')
-            local foundScope=false
+            assert(c.nativeStatus:GetText()=='Legacy: 1 point' and not c.completionText:IsShown())
+            local foundNative=false
             for _,f in ipairs(c.criteriaPool) do
-                if f:IsShown() and f.label:GetText():find('Scope: Unknown',1,true) then foundScope=true end
+                if f:IsShown() then
+                    if f.label:GetText()=='Legacy criteria' then foundNative=true end
+                    assert(not f.label:GetText():find('Scope:',1,true))
+                end
             end
-            assert(foundScope and native.completed==false and #calls==0)
+            assert(foundNative and native.completed==false and #calls==0)
         """)
 
-    def test_combined_shield_tooltip_reports_both_points_and_verified_scope(self):
+    def test_combined_shield_tooltip_reports_both_points_without_scope_filler(self):
         self.combined()
         self.check("""
             tooltipLines={}; GameTooltip={SetOwner=function() end,SetText=function(_,t) tooltipTitle=t end,
                 AddLine=function(_,t) tooltipLines[#tooltipLines+1]=t end,Show=function() end}
             view:RenderCard(combined,1,0); ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
-            assert(tooltipTitle=='Character Achievement + Native Legacy')
-            assert(tooltipLines[1]=='Character Achievement Points: 20' and tooltipLines[2]=='Character achievement: Incomplete')
-            assert(tooltipLines[3]=='Scope: Character' and tooltipLines[4]=='Completed by Aldrin Stone')
-            assert(tooltipLines[5]=='Legacy Points: 1' and tooltipLines[6]=='Native Legacy: Complete')
-            assert(tooltipLines[7]=='Scope: Account' and tooltipLines[8]=='Legacy challenge completed account-wide')
+            assert(tooltipTitle=='Achievement and Legacy Points')
+            assert(tooltipLines[1]=='Achievement Points: 20' and tooltipLines[2]=='Legacy Points: 1')
+            assert(tooltipLines[3]=='Legacy completed' and tooltipLines[4]=='Completed by Aldrin Stone')
+            for _,text in ipairs(tooltipLines) do assert(not text:find('Scope:',1,true)) end
             native.scopeType='unknown'; native.scope=nil; native.completionDetail='Completion scope unavailable'
             tooltipLines={}; ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
-            assert(tooltipLines[7]=='Scope: Unknown')
+            assert(tooltipLines[2]=='Legacy Points: 1' and native.scopeType=='unknown')
             for _,text in ipairs(tooltipLines) do assert(not text:find('account-wide',1,true)) end
             assert(#calls==0)
         """)
@@ -183,14 +186,15 @@ class Iteration4UITests(unittest.TestCase):
             combined.completed=nil; custom.completed=nil; combined.completionDetail='Completion unavailable'
             view:RenderCard(combined,1,0); local c=view.cards[1]
             assert(not c.characterCompleted and not c.saturated and c.nativeCompleted)
-            assert(c.shield.points:GetText()=='20' and c.nativeStatus:GetText()=='Legacy: points unavailable · Complete')
+            assert(c.shield.points:GetText()=='20' and c.nativeStatus:GetText()=='Legacy · Complete')
             assert(#c.progressPool==1 and c.progressPool[1].text:GetText()=='Custom objective: 3 / 10')
-            local unknownPoints,unknownCriteria=false,false
+            local nativeHeading=false
             for _,f in ipairs(c.criteriaPool) do if f:IsShown() then
-                if f.label:GetText()=='Native Legacy: Complete — points unavailable' then unknownPoints=true end
-                if f.label:GetText()=='Criteria / progress unavailable.' then unknownCriteria=true end
+                if f.label:GetText()=='Legacy criteria' then nativeHeading=true end
+                assert(not f.label:GetText():find('unavailable',1,true))
             end end
-            assert(unknownPoints and unknownCriteria and saved.done.second==nil and #calls==0)
+            assert(nativeHeading and native.pointValue==nil and nativeCriteria.available==false)
+            assert(saved.done.second==nil and #calls==0)
         """)
 
     def test_combined_criteria_measure_matches_render_and_reuses_bounded_pool(self):
@@ -224,8 +228,8 @@ class Iteration4UITests(unittest.TestCase):
             assert(c.nativeStatus:GetText()=='Legacy: 1 point · Complete' and not c.dateCompleted:IsShown())
             local shown=0; for _,card in ipairs(view.cards) do if card:IsShown() then shown=shown+1 end end
             assert(shown==1 and realModel.custom.points==0 and saved.done.explore802==nil)
-            assert(c.criteriaPool[1].label:GetText()=='Character Achievement: Incomplete — 20 points')
-            assert(not c.criteriaPool[2].check:IsShown() and c.criteriaPool[6].check:IsShown())
+            assert(c.criteriaPool[1].label:GetText()=='Achievement criteria')
+            assert(not c.criteriaPool[2].check:IsShown() and c.criteriaPool[5].check:IsShown())
             assert(#calls==0)
         """)
 
@@ -255,30 +259,31 @@ class Iteration4UITests(unittest.TestCase):
             local moneyCalls=0
             ns.FA.Money=function(copper) moneyCalls=moneyCalls+1; return copper..' copper formatted' end
             view.selected=row.key; view:RenderCard(row,1,0)
-            assert(view.cards[1].progressPool[1].text:GetText()=='Money looted: 38 copper formatted / 50000000 copper formatted')
+            assert(view.cards[1].progressPool[1].text:GetText()=='38 copper formatted / 50000000 copper formatted')
             assert(moneyCalls==2)
             data.items[1].quantityText='38c / 100g (tracked since Iteration 4)'
             view:RenderCard(row,1,0)
-            assert(view.cards[1].progressPool[1].text:GetText()=='Money looted: 38c / 100g (tracked since Iteration 4)' and moneyCalls==2)
+            assert(view.cards[1].progressPool[1].text:GetText()=='38c / 100g' and moneyCalls==2)
             local native=view.model.byKey['legacy:62013']; native.name='Got My Mind on My Money'
             data.items[1].quantityText=nil; view.selected=native.key; view:RenderCard(native,1,0)
             assert(view.cards[1].progressPool[1].text:GetText()=='Money looted: 38 / 50000000' and moneyCalls==2)
             ns.FA.Money=function() error('Formatter unavailable') end
             view.selected=row.key; view:RenderCard(row,1,0)
-            assert(view.cards[1].progressPool[1].text:GetText()=='Money looted: 38 copper / 50000000 copper')
+            assert(view.cards[1].progressPool[1].text:GetText()=='38 copper / 50000000 copper')
             assert(#calls==0)
         """)
 
-    def test_unsupported_money_retains_explicit_tracking_explanation(self):
+    def test_unsupported_money_retains_unknown_state_without_tracking_explanation(self):
         self.check("""
             local row=view.model.byKey['custom:second']; row.achievement.money=true
+            ns.FA.Money=function(value) assert(value==1000000); return '100g' end
             ns.LegacyPresentation.Criteria=function() return {available=false,complete=false,items={
                 {name='Quest earnings',current=nil,required=1000000,completed=nil,
                  quantityText='Unavailable / 100g (lifetime quest total unsupported)'}}} end
             view.selected=row.key; view:RenderCard(row,1,0); local c=view.cards[1]
             assert(#c.progressPool==0)
-            assert(c.criteriaPool[1].label:GetText()=='Quest earnings: Unavailable / 100g (lifetime quest total unsupported)')
-            assert(not c.criteriaPool[1].check:IsShown() and c.criteriaPool[2].label:GetText()=='Criteria / progress unavailable.')
+            assert(c.criteriaPool[1].label:GetText()=='— / 100g')
+            assert(not c.criteriaPool[1].check:IsShown() and #c.criteriaPool==1)
             assert(not c.saturated and #calls==0)
         """)
 

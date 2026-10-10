@@ -588,14 +588,14 @@ class ControllerTests(unittest.TestCase):
             assert(#calls==0)
         ''')
 
-    def test_enable_uses_standard_size_and_restores_original_native_window(self):
+    def test_enable_uses_large_size_and_restores_original_native_window(self):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
             assert(c.state=="Enabled", c.state)
-            assert(c.cover.parent==UIParent and c.cover.width==900 and c.cover.height==760)
+            assert(c.cover.parent==UIParent and c.cover.width==1024 and c.cover.height==860)
             assert(c.cover:IsVisible() and c.ui.root.parent==c.cover and c.ui.root.scale==1)
-            assert(c.ui.root.width==900 and c.ui.root.height==620)
+            assert(c.ui.root.width==1024 and c.ui.root.height==720)
             assert(not LegacySystemFrame.Background:IsShown() and not LegacySystemFrame.NineSlice:IsShown())
             assert(not LegacySystemFrame.NativeTabs:IsShown() and not LegacySystemFrame.ChallengesPage:IsShown())
             assert(not LegacySystemFrame:IsMouseEnabled())
@@ -641,7 +641,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             assert(type(c.ui.callbacks.onSizePresetCycle)=="function")
-            for _,expected in ipairs({"Large","Compact","Standard"}) do
+            for _,expected in ipairs({"Compact","Standard","Large"}) do
                 c.ui.callbacks.onSizePresetCycle(); FlushTimers()
                 assert(settings.legacyUISize==expected and c.cover:IsVisible())
                 local width=c.cover:GetWidth()
@@ -652,6 +652,9 @@ class ControllerTests(unittest.TestCase):
         ''')
 
     def test_drag_position_persists_without_native_frame_reference(self):
+        # The larger default needs room for the requested unconstrained drag;
+        # screen-edge clamping is covered independently below.
+        self.h.execute('UIParent:SetSize(1600,1000)')
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
@@ -730,7 +733,7 @@ class ControllerTests(unittest.TestCase):
             settings.legacyUIPosition={point="NOT_AN_ANCHOR",relativePoint={},x=0/0,y=math.huge}
             ns.FA.SLASH.legacyui("on"); FlushTimers()
             local c=ns.LegacyUIController
-            assert(c.cover:IsVisible() and c.cover:GetWidth()==900 and c.cover:GetHeight()==760)
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==1024 and c.cover:GetHeight()==860)
             local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
             assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER" and x==0 and y==0)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
@@ -1357,16 +1360,31 @@ class PackagingTests(unittest.TestCase):
         self.assertLess(toc.index("UI\\WrathAchievementUI.lua"), toc.index("UI\\WrathAchievementUI.xml"))
         self.assertLess(toc.index("UI\\WrathAchievementUI.xml"), toc.index("Integrations\\LegacyController.lua"))
 
-    def test_texture_files_and_coordinates_come_from_wrath_source(self):
+    def test_texture_files_and_coordinates_preserve_wrath_art_and_explicit_page_crops(self):
         original = ET.parse(ROOT / "References/WrathAchievementUI/Blizzard_AchievementUI.xml").getroot()
         adapted = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
         original_files = {e.get("file") for e in original.iter() if e.get("file")}
         # A stock client search icon accompanies the new unified search field.
         original_files.add("Interface\\Common\\UI-Searchbox-Icon")
+        # The neutral header seal uses the original backend's Feat shield art;
+        # that file is selected in Wrath Lua rather than its XML templates.
+        seal = "Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints"
+        reference_lua = (ROOT / "References/WrathAchievementUI/Blizzard_AchievementUI.lua").read_text()
+        self.assertIn(seal, reference_lua)
+        original_files.add(seal)
         adapted_files = {e.get("file") for e in adapted.iter() if e.get("file")}
         self.assertTrue(adapted_files <= original_files)
         slices = {tuple(sorted(e.attrib.items())) for e in original.iter(URI + "TexCoords")}
+        parents = {child: parent for parent in adapted.iter() for child in parent}
         for e in adapted.iter(URI + "TexCoords"):
+            texture = parents[e]
+            if texture.get("name") in ("$parentPageParchment", "$parentCategoriesBG"):
+                # The shared parchment page replaces the original mismatched
+                # panels. Runtime layout divides this exact crop at the seam;
+                # independent shell tests verify matching U coordinates.
+                self.assertEqual(texture.get("file"), "Interface\\AchievementFrame\\UI-Achievement-AchievementBackground")
+                self.assertEqual(e.attrib, {"left": "0", "right": "1", "top": "0", "bottom": ".5"})
+                continue
             # Forever's current shield sheet adds the guild row below the
             # original player row. This one compatibility crop is deliberate.
             if e.get("bottom") == ".5" and e.get("top") == "0" and e.get("right") == ".5":

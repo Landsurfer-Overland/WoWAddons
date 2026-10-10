@@ -92,8 +92,8 @@ function M.Format(copper)
 end
 function M.Description(key)
     local need = M.Format(M.Threshold(key))
-    if key == "breadwinner" then return "Earn " .. need .. " from quest rewards (verified lifetime statistic required)." end
-    return "Loot " .. need .. ". Uses a verified lifetime total when available; otherwise counts money observed since Iteration 4 tracking began."
+    if key == "breadwinner" then return "Earn " .. need .. " from quest rewards." end
+    return "Loot " .. need .. "."
 end
 local function escape(value) return (value:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")) end
 local function number(value)
@@ -234,10 +234,11 @@ end
 function M.Progress(db, key)
     local need = M.Threshold(key)
     if not need then return nil, nil, "Unknown money achievement" end
-    local current, mode = M.Read(db, key == "breadwinner" and "quest" or "loot")
-    local note = mode == "since_tracking" and " (since Iteration 4 tracking)"
-        or mode == "lifetime" and " (lifetime)" or " (tracking unavailable)"
-    return current and math.min(current, need), need, M.Format(current) .. " / " .. M.Format(need) .. note
+    local current = M.Read(db, key == "breadwinner" and "quest" or "loot")
+    -- Provenance belongs in /fa money report. Unknown earnings stay unknown;
+    -- the ordinary progress label must not manufacture a zero or repeat it.
+    return current and math.min(current, need), need,
+        (current ~= nil and M.Format(current) or "—") .. " / " .. M.Format(need)
 end
 function M.Sync(db)
     if not scope(db) then return false end

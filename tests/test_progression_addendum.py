@@ -421,6 +421,13 @@ class MetaCompletionTests(unittest.TestCase):
         self.h.execute('''
             SaveContinentChildren("exploreEK",123456)
             SaveContinentChildren("exploreKal",234567)
+            -- This fixture represents genuine history, including the owning
+            -- character's Moonglade attribution introduced in Iteration 4.
+            assert(ns.FA.CompletionStatus("explore855")==nil)
+            local identity=ns.FA.CharacterIdentity()
+            saved.completionAttribution={explore855={completedAt=saved.done.explore855,
+                characterKey=identity.key,identity=identity,version=1}}
+            assert(ns.FA.CompletionStatus("explore855")==true)
             saved.done.loreEK=345678; saved.done.loreKal=456789
             GetStatistic=nil; C_QuestLog=nil; GetQuestsCompleted=nil
             C_Map=nil; C_MapExplorationInfo=nil
@@ -450,6 +457,11 @@ class MetaCompletionTests(unittest.TestCase):
             current,needed=world.progress()
             assert(current==nil and needed==2)
             saved.done.exploreKal=345678; saved.done.loreKal=456789
+            assert(world.has("Kalimdor")==nil)
+            saved.done.explore855=345600
+            local identity=ns.FA.CharacterIdentity()
+            saved.completionAttribution={explore855={completedAt=saved.done.explore855,
+                characterKey=identity.key,identity=identity,version=1}}
             assert(world.has("Kalimdor")==true and lore.has("Loremaster of Kalimdor")==true)
             local continent=ns.FA.BY_KEY.exploreEK
             local first,second=continent.list[1],continent.list[2]

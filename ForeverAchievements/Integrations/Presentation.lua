@@ -165,16 +165,26 @@ local function subjectFromNames(root, names, classSubjects)
         elseif root == "general" then
             if name == "levels" or name == "riding" or name == "progression" then return "progression" end
             if name == "character" or name == "collections" then return "character" end
+            if name == "miscellaneous" then return "miscellaneous" end
         elseif root == "reputation" then
             if name == "alliance" or name == "horde" then return name end
+            if name == "otherfactions" or name == "foreverfactions" or name == "neutralfactions" then return "other-factions" end
         elseif root == "classes" then
             if classSubjects and classSubjects[name] then return classSubjects[name] end
             if name == "classprogression" or name == "progression" then return "progression" end
         end
     end
 end
-local function defaultSubject(root)
-    return ({ general = "miscellaneous", exploration = "world", reputation = "other-factions",
+local function defaultSubject(root, leafName)
+    -- Broad General records belong to its selected parent list. Narrow subjects
+    -- still use their authored metadata; this does not aggregate child lists.
+    if root == "general" then return nil end
+    if root == "reputation" then
+        local name = normalized(leafName)
+        if name == "general" or name == "reputation" or name == "reputations" or name == "exalted" or
+            name == "exaltedreputation" or name == "exaltedreputations" then return nil end
+    end
+    return ({ exploration = "world", reputation = "other-factions",
         feats = "special" })[root]
 end
 local function nativeSubject(row, root, categories, override, context)
@@ -182,7 +192,7 @@ local function nativeSubject(row, root, categories, override, context)
     if context then return context.subjects[row.category] or nil end
     local names = {}
     for _, cat in ipairs(ancestors(categories[row.category], categories)) do names[#names + 1] = cat.name end
-    return subjectFromNames(root, names) or defaultSubject(root)
+    return subjectFromNames(root, names) or defaultSubject(root, names[1])
 end
 local function customSubject(row, root)
     local a = row.achievement or {}
@@ -219,7 +229,7 @@ local function customSubject(row, root)
         if key == "exploreEK" then return "eastern-kingdoms" end
         if key == "exploreKal" then return "kalimdor" end
     end
-    return subjectFromNames(root, { section or "" }) or defaultSubject(root)
+    return subjectFromNames(root, { section or "" }) or defaultSubject(root, section)
 end
 
 -- Playable classes come from this client's enumeration. If that API is absent,
@@ -536,7 +546,7 @@ function P.Build(page, nativeCatalog)
             if classes.names[normalized(name)] then root = "classes"; break end
         end
         context.paths[cat.key], context.names[cat.key], context.roots[cat.key] = path, names, root
-        context.subjects[cat.key] = subjectFromNames(root, names, classes.names) or defaultSubject(root) or false
+        context.subjects[cat.key] = subjectFromNames(root, names, classes.names) or defaultSubject(root, names[1]) or false
         if root == "professions" and not context.subjects[cat.key] and cat.parent and nativeCategories[cat.parent] then
             local name = normalized(cat.name)
             if name ~= "primaryprofessions" and name ~= "primary" and name ~= "general" and

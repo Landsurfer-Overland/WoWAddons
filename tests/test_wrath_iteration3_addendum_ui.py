@@ -66,7 +66,7 @@ class AddendumUITests(unittest.TestCase):
             assert(#calls==0)
         """)
 
-    def test_cross_character_detail_keeps_current_character_art_and_points_incomplete(self):
+    def test_ordinary_custom_hides_cross_character_detail_and_keeps_current_art_incomplete(self):
         self.check("""
             local row=view.model.byKey['custom:second']
             row.completed=false; row.completedOnCurrentCharacter=false; row.completedByOtherCharacter=true
@@ -74,8 +74,8 @@ class AddendumUITests(unittest.TestCase):
             view.selected=row.key; view:RenderCard(row,1,0)
             local card=view.cards[1]
             assert(not card.saturated and card.shield.icon.coords[1]==.5 and card.shield.points:GetText()=='20')
-            assert(card.completionText:IsShown() and card.completionText:GetText()=='Completed by another character')
-            assert(card.scopeText:GetText()=='Scope: Character')
+            assert(not card.completionText:IsShown() and not card.otherCompletion:IsShown())
+            assert(not card.scopeText:IsShown() and row.completionDetail=='Completed by another character')
             assert(view.model.custom.points==10 and saved.done.second==nil)
             view.selected=nil; view:RenderCard(row,1,0)
             assert(not card.completionText:IsShown() and card:GetHeight()==84 and not card.saturated)
@@ -88,16 +88,18 @@ class AddendumUITests(unittest.TestCase):
             custom.completionDetail='Completed on this character'; custom.completionScope='current_character'
             view.selected=custom.key; view:RenderCard(custom,1,0)
             local card=view.cards[1]
-            assert(card.saturated and card.completionText:GetText()=='Completed on this character')
+            assert(card.saturated and not card.completionText:IsShown())
+            assert(custom.completionDetail=='Completed on this character')
             local native=view.model.byKey['legacy:62013']
             native.completed=true; native.scopeType='account'; native.completionScope='native_account'
             native.completionDetail='Legacy challenge completed account-wide'
             view.selected=native.key; view:RenderCard(native,1,0)
-            assert(card.saturated and card.completionText:GetText()=='Legacy challenge completed account-wide')
-            assert(card.scopeText:GetText()=='Scope: Account' and saved.done.second==nil)
+            assert(card.saturated and card.nativeCompleted and not card.characterCompleted)
+            assert(not card.completionText:IsShown() and not card.scopeText:IsShown() and saved.done.second==nil)
             native.completionScope='unknown'; native.completionDetail='Completion scope unavailable'
             view:RenderCard(native,1,0)
-            assert(card.saturated and card.completionText:GetText()=='Completion scope unavailable')
+            assert(card.saturated and not card.completionText:IsShown())
+            assert(native.completionDetail=='Completion scope unavailable')
             assert(#calls==0)
         """)
 
@@ -108,7 +110,8 @@ class AddendumUITests(unittest.TestCase):
                 AddLine=function(_,text) tooltipLines[#tooltipLines+1]=text end,Show=function() end}
             row.completionDetail='Completed by another character'; row.completionScope='other_character'
             view:RenderCard(row,1,0); ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
-            assert(tooltipLines[#tooltipLines]=='Completed by another character')
+            for _,line in ipairs(tooltipLines) do assert(line~='Completed by another character') end
+            assert(row.completionDetail=='Completed by another character')
             row.completionDetail=nil; row.completionScope=nil; row.completedByOtherCharacter=true
             tooltipLines={}; view.selected=row.key; view:RenderCard(row,1,0)
             ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
@@ -116,8 +119,9 @@ class AddendumUITests(unittest.TestCase):
             for _,line in ipairs(tooltipLines) do assert(line~='Completed by another character') end
             row.completed=nil; tooltipLines={}; view:RenderCard(row,1,0)
             ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
-            assert(not view.cards[1].saturated and view.cards[1].completionText:GetText()=='Completion unavailable')
-            assert(tooltipLines[#tooltipLines]=='Completion unavailable' and #calls==0)
+            assert(not view.cards[1].saturated and not view.cards[1].completionText:IsShown())
+            for _,line in ipairs(tooltipLines) do assert(line~='Completion unavailable') end
+            assert(row.completed==nil and #calls==0)
         """)
 
     def test_adapter_verified_other_character_and_native_account_states_render_independently(self):
@@ -137,11 +141,13 @@ class AddendumUITests(unittest.TestCase):
             local custom=view.model.byKey['custom:second']
             assert(custom.completed==false and custom.completionScope=='other_character')
             view.selected=custom.key; view:RenderCard(custom,1,0)
-            assert(not view.cards[1].saturated and view.cards[1].completionText:GetText()=='Completed by Main One')
+            assert(not view.cards[1].saturated and not view.cards[1].completionText:IsShown())
+            assert(custom.completionDetail=='Completed by Main One' and custom.completedByName=='Main One')
             local native=view.model.byKey['legacy:62013']
             assert(native.completed==true and native.completionScope=='native_account')
             view.selected=native.key; view:RenderCard(native,1,0)
-            assert(view.cards[1].saturated and view.cards[1].completionText:GetText()=='Legacy challenge completed account-wide')
+            assert(view.cards[1].saturated and view.cards[1].nativeCompleted and not view.cards[1].completionText:IsShown())
+            assert(native.completionDetail=='Legacy challenge completed account-wide')
             assert(custom.completed==false and saved.done.second==nil and view.model.custom.points==10)
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10' and #calls==0)
         """)

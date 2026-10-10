@@ -90,7 +90,7 @@ class WrathUIPerformanceTests(unittest.TestCase):
             view.selected='custom:entry1'; view:Render()
             local card=cardFor('custom:entry1')
             assert(#data.items==1000 and #card.criteriaPool==257)
-            assert(card.criteriaPool[257].label:GetText():find('omitted',1,true))
+            assert(card.criteriaPool[257].label:GetText()=='More objectives…')
             assert(card:GetHeight()+4==view.measureCache.advance)
             for i=1,20 do view.contentScroll:SetVerticalScroll(i*25) end
             assert(#card.criteriaPool==257 and #view.cards<=12 and #calls==0)

@@ -1,4 +1,4 @@
-# Unified Wrath Legacy interface — iteration 4
+# Unified Wrath Legacy interface — iteration 5
 
 Install the complete `ForeverAchievements` folder in the active Forever client's
 `Interface/AddOns` directory, replacing the previous addon files. Keep your
@@ -26,7 +26,8 @@ addon and the native Blizzard addon directories.
 - `/fa correctachievement KEY resume`, then `/fa correctachievement KEY resume confirm TOKEN`, explicitly permits future verified earning of that corrected key.
 
 The feature is disabled by default. The account option, selected size, and dragged
-position persist across reloads. Standard is the initial size. Size presets enlarge
+position persist across reloads. Large is the initial size; an explicitly saved
+Compact or Standard preference remains respected. Size presets enlarge
 usable content space while retaining fixed decorative corners and classic artwork;
 the window fits the available screen. Use the header to drag it and reset if needed
 after a resolution or UI-scale change. The existing standalone `/fach` window,
@@ -53,7 +54,9 @@ progression, quests, geography, individual professions, dungeons/raids, reputati
 PvP, supported classes, and special achievements. Selecting a parent lists only
 records assigned directly to it; its completion count can include descendants.
 General profession and broad reputation milestones belong in their parent categories.
-Expansion and selection are independent, and the selected row has a green highlight.
+Clicking a whole parent row selects its directly assigned achievements and toggles
+its children. The plus/minus button toggles children without changing selection.
+Leaf rows select their own list; the selected row has a green highlight.
 
 Unknown native mappings appear under **Feats of Strength → Other Legacy Challenges**.
 That is a navigation location only: the record retains its real type, points, scope,
@@ -64,29 +67,33 @@ Native Legacy completion and rewards come from the game. Custom completion follo
 original character SavedVariables. Zone records with verified matching stable IDs
 and complete requirements share a presentation card, with independent custom/native
 components. Unverified or different requirements remain separate; repeated instances
-of the same namespaced identity are removed from a listing. World Explorer and
-Explore Azeroth remain separate in World Exploration until their complete required
-zone sets and relationships are verified as equivalent.
-Expanded details and point-shield tooltips distinguish completion on this character,
-reliably recorded completion on another character, native account-wide completion,
-incomplete progress, and unavailable provenance. Another character's completion never
+of the same namespaced identity are removed from a listing. The original 50-point
+custom `worldexplorer` record is now displayed as Explore Azeroth, with its existing
+ID, criteria and history. Its native 62053 counterpart remains separate in World
+Exploration until the complete zone sets and relationships are verified as equivalent.
+Gold artwork identifies verified current-character completion; restrained blue
+indicators identify native completion. Routine card details omit scope labels and
+unknown-state filler. Known previous-character names appear only where linked
+Legacy/account completion is relevant. Another character's completion never
 changes this character's custom completion, date, points, or completed artwork.
 Historical account snapshots without reliable character identity do not establish
 who earned an achievement.
 Current custom completion uses gold; completed native records use a restrained blue
 accent. A merged card retains character completion separately, including when native
 progress is complete and this character's custom achievement is incomplete. Reliable
-other-character history names its recorded earner without granting character points.
+other-character history for Legacy-linked cards names its recorded earner without
+granting character points.
 The standalone account overview shows verified character snapshots and labels
 unreliable totals `Unavailable`. Its old account-union toggle is removed; the stored
 preference and historical records remain preserved. Malformed timestamps do not
 appear as earned recent achievements or count toward a new meta completion.
 
-The header is the main location for separate **Character Achievement Points** and
+The header is the main location for separate **Achievement Points** and
 **Legacy Points**. They are never added together. Cards use their actual point system
-and achievement type; zero points alone never means Feat of Strength. Point and scope
-tooltips distinguish Character, Account, and unknown metadata. Unknown awards show
-`?` or `Unavailable`, rather than invented Legacy rewards. A confirmed native zero
+and achievement type; zero points alone never means Feat of Strength. Point
+tooltips distinguish the independent custom and native awards. Unknown shields use
+`?`, unknown header totals use `Unavailable`, and point tooltips use a dash rather
+than inventing Legacy rewards. A confirmed native zero
 award retains numeric 0 with a no-point-reward tooltip and neutral ordinary shield;
 it does not advertise a Legacy Point award or imply a Feat. A zone's custom points do
 not inherit a native meta-achievement's Legacy award. Cards without real rewards leave
@@ -168,8 +175,11 @@ area-at-position API is available, it must also confirm the required area. Hover
 remote map reads, zone entry alone, and old unattributed visits do not grant missing
 completions. Validated fallback maps retain their actual zone name and overlay dimensions
 as proof. Old observations remain saved; uncertain areas may need revisiting.
-Meta children require finite positive
-current-character completion timestamps; malformed history remains unknown and saved.
+Meta children require finite positive current-character completion timestamps;
+malformed history remains unknown and saved. The reported historical Moonglade
+family also requires verified character attribution or owning local discovery
+evidence before it supplies completed artwork or points. Unverified history stays
+saved; genuine re-verification preserves its original date.
 `Going Down?` requires a measured, continuous 65-yard fall and verified survival after
 landing; elapsed falling time alone is insufficient. Unavailable evidence cannot award
 these achievements. Previously saved completion remains intact.
@@ -187,6 +197,9 @@ The older `/fach reset` directs you to this targeted flow instead of wiping prog
 
 ## Manual in-game test plan
 
+Use the [Iteration 5 checklist](../../docs/iteration5-regression-plan.md#manual-client-checklist)
+for the current shell, controls, card cleanup and historical Moonglade checks.
+
 Automated/static checks cannot validate game assets, protected UI, real native
 progression, or SavedVariables disk writes. Keep your existing saves and record errors
 at normal and smaller UI scales. Avoid irreversible claims or trait commits solely
@@ -202,7 +215,9 @@ for testing.
    Open another normal UI panel and check its layout/closing alongside Legacy.
 4. Expand/collapse parent and child categories. Select Professions and compare its list
    with Fishing, Cooking, First Aid, and primary-profession children. Select Exploration
-   and its geography children. Parents must include all descendants without repeated IDs.
+   and its geography children. Parent lists contain only direct assignments;
+   parent counts can include descendants. Whole parent rows also toggle children,
+   while plus/minus buttons toggle without changing the selected list.
 5. Check root/child indentation, backgrounds, text prominence, and green selection.
    Refresh progress or switch tabs and return: the selected category and expansion
    should remain stable, with only the selected row highlighted.
@@ -219,7 +234,8 @@ for testing.
    entries. Distinct accomplishments may coexist; the same identity must not repeat.
 9. Compare Expert Alchemist `62013`'s progress/award against the native interface.
    Expand completed/incomplete cards, long criteria, series tiers, and linked metas.
-   Check Character/Account/unknown scope. Criteria alone must not grant completion.
+   Check independent custom/native points and blue/gold completion. Routine scope
+   and unknown-state filler stays absent; criteria alone must not grant completion.
 10. Check ordinary character, Legacy, and genuine Feat shields: one correctly positioned
     icon/value, completed/incomplete styling, and appropriate tooltips. Zero-point
     standard records must not acquire Feat artwork. Absent rewards leave no text/decoration.

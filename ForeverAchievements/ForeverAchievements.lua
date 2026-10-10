@@ -107,6 +107,7 @@ function Proof.ValidCompletionTime(value)
     return n and n > 0 and n or nil
 end
 function Proof.Completed(key)
+    if Proof.CompletionStatus then return Proof.CompletionStatus(key) end
     if Proof.CharacterScope and Proof.CharacterScope() ~= true then return nil end
     local value = DB().done[key]
     if value == nil then return false end
@@ -212,14 +213,18 @@ function Proof.RecordCompletion(d, a, completedAt)
 end
 function Proof.CompletionAttribution(key)
     local d = DB()
-    local entries = type(d.completionAttribution) == "table" and d.completionAttribution
+    local entries = not secret(d.completionAttribution) and type(d.completionAttribution) == "table" and d.completionAttribution
     local entry = entries and entries[key]
-    local identity = type(entry) == "table" and entry.identity
-    if type(identity) ~= "table" or identity.verified ~= true
-        or not Proof.PlainText(identity.key) or entry.characterKey ~= identity.key
+    if secret(entry) or type(entry) ~= "table" then return nil end
+    local identity = entry.identity
+    if secret(identity) or type(identity) ~= "table" or secret(identity.verified) or identity.verified ~= true
+        or not Proof.PlainText(identity.key) or Proof.PlainText(entry.characterKey) ~= identity.key
         or not Proof.PlainText(identity.name) or not Proof.PlainText(identity.realm)
-        or entry.completedAt ~= Proof.ValidCompletionTime(d.done[key]) then return nil end
-    return { key = identity.key, name = identity.name, surname = identity.surname,
+        or not Proof.ValidCompletionTime(entry.completedAt)
+        or Proof.ValidCompletionTime(entry.completedAt) ~= Proof.ValidCompletionTime(d.done[key])
+        or secret(identity.guid)
+        or identity.guid ~= nil and (not Proof.PlainText(identity.guid) or not identity.guid:match("^Player%-%w[%w%-]*$")) then return nil end
+    return { key = identity.key, name = identity.name, surname = Proof.PlainText(identity.surname),
         realm = identity.realm, guid = identity.guid, verified = true }
 end
 function Proof.SetProgressEvidence(key, source, observations)
@@ -633,6 +638,76 @@ end
 
 local function ZoneKey(z) return z.key or ("explore" .. z.id) end
 
+-- Reuse the same saved-proof contract for live progress and the reported
+-- historical Moonglade display issue. A timestamp cannot prove discovery.
+function Proof.ValidExplorationEvidence(saved, zone, area, identity, d)
+    if secret(saved) or type(saved) ~= "table" then return false end
+    local savedMap, savedWidth, savedHeight = Proof.PlainNumber(saved.mapID),
+        Proof.PlainNumber(saved.textureWidth), Proof.PlainNumber(saved.textureHeight)
+    local observedX, observedY, observedMap = Proof.PlainNumber(saved.observedOffsetX),
+        Proof.PlainNumber(saved.observedOffsetY), Proof.PlainNumber(saved.observedPlayerMapID)
+    return not secret(saved.verified) and saved.verified == true
+        and not secret(saved.evidenceVersion) and saved.evidenceVersion == 2
+        and not secret(saved.kind) and saved.kind == "revealed-map-overlay"
+        and Proof.CharacterEvidenceMatches(saved.characterKey, identity, d)
+        and not secret(saved.characterLocationVerified) and saved.characterLocationVerified == true
+        and observedMap and observedMap > 0 and observedMap == math.floor(observedMap)
+        and (NormZone(saved.observedZoneName) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1]))
+        and (NormZone(area[1]) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1])
+            or NormZone(saved.observedSubzoneName) == NormZone(area[1]))
+        and savedMap and savedMap > 0 and savedMap == math.floor(savedMap)
+        and savedWidth and savedWidth > 0 and savedHeight and savedHeight > 0
+        and NormZone(saved.zoneName) == NormZone(zone.zone)
+        and Proof.PlainNumber(saved.offsetX) == area[2] and Proof.PlainNumber(saved.offsetY) == area[3]
+        and observedX and observedY and math.abs(observedX - area[2]) <= 2
+        and math.abs(observedY - area[3]) <= 2 or false
+end
+
+Proof.explorationRequirements = {}
+function Proof.CompletionStatus(key, visiting)
+    local d, value = DB(), DB().done[key]
+    local definition = ns.FA and ns.FA.BY_KEY and ns.FA.BY_KEY[key]
+    local scope, identity = Proof.CharacterScope(d)
+    if not (definition and definition.native) and scope ~= true then
+        return nil, nil, "Character completion attribution unavailable"
+    end
+    if value == nil then return false end
+    local timestamp = Proof.ValidCompletionTime(value)
+    if not timestamp then return nil, nil, "Saved completion timestamp unavailable" end
+    local requirements = Proof.explorationRequirements[key]
+    if not requirements then return true, timestamp end
+    -- This bounded walk only checks saved evidence. It never opens remote maps,
+    -- calls exploration APIs, grants a completion, or rewrites the timestamp.
+    visiting = visiting or {}
+    if visiting[key] then return nil, nil, "Exploration completion relationship is cyclic" end
+    visiting[key] = true
+    if requirements.children then
+        for _, child in ipairs(requirements.children) do
+            if Proof.CompletionStatus(child, visiting) ~= true then
+                visiting[key] = nil
+                return nil, nil, "Historical exploration completion retained; child discovery is unverified"
+            end
+        end
+    else
+        local attribution = Proof.CompletionAttribution(key)
+        local attributed = attribution and attribution.realm == identity.realm
+            and Proof.CharacterEvidenceMatches(attribution.key, identity, d)
+            and (not attribution.guid or not identity.guid or attribution.guid == identity.guid)
+        if not attributed then
+            local evidence = type(d.explorationEvidence) == "table" and d.explorationEvidence[key]
+            for _, area in ipairs(requirements.zone.areas) do
+                local saved = type(evidence) == "table" and evidence[area[1]]
+                if not Proof.ValidExplorationEvidence(saved, requirements.zone, area, identity, d) then
+                    visiting[key] = nil
+                    return nil, nil, "Historical exploration completion retained; character discovery is unverified"
+                end
+            end
+        end
+    end
+    visiting[key] = nil
+    return true, timestamp
+end
+
 function Proof.AreaLocation(zone, area, mapID)
     local r = Proof.EvaluationAPI("player-real-zone", GetRealZoneText)
     local zoneName = r and Proof.PlainText(r[1])
@@ -699,25 +774,7 @@ local function AreaExplored(zone, area)
     if not identity then return nil end
     local ex = type(d.explorationEvidence) == "table" and d.explorationEvidence[key]
     local saved = type(ex) == "table" and ex[area[1]]
-    local savedMap = type(saved) == "table" and Proof.PlainNumber(saved.mapID)
-    local savedWidth = type(saved) == "table" and Proof.PlainNumber(saved.textureWidth)
-    local savedHeight = type(saved) == "table" and Proof.PlainNumber(saved.textureHeight)
-    local observedX = type(saved) == "table" and Proof.PlainNumber(saved.observedOffsetX)
-    local observedY = type(saved) == "table" and Proof.PlainNumber(saved.observedOffsetY)
-    local observedMap = type(saved) == "table" and Proof.PlainNumber(saved.observedPlayerMapID)
-    if type(saved) == "table" and saved.kind == "revealed-map-overlay" and saved.verified == true
-        and saved.evidenceVersion == 2 and Proof.CharacterEvidenceMatches(saved.characterKey, identity, d)
-        and saved.characterLocationVerified == true
-        and observedMap and observedMap > 0 and observedMap == math.floor(observedMap)
-        and (NormZone(saved.observedZoneName) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1]))
-        and (NormZone(area[1]) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1])
-            or NormZone(saved.observedSubzoneName) == NormZone(area[1]))
-        and savedMap and savedMap > 0 and savedMap == math.floor(savedMap)
-        and savedWidth and savedWidth > 0 and savedHeight and savedHeight > 0
-        and NormZone(saved.zoneName) == NormZone(zone.zone)
-        and saved.offsetX == area[2] and saved.offsetY == area[3]
-        and observedX and observedY and math.abs(observedX - area[2]) <= 2
-        and math.abs(observedY - area[3]) <= 2 then return true end
+    if Proof.ValidExplorationEvidence(saved, zone, area, identity, d) then return true end
     local mapID, x, y = Proof.ZoneMap(zone), Proof.PlainNumber(area[2]), Proof.PlainNumber(area[3])
     if not mapID or not x or not y then return nil end
     local location = Proof.AreaLocation(zone, area, mapID)
@@ -847,6 +904,10 @@ local QUEST_SECTIONS = {
 
 -- Exploration: one achievement per zone, then the continents and the world.
 local function ZoneAch(z)
+    -- Earlier builds could complete this single-criterion zone from remote
+    -- map textures. Preserve its raw history while reviewing display authority.
+    -- Other pre-Iteration-4 zone awards keep their per-character compatibility.
+    if ZoneKey(z) == "explore855" then Proof.explorationRequirements.explore855 = { zone = z } end
     local names = {}
     for _, area in ipairs(z.areas) do names[#names + 1] = area[1] end
     return { key = ZoneKey(z), id = z.id, icon = z.icon, name = "Explore " .. z.zone, pts = 10,
@@ -893,6 +954,9 @@ end
 local function ContinentAch(key, id, name, zones)
     local names = {}
     for _, a in ipairs(zones) do names[#names + 1] = (a.name:gsub("^Explore ", "")) end
+    -- Review only the reported Moonglade history and its dependent displays.
+    -- Do not re-audit unrelated historical zones or Eastern Kingdoms here.
+    if key == "exploreKal" then Proof.explorationRequirements[key] = { children = { "explore855" } } end
     return { key = key, id = id, name = name, pts = 25,
              desc = "Explore the regions of " .. name:gsub("^Explore ", "") .. ".",
              list = names,
@@ -908,11 +972,12 @@ end
 
 local exploreEK = ContinentAch("exploreEK", 42, "Explore Eastern Kingdoms", ekZones)
 local exploreKal = ContinentAch("exploreKal", 43, "Explore Kalimdor", kalZones)
+Proof.explorationRequirements.worldexplorer = { children = { "explore855" } }
 
 local EXPLORE_SECTIONS = {
     { title = "AZEROTH", list = {
         exploreEK, exploreKal,
-        { key = "worldexplorer", id = 46, name = "World Explorer", pts = 50,
+        { key = "worldexplorer", id = 46, name = "Explore Azeroth", pts = 50,
           desc = "Explore Eastern Kingdoms and Kalimdor.",
           list = { "Eastern Kingdoms", "Kalimdor" },
           has = function(n)
@@ -1757,9 +1822,8 @@ end
 -- Completion and point totals always describe this character. Account snapshots
 -- are evidence for an elsewhere indicator, never a substitute completion.
 local function Earned(key)
-    local definition = ns.FA and ns.FA.BY_KEY and ns.FA.BY_KEY[key]
-    if not (definition and definition.native) and Proof.CharacterScope() ~= true then return nil end
-    return Proof.ValidCompletionTime(DB().done[key])
+    local completed, timestamp = Proof.CompletionStatus(key)
+    return completed == true and timestamp or nil
 end
 
 local EARN_HOOKS, CHECK_HOOKS = {}, {} -- filled by the modules
@@ -2578,14 +2642,19 @@ local function TotalPoints()
     return Proof.WithEvaluation(function()
         local done, all = 0, 0
         local n, avail = 0, 0
+        local pointsKnown = true
         for _, a in ipairs(ALL) do
             if Available(a) then
                 avail = avail + 1
                 all = all + a.pts
-                if Earned(a.key) then done, n = done + a.pts, n + 1 end
+                local completed = Proof.CompletionStatus(a.key)
+                if completed == true then done, n = done + a.pts, n + 1
+                elseif completed == nil then pointsKnown = false end
             end
         end
-        return done, all, n, avail
+        -- Existing numeric consumers/protocols keep a verified lower bound;
+        -- callers that display a definitive total can use the fifth result.
+        return done, all, n, avail, pointsKnown
     end)
 end
 
@@ -3028,9 +3097,10 @@ end
 RefreshWindow = function()
     if not (win and win:IsShown()) then return end
     if win.scroll then win.scroll:Hide(); win.scroll:SetParent(nil) end
-    local done, all, n, avail = TotalPoints()
+    local done, all, n, avail, pointsKnown = TotalPoints()
     local function Summary(pts)
-        local text = ("%d / %d earned   |   %d / %d points"):format(n, avail, pts, all)
+        local text = pointsKnown and ("%d / %d earned   |   %d / %d points"):format(n, avail, pts, all)
+            or ("? / %d earned   |   ? / %d points"):format(avail, all)
         if COMPARE.name then text = text .. "   |   comparing with " .. COMPARE.name end
         win.summary:SetText(text)
     end
@@ -3304,6 +3374,10 @@ SLASH.inspectachievement = function(key)
     record.condition = Proof.PlainText(a.desc) or a.name
     record.observations.completionHeld = held
     record.observations.completedOnCharacter = Earned(key) ~= nil
+    local completed, _, reason = Proof.CompletionStatus(key)
+    record.observations.completionVerified = completed == true
+    record.observations.savedCompletionTimestamp = Proof.ValidCompletionTime(DB().done[key])
+    record.observations.completionVerificationReason = reason
     Proof.PrintDecision(record)
 end
 function Proof.PendingCorrection()
@@ -3447,6 +3521,7 @@ ns.FA = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
     CharacterScope = Proof.CharacterScope, CompletionAttribution = Proof.CompletionAttribution,
+    CompletionStatus = Proof.CompletionStatus,
     WithProgressSnapshot = Proof.WithEvaluation,
     ProgressionDiagnostics = Proof.trace,
     IsDebug = function() return debugOn end, -- /fach debug, for messages in the other files

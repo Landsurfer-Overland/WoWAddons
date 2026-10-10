@@ -86,24 +86,57 @@ for original, renamed in mapping.items():
 # scroll frames, comparison panel and global dropdown are omitted. The original
 # close button is rebound to the reversible controller below.
 original = next(n for n in source if n.get('name') == 'AchievementFrame')
-window = ET.SubElement(out, tag('Frame'), {'name': 'FAWrathWindowTemplate', 'virtual': 'true', 'enableMouse': 'true'})
+window = ET.SubElement(out, tag('Frame'), {'name': 'FAWrathWindowTemplate', 'virtual': 'true',
+                                        'enableMouse': 'true', 'inherits': 'BackdropTemplate'})
 window.append(deepcopy(original.find(tag('Size'))))
 window.append(deepcopy(original.find(tag('Layers'))))
+# The original achievement frame uses a 64px tiled wooden backdrop in addition
+# to its corner ornaments. Its Lua-owned equivalent restores those missing
+# connecting edges. A matching full-page parchment removes the baked dark/light
+# split between navigation and content without stretching the ornate roof.
+body_layers = window.find(tag('Layers'))
+body_background = next(layer for layer in body_layers if layer.get('level') == 'BACKGROUND')
+page = ET.SubElement(body_background, tag('Texture'), {
+    'name': '$parentPageParchment', 'file': 'Interface\\AchievementFrame\\UI-Achievement-AchievementBackground'})
+anchors = ET.SubElement(page, tag('Anchors'))
+for point, x, y in [('TOPLEFT', '25', '-23'), ('BOTTOMRIGHT', '-25', '23')]:
+    ET.SubElement(ET.SubElement(anchors, tag('Anchor'), {'point': point}), tag('Offset'), {'x': x, 'y': y})
+ET.SubElement(page, tag('TexCoords'), {'left': '0', 'right': '1', 'top': '0', 'bottom': '.5'})
+category_bg = window.find('.//' + tag('Texture') + "[@name='$parentCategoriesBG']")
+category_bg.set('file', 'Interface\\AchievementFrame\\UI-Achievement-AchievementBackground')
+ET.SubElement(category_bg, tag('TexCoords'), {'left': '0', 'right': '1', 'top': '0', 'bottom': '.5'})
+footer = ET.SubElement(body_background, tag('Texture'), {
+    'name': '$parentFooterBacking', 'file': 'Interface\\TutorialFrame\\TutorialFrameBackground'})
+anchors = ET.SubElement(footer, tag('Anchors'))
+ET.SubElement(ET.SubElement(anchors, tag('Anchor'), {'point': 'TOPLEFT', 'relativePoint': 'BOTTOMLEFT'}),
+              tag('Offset'), {'x': '13', 'y': '8'})
+ET.SubElement(ET.SubElement(anchors, tag('Anchor'), {'point': 'BOTTOMRIGHT', 'relativePoint': 'BOTTOMRIGHT'}),
+              tag('Offset'), {'x': '-13', 'y': '-57'})
 frames = ET.SubElement(window, tag('Frames'))
 header = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Frame') + "[@name='$parentHeader']"))
 for node in header.iter():
     if 'relativeTo' in node.attrib:
         node.set('relativeTo', node.get('relativeTo').replace('AchievementFrame', 'FAWrathAchievementFrame'))
 frames.append(header)
+header.find(tag('Size') + '/' + tag('AbsDimension')).set('y', '118')
 
 # Two matching Wrath point counters fit within the existing roof. They use the
 # original point-border and tiny-shield artwork, not another outer frame.
 border = header.find('.//' + tag('Texture') + "[@name='$parentPointBorder']")
 border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '170')
-border.find('.//' + tag('Offset')).set('x', '-115')
+border.find('.//' + tag('Offset')).set('x', '-174')
+border.find('.//' + tag('Offset')).set('y', '19')
 title = header.find('.//' + tag('FontString') + "[@name='$parentTitle']")
-title.find(tag('Size')).set('x', '220')
-title.set('text', 'Character Achievement Points')
+title.find(tag('Size')).set('x', '188')
+title.find(tag('Size')).set('y', '18')
+title.find('.//' + tag('Offset')).set('y', '11')
+title.set('text', 'Achievement Points')
+title.set('inherits', 'GameFontNormalLarge')
+points = header.find('.//' + tag('FontString') + "[@name='$parentPoints']")
+points.set('inherits', 'GameFontHighlightLarge')
+points.find(tag('Size')).set('y', '20')
+points.find('.//' + tag('Offset')).set('x', '-10')
+points.find('.//' + tag('Offset')).set('y', '-10')
 for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'LegacyTitle'),
                           ('Points', 'LegacyPoints'), ('Shield', 'LegacyShield')]:
     item = deepcopy(header.find('.//*[@name="$parent' + name + '"]'))
@@ -114,11 +147,22 @@ for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'Legac
             value = value.replace('HeaderPointBorder', 'HeaderLegacyPointBorder')
             if value == '$parentPoints': value = '$parentLegacyPoints'
             node.set('relativeTo', value)
-    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '115')
+    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '174')
     if name == 'Title':
-        item.set('text', 'Legacy Points'); item.find(tag('Size')).set('x', '160')
+        item.set('text', 'Legacy Points')
     layer = next(layer for layer in header.find(tag('Layers')) if header.find('.//*[@name="$parent' + name + '"]') in list(layer))
     layer.append(item)
+
+# A neutral, native-size achievement seal anchors the two independent totals.
+# The client has separate character/guild rows; use the same player-row crop as
+# the achievement cards and avoid enlarging the lower-resolution tiny shield.
+artwork = next(layer for layer in header.find(tag('Layers')) if layer.get('level') == 'ARTWORK')
+crest = ET.SubElement(artwork, tag('Texture'), {
+    'name': '$parentCrest', 'file': 'Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints'})
+ET.SubElement(crest, tag('Size'), {'x': '66', 'y': '64'})
+ET.SubElement(ET.SubElement(ET.SubElement(crest, tag('Anchors')), tag('Anchor'), {'point': 'BOTTOM'}),
+              tag('Offset'), {'x': '0', 'y': '9'})
+ET.SubElement(crest, tag('TexCoords'), {'left': '0', 'right': '.5', 'top': '0', 'bottom': '.5'})
 
 close = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Button') + "[@name='$parentCloseButton']"))
 adapt(close)

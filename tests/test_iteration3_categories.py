@@ -209,11 +209,11 @@ class Iteration3CategoryTests(unittest.TestCase):
                 for i=3,65 do items[i]={name="Objective "..i} end
                 return {items=items,available=true,complete=true}
             end
-            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","hidden objective")==0 and reads==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general","hidden objective")==0 and reads==0)
             ns.LegacyPresentation.Criteria(m.byKey["legacy:100"])
-            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","hidden objective")==1 and reads==1)
-            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","objective 65")==0)
-            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","unavailable placeholder")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general","hidden objective")==1 and reads==1)
+            assert(#ns.LegacyPresentation.Rows(m,"general","objective 65")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general","unavailable placeholder")==0)
             ns.LegacyPresentation.Criteria(m.byKey["legacy:100"])
             assert(reads==1 and m.criteriaSearchScope=="Loaded criteria only")
         ''')

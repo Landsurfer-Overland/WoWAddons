@@ -322,7 +322,7 @@ local function SnapshotIdentity()
     return { key = key, name = name, surname = surname, realm = realm,
         guid = guid, verified = true }
 end
-local function SaveCharacter()
+local function saveCharacter()
     if type(FA.CharacterScope) == "function" then
         local ok, scope = pcall(FA.CharacterScope)
         if not ok or scope ~= true then return false, "Character progress attribution unavailable" end
@@ -336,16 +336,22 @@ local function SaveCharacter()
     -- definitions. Account-view settings and old native imports never enter
     -- this snapshot's completion, count, or point total.
     local pts, n, pointsAvailable, countAvailable, seen = 0, 0, true, true, {}
+    local completionStates = {}
     for _, a in ipairs(FA.ALL) do
         if not a.native and not seen[a.key] and FA.Available(a) == true then
             seen[a.key] = true
             local savedCompletion = done[a.key]
             local timestamp = SnapshotNumber(savedCompletion)
-            if timestamp and timestamp > 0 then
+            local completed
+            if type(FA.CompletionStatus) == "function" then completed = FA.CompletionStatus(a.key)
+            elseif timestamp and timestamp > 0 then completed = true
+            elseif savedCompletion == nil then completed = false end
+            completionStates[a.key] = completed == true and "verified" or completed == false and "incomplete" or "unknown"
+            if completed == true then
                 n = n + 1
                 local points = SnapshotNumber(a.pts)
                 if points and points >= 0 then pts = pts + points else pointsAvailable = false end
-            elseif not SnapshotSafe(savedCompletion) or savedCompletion ~= nil then
+            elseif completed == nil then
                 pointsAvailable, countAvailable = false, false
             end
         end
@@ -374,8 +380,15 @@ local function SaveCharacter()
         pts = pointsAvailable and pts or nil, pointsAvailable = pointsAvailable, pointType = "character",
         count = n, countAvailable = countAvailable, last = time(), done = done, title = FA.CurrentTitle(),
         characterKey = identity.key, identityVersion = 1, identity = identity, completionScope = "character",
+        completionValidationVersion = 1, completionStates = completionStates,
     }
     return true
+end
+local function SaveCharacter()
+    -- Share identity/completion observations across the bounded snapshot pass;
+    -- exporting history must not repeat unit API reads for every definition.
+    if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(saveCharacter) end
+    return saveCharacter()
 end
 FA.SaveCharacter = SaveCharacter
 

@@ -1,6 +1,6 @@
 # WoWAddons
 
-ForeverAchievements iteration 4 refines the visible native Forever Legacy
+ForeverAchievements iteration 5 refines the visible native Forever Legacy
 System window with an experimental original-Wrath interface, disabled by default.
 Native Legacy Challenges and custom achievements share one subject hierarchy;
 their points, completion authority, and character/account scopes stay separate.
@@ -16,7 +16,7 @@ The four bottom tabs are **Achievements | Legacy Rewards | Legacy Trees | Statis
 [Automated tests](tests/README.md)
 
 Rewards and Trees use the existing native pages, original backgrounds, and interactions.
-Character Achievement Points and Legacy Points stay separate. Gamepad mode
+Achievement Points and Legacy Points stay separate. Gamepad mode
 uses the original native interface; unsafe combat changes wait until combat ends.
 
 Iteration 4 adds character-attributed exploration and collection observations,
@@ -26,8 +26,18 @@ individual class navigation, and configurable copper-normalized money tracking.
 Historical completion records remain saved. Unverifiable progress stays unavailable.
 See the [Iteration 4 audit and manual checks](docs/iteration4-regression-plan.md).
 
-The default Standard layout provides more vertical room. Header dragging and
-size selection persist; Statistics has its own category navigation. Unsupported
+Iteration 5 restores the original wood-frame backing, adds a central achievement
+seal, aligns header controls and footer tabs, and uses Large by default while
+preserving explicitly saved size choices. The filter opens an owned dropdown;
+whole parent rows select their direct list and expand/collapse. Card details omit
+routine scope/unknown filler and ordinary cross-character notes, with aligned
+criteria checks and plain currency progress. Native Rewards/Trees fit uniformly.
+The existing 50-point `worldexplorer` key is now named Explore Azeroth; uncertain
+native relationships remain separate. Historical Moonglade completion without
+verified character evidence remains saved but cannot supply gold artwork or points.
+See the [Iteration 5 changes and manual checks](docs/iteration5-regression-plan.md).
+
+Header dragging and size selection persist; Statistics has its own category navigation. Unsupported
 daily-quest definitions are inactive while their historical saved keys remain.
 
 Unmodified supplied Wrath sources live in References/WrathAchievementUI,

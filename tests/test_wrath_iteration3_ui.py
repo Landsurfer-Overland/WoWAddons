@@ -61,7 +61,7 @@ class Iteration3UITests(unittest.TestCase):
             end
         """)
 
-    def test_sidebar_expansion_and_parent_selection_have_separate_actions(self):
+    def test_whole_parent_selection_toggles_children_and_indicator_only_expands(self):
         self.check("""
             local parent=categoryButton('professions')
             assert(parent and parent.expandButton:IsShown())
@@ -76,9 +76,9 @@ class Iteration3UITests(unittest.TestCase):
             assert(categoryButton('professions:alchemy').selection:IsShown())
             assert(not categoryButton('professions').selection:IsShown())
             categoryButton('professions'):Fire('OnClick')
-            assert(view.category=='professions' and view.expanded.professions)
+            assert(view.category=='professions' and not view.expanded.professions)
             assert(categoryButton('professions').selection:IsShown())
-            assert(not categoryButton('professions:alchemy').selection:IsShown())
+            assert(not categoryButton('professions:alchemy'))
             assert(#ns.LegacyPresentation.Rows(view.model,'professions')==0)
             assert(#ns.LegacyPresentation.Rows(view.model,'professions:alchemy')>0)
             local parentDone,parentTotal=ns.LegacyPresentation.Count(view.model,'professions')
@@ -117,7 +117,7 @@ class Iteration3UITests(unittest.TestCase):
             assert(shield.points:GetText()=='10')
         """)
 
-    def test_shield_tooltip_reports_source_scope_type_and_exact_point_system(self):
+    def test_shield_tooltip_reports_exact_points_and_feat_without_scope_filler(self):
         self.check("""
             tooltipLines={}
             GameTooltip={SetOwner=function() end,SetText=function(_,text) tooltipTitle=text end,
@@ -126,24 +126,26 @@ class Iteration3UITests(unittest.TestCase):
             row.achievementType='standard'; row.pointType='none'; row.pointValue=0; row.scopeType='account'
             view:RenderCard(row,1,0); ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
             assert(tooltipTitle=='No point reward' and tooltipLines[1]=='0')
-            assert(tooltipLines[2]=='Source: Native Legacy Challenge' and tooltipLines[3]=='Scope: Account')
-            for _,line in ipairs(tooltipLines) do assert(line~='Feat of Strength') end
+            assert(row.scopeType=='account' and row.pointValue==0 and row.source=='legacy')
+            for _,line in ipairs(tooltipLines) do
+                assert(line~='Feat of Strength' and not line:find('Scope:',1,true) and not line:find('Source:',1,true))
+            end
             row.pointType='legacy'; row.pointValue=5; row.achievementType='feat_of_strength'
             tooltipLines={}; view:RenderCard(row,1,0); ns.WrathAchievementUI.ShieldEnter(view.cards[1].shield)
-            assert(tooltipTitle=='Legacy Points' and tooltipLines[1]=='5' and tooltipLines[4]=='Feat of Strength')
+            assert(tooltipTitle=='Legacy Points' and tooltipLines[1]=='5' and tooltipLines[2]=='Feat of Strength')
             assert(#calls==0)
         """)
 
-    def test_expanded_scope_is_subtle_and_criterion_width_grows(self):
+    def test_expanded_scope_is_hidden_and_criterion_width_grows(self):
         self.check("""
             local row=view.model.byKey['custom:second']; row.scopeType='account'
             view.selected=row.key; view:Layout(768,500); view:RenderCard(row,1,0)
             local card=view.cards[1]
-            assert(card.scopeText:IsShown() and card.scopeText:GetText()=='Scope: Account')
+            assert(not card.scopeText:IsShown() and row.scopeType=='account')
             local narrow=card.progressPool[1]:GetWidth()
             view:Layout(1024,720); view:RenderCard(row,1,0)
             assert(card.progressPool[1]:GetWidth()>narrow)
-            assert(card.scopeText:GetWidth()==card.description:GetWidth())
+            assert(card.objectives:GetWidth()==card.description:GetWidth())
             view.selected=nil; view:RenderCard(row,1,0)
             assert(not card.scopeText:IsShown())
         """)
@@ -181,8 +183,11 @@ class Iteration3UITests(unittest.TestCase):
             local found=false
             for _,card in ipairs(view.cards) do if card:IsShown() and card.record.key=='legacy:62013' then found=true end end
             assert(found)
-            for i=1,3 do view.filterButton:Fire('OnClick') end
+            view.filterButton:Fire('OnClick')
+            assert(view.filterMenu:IsShown() and view.filter=='All')
+            view.filterChoices[4]:Fire('OnClick')
             assert(view.filter=='Character Achievements')
+            assert(not view.filterMenu:IsShown() and view.filterChoices[4].check:IsShown())
             view.searchClear:Fire('OnClick')
             assert(view.search=='' and view.filter=='All' and view.searchBox:GetText()=='' and view.searchHint:IsShown())
             assert(not view.searchClear:IsShown() and #calls==0)
@@ -284,7 +289,7 @@ class Iteration3UITests(unittest.TestCase):
         window = next(e for e in root if e.get("name") == "FAWrathWindowTemplate")
         borders = [e for e in window.iter(URI + "Texture") if e.get("name") in ("$parentPointBorder", "$parentLegacyPointBorder")]
         offsets = [e.find(".//" + URI + "Offset").get("x") for e in borders]
-        self.assertEqual(offsets, ["-115", "115"])
+        self.assertEqual(offsets, ["-174", "174"])
         self.assertEqual(borders[0].find(URI + "Size/" + URI + "AbsDimension").attrib,
                          borders[1].find(URI + "Size/" + URI + "AbsDimension").attrib)
         self.check("""

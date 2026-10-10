@@ -160,7 +160,7 @@ class Iteration2PresentationTests(unittest.TestCase):
 
     def test_scrolling_expansion_and_custom_tracking_survive_mixed_categories(self):
         self.check("""
-            view.category = "general:miscellaneous"
+            view.category = "general"
             view.selected = "custom:second"
             view:Render()
             local card
