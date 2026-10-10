@@ -111,7 +111,7 @@ end
 -- or guild category 15093 and their ancestors. Read the same category contract
 -- with cycle/depth bounds; never classify from a zero point value, a Legacy
 -- source, account scope, or our navigation fallback under Feats of Strength.
-function A.AchievementType(id, categoryID, categories)
+function A.AchievementType(id, categoryID, categories, categoryReader)
     categoryID = R.ID(categoryID)
     if not categoryID then
         local result = R.Call(GetAchievementCategory, id)
@@ -128,7 +128,9 @@ function A.AchievementType(id, categoryID, categories)
         if category and category.metadataAvailable then
             parent = R.Number(category.parentID)
         else
-            local info = R.Call(GetCategoryInfo, categoryID)
+            local info
+            if categoryReader then info = categoryReader(categoryID)
+            else info = R.Call(GetCategoryInfo, categoryID) end
             if not info or not R.Text(info[1]) then return "unknown", "Native category metadata unavailable" end
             parent = R.Number(info[2])
         end
@@ -138,7 +140,7 @@ function A.AchievementType(id, categoryID, categories)
     end
     return "unknown", "Native category ancestry exceeds inspection bound"
 end
-local function record(info, category, categoryID, categories)
+local function record(info, category, categoryID, categories, typeCache, categoryReader)
     local id = info and R.ID(info[1])
     if not id then return nil end
     local flags = R.Number(info[9])
@@ -158,7 +160,16 @@ local function record(info, category, categoryID, categories)
     end
     local key, points = "legacy:" .. id, A.Points(id)
     local scopeLabel, scopeType = scope(flags)
-    local achievementType, typeEvidence = A.AchievementType(id, categoryID, categories)
+    -- Category classification is shared within one catalog snapshot, including
+    -- unavailable ancestry. A later catalog/Resolve still reads live metadata.
+    local knownCategoryID = R.ID(categoryID)
+    local cachedType = typeCache and knownCategoryID and typeCache[knownCategoryID]
+    local achievementType, typeEvidence
+    if cachedType then achievementType, typeEvidence = cachedType[1], cachedType[2]
+    else
+        achievementType, typeEvidence = A.AchievementType(id, categoryID, categories, categoryReader)
+        if typeCache and knownCategoryID then typeCache[knownCategoryID] = { achievementType, typeEvidence } end
+    end
     local row = { key = key, uniqueID = key, source = "legacy", sourceType = "native_legacy", id = id, category = category,
         name = R.Text(info[2]) or ("Legacy Challenge " .. id), description = R.Text(info[8]) or "Description unavailable.",
         completed = completed, completionState = R.CompletionState(completed),
@@ -230,8 +241,27 @@ local function providerRecords(page)
     return ids
 end
 function A.Catalog(page)
+    local perf = ns.LegacyPerf
+    local token = perf and perf.Begin and perf.Begin("native.enumerate")
     local out = { categories = {}, records = {}, byKey = {}, duplicates = {}, duplicateIDs = {},
-        partial = false, available = false, points = A.TotalPoints() }
+        partial = false, available = false, points = A.TotalPoints(), attemptedRecords = 0, attemptedCategories = 0 }
+    local function readRecord(...)
+        if out.attemptedRecords >= A.MAX_RECORDS then out.partial = true; return nil end
+        out.attemptedRecords = out.attemptedRecords + 1
+        return R.Call(GetAchievementInfo, ...)
+    end
+    local categoryInfoCache = {}
+    local function readCategory(id)
+        local cached = categoryInfoCache[id]
+        if cached ~= nil then return cached or nil end
+        if out.attemptedCategories >= A.MAX_CATEGORIES then out.partial = true; return nil end
+        out.attemptedCategories = out.attemptedCategories + 1
+        local info = R.Call(GetCategoryInfo, id)
+        -- Failed metadata shares the same snapshot lifetime as successful
+        -- reads. Distinct provider IDs cannot multiply ancestry work unboundedly.
+        categoryInfoCache[id] = info or false
+        return info
+    end
     local listResult = R.Call(GetCategoryList)
     local list = listResult and listResult[1]
     local categories = {}
@@ -241,7 +271,7 @@ function A.Catalog(page)
             local id = R.ID(rawget(list, i))
             if not id then break end
             if not categories[id] then
-                local info = R.Call(GetCategoryInfo, id)
+                local info = readCategory(id)
                 local parent = info and R.Number(info[2])
                 local cat = { key = "legacy-category:" .. id, id = id, source = "legacy",
                     name = info and R.Text(info[1]) or ("Category " .. id),
@@ -253,7 +283,7 @@ function A.Catalog(page)
         end
         if rawget(list, A.MAX_CATEGORIES + 1) then out.partial = true end
     end
-    local seen = {}
+    local seen, typeCache = {}, {}
     local function append(a, cat)
         if not a then return end
         if seen[a.key] then
@@ -277,10 +307,12 @@ function A.Catalog(page)
         n = count
         if not n or n < 0 or n ~= math.floor(n) then out.partial = true; n = 0 else out.available = true end
         if not cat.metadataAvailable then out.partial = true end
-        local remaining = A.MAX_RECORDS - #out.records
+        -- Duplicate and unavailable reads consume the same global budget as
+        -- unique records; overlapping categories must not multiply API work.
+        local remaining = A.MAX_RECORDS - out.attemptedRecords
         if n > remaining then out.partial = true end
         for index = 1, math.min(n, remaining) do
-            local a = record(R.Call(GetAchievementInfo, cat.id, index), cat.key, cat.id, categories)
+            local a = record(readRecord(cat.id, index), cat.key, cat.id, categories, typeCache, readCategory)
             if not a then out.partial = true end
             append(a, cat)
         end
@@ -290,14 +322,16 @@ function A.Catalog(page)
         -- The passive provider contains IDs only. Recover documented category
         -- metadata where available so fallback records need not all be unmapped.
         -- This reads ancestry without selecting a category or refreshing native UI.
+        local unavailableCategories = {}
         local function fallbackCategory(id, visiting)
             if categories[id] then return categories[id] end
+            if unavailableCategories[id] then return nil end
             if #out.categories >= A.MAX_CATEGORIES then return nil end
             visiting = visiting or {}
             if visiting[id] then return nil end
             visiting[id] = true
-            local info = R.Call(GetCategoryInfo, id)
-            if not info or not R.Text(info[1]) then return nil end
+            local info = readCategory(id)
+            if not info or not R.Text(info[1]) then unavailableCategories[id] = true; return nil end
             local parent = R.Number(info[2])
             local result = { key = "legacy-category:" .. id, id = id, source = "legacy", name = R.Text(info[1]),
                 parent = parent and parent > 0 and ("legacy-category:" .. parent) or "legacy",
@@ -307,12 +341,13 @@ function A.Catalog(page)
             return result
         end
         for _, id in ipairs(providerRecords(page)) do
-            local a = A.Resolve(id)
+            if out.attemptedRecords >= A.MAX_RECORDS then out.partial = true; break end
+            local info = readRecord(id)
             local categoryResult = R.Call(GetAchievementCategory, id)
             local categoryID = categoryResult and R.ID(categoryResult[1])
             local target = categoryID and fallbackCategory(categoryID) or cat
             target = target or cat
-            if a then a.category = target.key end
+            local a = record(info, target.key, categoryID, categories, typeCache, readCategory)
             append(a, target)
         end
         if #cat.records > 0 then out.categories[#out.categories + 1] = cat end
@@ -323,5 +358,8 @@ function A.Catalog(page)
         out.notice = #out.records == 0 and "Native challenges unavailable. Character achievements remain available."
             or "Native catalog is partial; unavailable records are not counted. Reopen after selecting a native category if needed."
     end
+    if perf and perf.Count then perf.Count("native.info_attempts", out.attemptedRecords) end
+    if perf and perf.Count then perf.Count("native.category_attempts", out.attemptedCategories) end
+    if perf and perf.Finish then perf.Finish(token) end
     return out
 end

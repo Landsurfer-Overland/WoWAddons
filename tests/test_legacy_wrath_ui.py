@@ -351,7 +351,7 @@ class Harness:
         self.g = self.lua.globals()
         self.templates = {e.get("name"): e for e in ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()}
         self.g.CreateFrame = self.create
-        for path in ("Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua",
+        for path in ("Integrations/LegacyAdapter.lua", "Integrations/Performance.lua", "Integrations/CustomAdapter.lua",
                      "Integrations/Presentation.lua", "Integrations/StatisticsAdapter.lua",
                      "UI/WrathAchievementUI.lua"):
             self.load(path)
@@ -823,6 +823,7 @@ class ControllerTests(unittest.TestCase):
             assert(c.ui.tab=="achievements" and not LegacySystemFrame.ChallengesPage:IsShown())
             local level=c.cover.level
             LegacySystemFrame:Hide(); LegacySystemFrame:Show()
+            FlushTimers()
             assert(c.cover:IsVisible() and c.cover.level==level)
             assert(LegacySystemFrame.ChallengesPage:GetScript("OnShow")==originalShow and #calls==0)
         ''')
@@ -896,6 +897,7 @@ class ControllerTests(unittest.TestCase):
             assert(not LegacySystemFrame:IsShown() and not c.cover:IsShown() and rootHides==1)
             assert(LegacySystemFrame.TreePage:GetScale()==1 and LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
             LegacySystemFrame:Show()
+            FlushTimers()
             assert(rootShows==1 and c.cover:IsVisible() and c.ui.tab=="trees")
             assert(LegacySystemFrame:GetScript("OnHide")==originalRootHide)
             assert(LegacySystemFrame:GetScript("OnShow")==originalRootShow and #calls==0)
@@ -942,6 +944,7 @@ class ControllerTests(unittest.TestCase):
             assert(c.root==LegacySystemFrame and not c.cover:IsVisible())
             assert(not LegacySystemFrame:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
             LegacySystemFrame:Show()
+            FlushTimers()
             assert(c.cover:IsVisible() and not LegacySystemFrame.NativeTabs:IsShown() and #calls==0)
         ''')
 
@@ -1027,9 +1030,9 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             local reward=LegacySystemFrame.RewardTrackPage
-            local original=reward.SetFrameStrata
+            local original=reward.SetFrameLevel
             local failures=0
-            reward.SetFrameStrata=function(self,value)
+            reward.SetFrameLevel=function(self,value)
                 if failures==0 then failures=failures+1; error("Injected late mount failure") end
                 original(self,value)
             end

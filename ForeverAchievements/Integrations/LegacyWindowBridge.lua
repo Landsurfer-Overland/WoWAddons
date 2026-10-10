@@ -23,7 +23,9 @@ local function shown(object)
     assert(r and type(r[1]) == "boolean", "Unavailable presentation visibility")
     return r[1]
 end
-local function visibility(object, value) invoke(object, value and "Show" or "Hide") end
+local function visibility(object, value)
+    if shown(object) ~= value then invoke(object, value and "Show" or "Hide") end
+end
 local function objects(root, method, maximum)
     local r = R.Method(root, method)
     assert(r and r.n <= maximum, "Unsupported native presentation collection")
@@ -103,7 +105,9 @@ end
 function B:Suppress(mounted)
     self:Check()
     self.active = true -- failures after this point must attempt restoration
-    invoke(self.root, "EnableMouse", false)
+    local mouse = R.Method(self.root, "IsMouseEnabled")
+    assert(mouse and type(mouse[1]) == "boolean", "Unavailable native mouse state")
+    if mouse[1] then invoke(self.root, "EnableMouse", false) end
     for _, item in ipairs(self.regions) do visibility(item.object, false) end
     for _, item in ipairs(self.children) do
         if item.object ~= mounted then visibility(item.object, false) end
@@ -124,12 +128,17 @@ function B:Mount(view, host)
     local scale = math.min(1, host:GetWidth() / data.Width, host:GetHeight() / data.Height) * targetScale / rootScale
     assert(scale > 0, "Native page content area is unavailable")
     local page = data.frame
-    invoke(page, "ClearAllPoints")
-    invoke(page, "SetSize", data.Width, data.Height)
-    invoke(page, "SetScale", scale)
-    invoke(page, "SetPoint", "CENTER", host, "CENTER", 0, 0)
-    invoke(page, "SetFrameStrata", host:GetFrameStrata())
-    invoke(page, "SetFrameLevel", host:GetFrameLevel() + 10)
+    local point, count = R.Method(page, "GetPoint", 1), R.Method(page, "GetNumPoints")
+    if not count or count[1] ~= 1 or not point or point[1] ~= "CENTER" or point[2] ~= host
+        or point[3] ~= "CENTER" or point[4] ~= 0 or point[5] ~= 0 then
+        invoke(page, "ClearAllPoints")
+        invoke(page, "SetPoint", "CENTER", host, "CENTER", 0, 0)
+    end
+    if page:GetWidth() ~= data.Width or page:GetHeight() ~= data.Height then invoke(page, "SetSize", data.Width, data.Height) end
+    if page:GetScale() ~= scale then invoke(page, "SetScale", scale) end
+    local strata, level = host:GetFrameStrata(), host:GetFrameLevel() + 10
+    if page:GetFrameStrata() ~= strata then invoke(page, "SetFrameStrata", strata) end
+    if page:GetFrameLevel() ~= level then invoke(page, "SetFrameLevel", level) end
     -- Keep the page's own background and divider art. Only the native outer
     -- window is suppressed; native content retains its intended visual identity.
     for _, item in ipairs(data.decorations) do visibility(item.object, item.shown) end

@@ -7,8 +7,14 @@ U.PRESETS = { Compact = { 768, 500 }, Standard = { 900, 620 }, Large = { 1024, 7
 ns.WrathAchievementUI = U
 ForeverAchievementsWrathUI = U -- only our XML callbacks, never Blizzard globals
 local P = ns.LegacyPresentation
+local function perfBegin(name) local p = ns.LegacyPerf; return p and p.Begin and p.Begin(name) end
+local function perfFinish(token) local p = ns.LegacyPerf; if p and p.Finish then p.Finish(token) end end
+local function perfCount(name, count) local p = ns.LegacyPerf; if p and p.Count then p.Count(name, count) end end
 local function region(self, suffix) return _G[self:GetName() .. suffix] end
-local function show(object, yes) if yes then object:Show() else object:Hide() end end
+local function show(object, yes)
+    yes = not not yes
+    if object:IsShown() ~= yes then if yes then object:Show() else object:Hide() end end
+end
 local function action(self, fn)
     local owner = self.owner
     if owner then owner.guard(function() fn(owner) end) end
@@ -91,7 +97,10 @@ local function saturate(card, completed)
 end
 local function pool(owner, key, index, kind, parent, template)
     local entries = owner[key]
-    if not entries[index] then entries[index] = CreateFrame(kind, parent:GetName() .. key .. index, parent, template) end
+    if not entries[index] then
+        entries[index] = CreateFrame(kind, parent:GetName() .. key .. index, parent, template)
+        perfCount("UI.PooledFramesCreated")
+    end
     local f = entries[index]; f:ClearAllPoints(); return f
 end
 local function hidePool(entries) for _, f in ipairs(entries) do f:Hide() end end
@@ -100,6 +109,9 @@ local function clampScroll(scrollFrame, child, requested)
     local changed = value ~= scrollFrame:GetVerticalScroll()
     if changed then scrollFrame:SetVerticalScroll(value) end
     return changed
+end
+local function resetScroll(self)
+    self.suppressScroll = true; self.contentScroll:SetVerticalScroll(0); self.suppressScroll = false
 end
 local function colors(label, completed, parentDone)
     if parentDone then label:SetTextColor(0, 0, 0)
@@ -146,7 +158,7 @@ function U.CategoryClick(self)
         local cat = self.category
         if self.navigation == "statistics" then owner.statisticsCategory = cat.key
         else owner.category, owner.focus, owner.selected = cat.key, nil, nil end
-        owner.contentScroll:SetVerticalScroll(0); owner:Render()
+        resetScroll(owner); owner:Render()
     end)
 end
 function U.CategoryExpand(self)
@@ -154,6 +166,7 @@ function U.CategoryExpand(self)
         local row = self:GetParent()
         local expanded = row.navigation == "statistics" and owner.statisticsExpanded or owner.expanded
         expanded[row.category.key] = not expanded[row.category.key]
+        owner.navigationVersion = (owner.navigationVersion or 0) + 1
         owner:Render()
     end)
 end
@@ -168,7 +181,7 @@ function U.MetaClick(self)
         local row = P.Resolve(owner.model, self.link)
         if row then
             owner.focus, owner.selected, owner.tab = row, row.key, "achievements"
-            owner.contentScroll:SetVerticalScroll(0); owner:Render()
+            resetScroll(owner); owner:Render()
         end
     end)
 end
@@ -176,7 +189,7 @@ function U.SummaryClick(self)
     action(self, function(owner)
         owner.category, owner.focus, owner.selected = self.categoryKey, nil, nil
         owner.expanded[self.categoryKey] = true
-        owner.contentScroll:SetVerticalScroll(0); owner:Render()
+        resetScroll(owner); owner:Render()
     end)
 end
 function U.TabClick(self)
@@ -228,10 +241,11 @@ function U.Create(cover, guard, refresh, callbacks)
     close.owner = self
     self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27)
     self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69)
+    self.measureFont = font(self.contentChild, "FAWrathAchievementDescriptionFont"); self.measureFont:Hide()
     self.contentScroll:HookScript("OnVerticalScroll", function()
-        if self.rendering or self.scrollRendering or not self.model then return end
+        if self.rendering or self.scrollRendering or self.suppressScroll or not self.model then return end
         self.scrollRendering = true
-        guard(function() self:Render() end)
+        guard(function() self:Render("scroll") end)
         self.scrollRendering = false
     end)
     self.notice = font(self.root, "GameFontNormalSmall")
@@ -241,8 +255,24 @@ function U.Create(cover, guard, refresh, callbacks)
     self.searchBox:SetSize(250, 24)
     self.searchBox:SetAutoFocus(false); self.searchBox:SetMaxLetters(100)
     self.searchBox:SetScript("OnEscapePressed", function(box) box:ClearFocus() end)
-    self.searchBox:SetScript("OnTextChanged", function(box)
-        guard(function() self.search = box:GetText() or ""; self.focus = nil; self.contentScroll:SetVerticalScroll(0); self:Render() end)
+    self.searchBox:SetScript("OnTextChanged", function(box, userInput)
+        if self.suppressSearchChange then return end
+        guard(function()
+            self.search = box:GetText() or ""; self.focus = nil
+            show(self.searchHint, self.search == ""); show(self.searchClear, self.search ~= "" or self.filter ~= "All")
+            perfCount("UI.SearchRequests")
+            resetScroll(self)
+            if userInput and C_Timer and C_Timer.After then
+                if self.searchQueued then return end
+                self.searchQueued = true
+                self.searchQueueVersion = (self.searchQueueVersion or 0) + 1
+                local version = self.searchQueueVersion
+                C_Timer.After(.12, function() guard(function()
+                    if not self.searchQueued or self.searchQueueVersion ~= version then return end
+                    self.searchQueued = false; self:Render("search")
+                end) end)
+            else self.searchQueued = false; self:Render("search") end
+        end)
     end)
     self.searchBox:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
     self.searchHint = font(self.searchBox, "GameFontDisableSmall", "Search achievements...")
@@ -264,8 +294,9 @@ function U.Create(cover, guard, refresh, callbacks)
     self.searchClear.label:SetPoint("CENTER")
     self.searchClear:SetScript("OnClick", function() guard(function()
         self.search, self.filter, self.focus = "", "All", nil
-        self.searchBox:SetText(""); self.filterButton.label:SetText("All")
-        self.searchBox:ClearFocus(); self.contentScroll:SetVerticalScroll(0); self:Render()
+        self.searchQueued, self.suppressSearchChange = false, true
+        self.searchBox:SetText(""); self.suppressSearchChange = false; self.filterButton.label:SetText("All")
+        self.searchBox:ClearFocus(); resetScroll(self); self:Render()
     end) end)
     self.filterButton = CreateFrame("Button", "FAWrathFilter", self.root, "FAWrathCategoryTemplate")
     self.filterButton:SetSize(155, 24); self.filterButton:SetPoint("TOPRIGHT", -28, -25)
@@ -278,7 +309,7 @@ function U.Create(cover, guard, refresh, callbacks)
             for i, value in ipairs(filters) do if value == self.filter then current = i; break end end
             self.filter = filters[current % #filters + 1]
             self.filterButton.label:SetText(self.filter); self.focus = nil
-            self.contentScroll:SetVerticalScroll(0); self:Render()
+            resetScroll(self); self:Render()
         end)
     end)
     self.tabs = {}
@@ -305,21 +336,24 @@ function U.Create(cover, guard, refresh, callbacks)
         if self.callbacks.onSizePresetCycle then self.callbacks.onSizePresetCycle() end
     end) end)
     -- Explicit method table keeps our controller out of Blizzard globals.
-    for _, name in ipairs({ "Fit", "Layout", "SetTab", "SetModel", "Render", "RenderCategories", "RenderCard", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
+    for _, name in ipairs({ "Fit", "Layout", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
     self:Layout(900, 620)
     return self
 end
-function U.Fit(self, page)
+function U.Fit(self, page, suppressRender)
     local width, height = page:GetWidth(), page:GetHeight()
     assert(width > 0 and height > 0, "Legacy presentation host has no layout yet")
     self.root:SetScale(1)
-    self:Layout(width, height - 140)
+    self:Layout(width, height - 140, suppressRender)
     self.root:ClearAllPoints()
     -- Offsets use the scaled child's coordinate space.
     self.root:SetPoint("TOP", page, "TOP", 0, -72)
 end
-function U.Layout(self, width, height)
+function U.Layout(self, width, height, suppressRender)
     assert(width >= 768 and height >= 500, "Wrath window requires at least Compact logical dimensions")
+    if self.width == width and self.height == height then return end
+    local token = perfBegin("UI.Resize")
+    self.sidebarSignature, self.listPlan, self.measureCache, self.renderState = nil, nil, nil, nil
     self.width, self.height = width, height
     self.root:SetSize(width, height)
     self.sidebarWidth = width >= 900 and 220 or 195
@@ -349,22 +383,30 @@ function U.Layout(self, width, height)
     self.layoutName = "Standard"
     for name, preset in pairs(U.PRESETS) do if preset[1] == width and preset[2] == height then self.layoutName = name; break end end
     self.sizeButton.label:SetText(self.layoutName)
-    if self.model then self:Render() end
+    if self.model and not suppressRender then self:Render() end
+    perfFinish(token)
 end
 function U.SetTab(self, view, notify)
     if view ~= "achievements" and view ~= "rewards" and view ~= "trees" and view ~= "statistics" then return end
-    if self.tab ~= view then
+    local token = perfBegin("UI.TabSwitch")
+    local changed = self.tab ~= view
+    if changed then
         self.scrollOffsets[self.tab] = self.contentScroll:GetVerticalScroll()
         self.sidebarOffsets[self.tab] = self.categoryScroll:GetVerticalScroll()
         self.tab = view
-        self:Render()
+    end
+    local handled = notify and self.callbacks.onTab and self.callbacks.onTab(view) == true
+    if not handled then self:Render() end
+    if changed then
         clampScroll(self.contentScroll, self.contentChild, self.scrollOffsets[view] or 0)
         clampScroll(self.categoryScroll, self.categoryChild, self.sidebarOffsets[view] or 0)
-    else self:Render() end
-    if notify and self.callbacks.onTab then self.callbacks.onTab(view) end
+    end
+    perfFinish(token)
 end
 function U.SetModel(self, model)
     self.model = model
+    self.modelGeneration = (self.modelGeneration or 0) + 1
+    self.sidebarSignature, self.listPlan, self.measureCache, self.renderState, self.statisticsPlan = nil, nil, nil, nil, nil
     if P.CategoryKey then self.category = P.CategoryKey(model, self.category) or "summary" end
     if not model.byCategory[self.category] then self.category = "summary" end
     if self.focus then self.focus = P.Resolve(model, self.focus.key) end
@@ -374,11 +416,18 @@ function U.SetModel(self, model)
     self:Render()
 end
 function U.RenderCategories(self)
-    hidePool(self.categories)
     local statistics = self.tab == "statistics"
     local catalog = statistics and self.statisticsCatalog or self.model
     local expanded = statistics and self.statisticsExpanded or self.expanded
     local selected = statistics and self.statisticsCategory or self.category
+    local keys = {}
+    for key, value in pairs(expanded) do if value then keys[#keys + 1] = key end end
+    table.sort(keys)
+    local signature = table.concat({ self.tab, selected, tostring(self.modelGeneration), tostring(self.width), tostring(self.height), table.concat(keys, ",") }, "|")
+    if self.sidebarSignature == signature then return end
+    self.sidebarSignature = signature
+    local token = perfBegin("UI.CategoryRender")
+    hidePool(self.categories)
     local count, y = 0, 0
     local function visit(cat, depth)
         count = count + 1
@@ -421,6 +470,7 @@ function U.RenderCategories(self)
     for _, cat in ipairs(catalog and catalog.roots or {}) do visit(cat, 0) end
     self.categoryChild:SetHeight(math.max(self.categoryHeight, y))
     clampScroll(self.categoryScroll, self.categoryChild)
+    perfFinish(token)
 end
 function U.Heading(self, text, y)
     self.headingIndex = self.headingIndex + 1
@@ -434,7 +484,9 @@ function U.SummaryBar(self, key, label, y, column, summary)
     local b = pool(self, "bars", self.barIndex, "StatusBar", self.contentChild, "FAWrathSummaryBarTemplate")
     local width = column and (self.contentWidth - 48) / 2 or self.contentWidth - 30
     b:SetSize(width, 21); b:SetPoint("TOPLEFT", 15 + (column or 0) * (width + 18), -y)
-    local done, total, unknown = P.Count(self.model, key)
+    local done, total, unknown
+    if summary then done, total, unknown = summary.completed, summary.total, summary.unknown or 0
+    else done, total, unknown = P.Count(self.model, key) end
     b.label:SetWidth(math.max(80, width - 145)); b.label:SetWordWrap(false)
     b.text:SetWidth(142)
     local count = done .. "/" .. total
@@ -453,6 +505,11 @@ function U.RenderCard(self, row, index, y)
     local c = pool(self, "cards", index, "Button", self.contentChild, "FAWrathCardTemplate")
     local width = self.contentWidth - 6
     local textWidth = width - 160
+    local selected = self.selected == row.key
+    if self.scrollPass and c.record == row and c.selected == selected and c:GetWidth() == width
+        and c.modelGeneration == self.modelGeneration and c.criteriaVersion == self.model.criteriaVersion then
+        c:SetPoint("TOPLEFT", 0, -y); c:Show(); return y + c:GetHeight() + 4
+    end
     c:SetWidth(width); c:SetPoint("TOPLEFT", 0, -y)
     c.owner, c.record, c.selected = self, row, self.selected == row.key
     c.tracked.owner = self
@@ -510,7 +567,9 @@ function U.RenderCard(self, row, index, y)
             c.completionText:Show(); cy = cy + 22
         end
         local texts, bars, metas = 0, 0, 0
-        for _, item in ipairs(data.items) do
+        local omitted = false
+        for criterionIndex, item in ipairs(data.items) do
+            if criterionIndex > 256 then omitted = true; break end
             local f
             if item.link then
                 metas = metas + 1
@@ -539,7 +598,7 @@ function U.RenderCard(self, row, index, y)
             f:SetPoint("TOPLEFT", 0, -cy); f:Show()
             cy = cy + math.max(23, f:GetHeight() + 4)
         end
-        if not data.available or not data.complete then
+        if not data.available or not data.complete or omitted then
             texts = texts + 1
             local f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
             f:SetPoint("TOPLEFT", 0, -cy); f:SetSize(textWidth, 20)
@@ -553,22 +612,111 @@ function U.RenderCard(self, row, index, y)
     -- Original Collapse/Expand parchment and glow texture calculations.
     c.background:SetTexCoord(0, 1, math.max(0, 1 - height / 256), 1)
     c.glow:SetTexCoord(0, 1, 0, (height + (c.selected and 5 or 0)) / 128)
+    c.modelGeneration, c.criteriaVersion = self.modelGeneration, self.model.criteriaVersion
     c:Show(); return y + height + 4
+end
+function U.MeasureCard(self, row)
+    local cache = self.measureCache
+    if cache and cache.row == row and cache.generation == self.modelGeneration and cache.width == self.contentWidth
+        and cache.description == row.description and cache.detail == completionDetail(row)
+        and cache.criteriaVersion == self.model.criteriaVersion then return cache.advance end
+    local data = P.Criteria(row)
+    self.measureFont:SetWidth(self.contentWidth - 166); self.measureFont:SetText(row.description or "")
+    local descHeight = math.max(36, self.measureFont:GetStringHeight())
+    local cy, omitted = completionDetail(row) and 44 or 22, false
+    for index, item in ipairs(data.items or {}) do
+        if index > 256 then omitted = true; break end
+        cy = cy + (item.link and 34 or 23)
+    end
+    if not data.available or not data.complete or omitted then cy = cy + 24 end
+    local advance = math.max(110, 36 + descHeight + cy + 32) + 4
+    self.measureCache = { row = row, generation = self.modelGeneration, width = self.contentWidth,
+        description = row.description, detail = completionDetail(row), criteriaVersion = self.model.criteriaVersion, advance = advance }
+    return advance
+end
+function U.RenderList(self, y)
+    local token = perfBegin("UI.ListRender")
+    local plan = self.scrollPass and self.listPlan
+    if not plan then
+        local searchToken = self.search ~= "" and perfBegin("UI.Search")
+        local rows = P.Rows(self.model, self.category, self.search, self.filter)
+        perfFinish(searchToken)
+        plan = { rows = rows, y = y }
+        if self.selected then
+            for index, row in ipairs(rows) do
+                if row.key == self.selected then
+                    plan.selectedIndex, plan.delta = index, self:MeasureCard(row) - 88; break
+                end
+            end
+        end
+        plan.delta = plan.delta or 0
+        self.listPlan = plan
+    end
+    y = plan.y
+    local rows, count = plan.rows, #plan.rows
+    local finish = y + count * 88 + plan.delta
+    self.contentChild:SetHeight(math.max(finish + 12, self.contentScroll:GetHeight()))
+    clampScroll(self.contentScroll, self.contentChild)
+    local offset = self.contentScroll:GetVerticalScroll()
+    local lower, upper = offset - 88, offset + self.contentScroll:GetHeight() + 88
+    local function rowStart(index)
+        return y + (index - 1) * 88 + (plan.selectedIndex and index > plan.selectedIndex and plan.delta or 0)
+    end
+    local lo, hi, first = 1, count, count + 1
+    while lo <= hi do
+        local mid = math.floor((lo + hi) / 2)
+        local bottom = rowStart(mid) + 88 + (mid == plan.selectedIndex and plan.delta or 0)
+        if bottom >= lower then first, hi = mid, mid - 1 else lo = mid + 1 end
+    end
+    lo, hi = first, count
+    local last = first - 1
+    while lo <= hi do
+        local mid = math.floor((lo + hi) / 2)
+        if rowStart(mid) <= upper then last, lo = mid, mid + 1 else hi = mid - 1 end
+    end
+    -- Slot one is reserved for the expanded card. Its criterion widgets do
+    -- not accumulate across every ordinary card as the viewport moves.
+    local index = plan.selectedIndex and 1 or 0
+    for position = first, last do
+        local row = rows[position]
+        if position == plan.selectedIndex then self:RenderCard(row, 1, rowStart(position))
+        else index = index + 1; self:RenderCard(row, index, rowStart(position)) end
+    end
+    if count == 0 then finish = self:Heading("No matching achievements", y) end
+    perfFinish(token)
+    return finish
 end
 function U.RenderStatistics(self, y)
     local catalog = self.statisticsCatalog
-    local selectedRows = ns.StatisticsAdapter.Rows(catalog, self.statisticsCategory)
-    local rows, groups = {}, {}
-    for _, row in ipairs(selectedRows) do
-        groups[row.category] = groups[row.category] or {}
-        groups[row.category][#groups[row.category] + 1] = row
+    local token = perfBegin("UI.StatisticsRender")
+    local plan = self.scrollPass and self.statisticsPlan
+    if not plan then
+        local selectedRows = ns.StatisticsAdapter.Rows(catalog, self.statisticsCategory)
+        local rows, groups, items = {}, {}, {}
+        for _, row in ipairs(selectedRows) do
+            groups[row.category] = groups[row.category] or {}
+            groups[row.category][#groups[row.category] + 1] = row
+        end
+        local function visit(category)
+            for _, row in ipairs(groups[category.key] or {}) do rows[#rows + 1] = row end
+            for _, child in ipairs(category.children or {}) do visit(child) end
+        end
+        for _, category in ipairs(catalog.roots) do visit(category) end
+        local previous, stripe = nil, 0
+        for _, row in ipairs(rows) do
+            if previous ~= row.category then
+                local category = catalog.byCategory[row.category]
+                items[#items + 1] = { header = true, label = category and category.name or row.section }
+                previous = row.category
+            end
+            stripe = stripe + 1; items[#items + 1] = { label = row.name, record = row, stripe = stripe }
+        end
+        plan = { items = items, y = y }; self.statisticsPlan = plan
     end
-    local function visit(category)
-        for _, row in ipairs(groups[category.key] or {}) do rows[#rows + 1] = row end
-        for _, child in ipairs(category.children or {}) do visit(child) end
-    end
-    for _, category in ipairs(catalog.roots) do visit(category) end
-    local index, stripe, previous = 0, 0, nil
+    local base = plan.y
+    self.contentChild:SetHeight(math.max(base + #plan.items * 26 + 12, self.contentScroll:GetHeight()))
+    clampScroll(self.contentScroll, self.contentChild)
+    local index, stripe = 0, 0
     local offset, viewport = self.contentScroll:GetVerticalScroll(), self.contentScroll:GetHeight()
     local function statRow(header, label, record)
         if y + 26 >= offset - 26 and y <= offset + viewport + 26 then
@@ -592,16 +740,17 @@ function U.RenderStatistics(self, y)
         end
         y = y + 26
     end
-    for _, row in ipairs(rows) do
-        if previous ~= row.category then
-            local category = catalog.byCategory[row.category]
-            statRow(true, category and category.name or row.section, nil)
-            previous = row.category
-        end
-        stripe = stripe + 1; statRow(false, row.name, row)
+    local first = math.max(1, math.floor((offset - 26 - base) / 26) + 1)
+    local last = math.min(#plan.items, math.floor((offset + viewport + 26 - base) / 26) + 1)
+    y = base + (first - 1) * 26
+    for position = first, last do
+        local item = plan.items[position]
+        stripe = item.stripe or 0; statRow(item.header, item.label, item.record)
     end
-    if #rows == 0 then y = self:Heading("No available statistics in this category", y) end
-    return y
+    local finish = base + #plan.items * 26
+    if #plan.items == 0 then finish = self:Heading("No available statistics in this category", base) end
+    perfFinish(token)
+    return finish
 end
 local function recentDay(row)
     if row.dateSort then return row.dateSort end
@@ -635,9 +784,84 @@ local function mergedRecent(summary)
     end)
     return rows
 end
-function U.Render(self)
+local stateFields = { "model", "generation", "tab", "category", "statisticsCategory", "selected", "focus", "search", "filter", "width", "height", "criteriaVersion", "navigationVersion" }
+local function renderState(self)
+    return { model = self.model, generation = self.modelGeneration, tab = self.tab, category = self.category,
+        statisticsCategory = self.statisticsCategory, selected = self.selected, focus = self.focus,
+        search = self.search, filter = self.filter, width = self.width, height = self.height,
+        criteriaVersion = self.model.criteriaVersion, navigationVersion = self.navigationVersion }
+end
+local function sameState(a, b)
+    if not a then return false end
+    for _, key in ipairs(stateFields) do if a[key] ~= b[key] then return false end end
+    return true
+end
+function U.QueueRender(self, reason)
+    self.pendingRender = reason ~= "scroll" and "full" or self.pendingRender or "scroll"
+    if self.renderQueued then return end
+    assert(C_Timer and type(C_Timer.After) == "function", "Deferred UI refresh is unavailable")
+    self.renderQueued = true
+    self.renderQueueVersion = (self.renderQueueVersion or 0) + 1
+    local version = self.renderQueueVersion
+    C_Timer.After(0, function()
+        if not self.renderQueued or self.renderQueueVersion ~= version then return end
+        local pending = self.pendingRender
+        self.renderQueued, self.pendingRender = false, nil
+        if pending then self.guard(function() self:Render(pending) end) end
+    end)
+end
+function U.CancelPending(self)
+    self.searchQueueVersion = (self.searchQueueVersion or 0) + 1
+    self.renderQueueVersion = (self.renderQueueVersion or 0) + 1
+    self.workCancelVersion = (self.workCancelVersion or 0) + 1
+    self.searchQueued, self.renderQueued, self.pendingRender = false, false, nil
+end
+function U.Render(self, reason)
     if not self.model then return end
-    self.rendering = true
+    if self.rendering then
+        perfCount("UI.RenderReentrant")
+        -- Setters may fire callbacks while the same presentation is already
+        -- being drawn. Replaying that unchanged request each next frame would
+        -- create an endless deferred cycle. A changed query/model/selection
+        -- remains queued and receives its own pass after the active one.
+        if sameState(self.activeRenderState, renderState(self)) then perfCount("UI.RenderRedundant"); return end
+        self.pendingRender = reason ~= "scroll" and "full" or self.pendingRender or "scroll"
+        return
+    end
+    -- A direct full refresh already consumes the newest query and any queued
+    -- presentation request. Older timer callbacks become harmless; new work
+    -- requested during this pass receives a fresh generation.
+    if reason ~= "scroll" then
+        self.searchQueueVersion = (self.searchQueueVersion or 0) + 1
+        self.renderQueueVersion = (self.renderQueueVersion or 0) + 1
+        self.searchQueued, self.renderQueued, self.pendingRender = false, false, nil
+    end
+    local cancelVersion = self.workCancelVersion
+    local token = perfBegin(reason == "scroll" and "UI.ScrollRender" or "UI.Render")
+    self.rendering, self.activeRenderState = true, renderState(self)
+    local ok, err = pcall(U.RenderPass, self, reason)
+    self.rendering, self.scrollPass, self.activeRenderState = false, false, nil
+    perfFinish(token)
+    if not ok then
+        U.CancelPending(self)
+        error(err, 0)
+    end
+    self.renderState = renderState(self)
+    if self.workCancelVersion ~= cancelVersion then self.pendingRender = nil
+    elseif self.pendingRender then self:QueueRender(self.pendingRender) end
+end
+function U.RenderPass(self, reason)
+    self.scrollPass = reason == "scroll" and sameState(self.renderState, renderState(self))
+    if self.scrollPass then
+        if self.renderMode == "list" and self.listPlan and #self.listPlan.rows > 0 then
+            hidePool(self.cards); self:RenderList(self.listPlan.y)
+        elseif self.renderMode == "statistics" and self.statisticsPlan and #self.statisticsPlan.items > 0 then
+            hidePool(self.stats); self:RenderStatistics(self.statisticsPlan.y)
+        end
+        -- Static Summary, linked cards, headings, sidebar and outer artwork
+        -- already belong to the ScrollFrame. Scrolling needs no rebuild.
+        return
+    end
     hidePool(self.cards); hidePool(self.bars); hidePool(self.stats); hidePool(self.headings)
     self.headingIndex, self.barIndex = 0, 0
     local achievements = self.tab == "achievements"
@@ -676,22 +900,33 @@ function U.Render(self)
     if nativePage then
         -- The controller mounts the original Forever page. This renderer owns
         -- its surrounding Wrath artwork and tabs, never reward/tree behavior.
-        self.rendering = false
+        self.renderMode = "native"
         return
     elseif self.tab == "statistics" then
+        self.renderMode = "statistics"
         y = self:RenderStatistics(y)
     elseif self.focus then
+        self.renderMode = "focus"
         y = self:Heading("Linked Achievement", y)
         y = self:RenderCard(self.focus, 1, y)
     elseif self.category == "summary" and self.search == "" and self.filter == "All" then
+        self.renderMode = "summary"
+        local summaryToken = perfBegin("UI.SummaryRender")
         local summary = P.Summary(self.model)
         y = self:Heading("Progress Overview", y)
         y = self:SummaryBar("custom", "Custom Achievements Earned", y, nil, summary.custom)
         y = self:SummaryBar("legacy", "Native Legacy Challenges Earned", y, nil, summary.native)
         y = self:Heading("Recent Achievements", y + 8)
         local recent = mergedRecent(summary)
+        local selectedRecent
+        for i = 1, math.min(6, #recent) do if recent[i].key == self.selected then selectedRecent = true; break end end
+        -- Summary shares the same expanded-card slot as category lists.
+        -- Opening different recent records must not leave objective pools on
+        -- each ordinary card in addition to the active expanded card.
+        index = selectedRecent and 1 or 0
         for i = 1, math.min(6, #recent) do
-            index = index + 1; y = self:RenderCard(recent[i], index, y)
+            if recent[i].key == self.selected then y = self:RenderCard(recent[i], 1, y)
+            else index = index + 1; y = self:RenderCard(recent[i], index, y) end
         end
         if #recent == 0 then y = self:Heading("No recorded completions yet", y) end
         y = self:Heading("Category Progress Overview", y + 12)
@@ -700,34 +935,13 @@ function U.Render(self)
         for _, cat in ipairs(summary.categories) do
             y = self:SummaryBar(cat.key, cat.name, y, nil, cat)
         end
+        perfFinish(summaryToken)
     else
-        local rows = P.Rows(self.model, self.category, self.search, self.filter)
+        self.renderMode = "list"
         y = self:Heading(self.model.byCategory[self.category].name, y)
-        -- A ScrollFrame supplies the viewport; pool only the visible cards.
-        -- Keep Wrath's 84-pixel collapsed height without creating thousands of
-        -- complete frame hierarchies in the aggregate Legacy category.
-        local offset = self.contentScroll:GetVerticalScroll()
-        local expandedHeight
-        for _, row in ipairs(rows) do
-            if row.key == self.selected then
-                expandedHeight = self:RenderCard(row, 1, 0)
-                self.cards[1]:Hide()
-                break
-            end
-        end
-        for _, row in ipairs(rows) do
-            local height = row.key == self.selected and expandedHeight or 88
-            if y + height >= offset - 88 and y <= offset + self.contentScroll:GetHeight() + 88 then
-                index = index + 1
-                self:RenderCard(row, index, y)
-            end
-            y = y + height
-        end
-        if #rows == 0 then y = self:Heading("No matching achievements", y) end
+        y = self:RenderList(y)
     end
     self.contentChild:SetHeight(math.max(y + 12, self.contentScroll:GetHeight()))
     self.contentScroll:UpdateScrollChildRect()
-    local clamped = clampScroll(self.contentScroll, self.contentChild)
-    self.rendering = false
-    if clamped then self:Render() end
+    clampScroll(self.contentScroll, self.contentChild)
 end

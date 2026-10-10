@@ -41,11 +41,53 @@ end
 
 local secret = issecretvalue or function() return false end
 local Proof = { evidence = {}, trace = { enabled = false, records = {} } }
+function Proof.Pack(...) return { n = select("#", ...), ... } end
+-- Share expensive observations only within one synchronous evaluation pass.
+-- Nil/error results are cached too; the cache never survives a pass or DB change.
+function Proof.WithEvaluation(fn, ...)
+    local previous = Proof.evaluation
+    if not previous or previous.db ~= ForeverAchievementsCharDB then
+        Proof.evaluation = { db = ForeverAchievementsCharDB, reads = {}, api = {} }
+    end
+    local ok, result = pcall(function(...) return Proof.Pack(fn(...)) end, ...)
+    Proof.evaluation = previous
+    if not ok then error(result, 0) end
+    return unpack(result, 1, result.n)
+end
+function Proof.CacheRead(domain, fn)
+    return function(...)
+        local pass = Proof.evaluation
+        if not pass or pass.db ~= ForeverAchievementsCharDB then return fn(...) end
+        local cache = pass.reads[domain]
+        if not cache then cache = {}; pass.reads[domain] = cache end
+        local key = select(1, ...) or false
+        local result = cache[key]
+        if not result then
+            local ok, values = pcall(function(...) return Proof.Pack(fn(...)) end, ...)
+            result = { ok = ok, values = values }; cache[key] = result
+        end
+        if not result.ok then error(result.values, 0) end
+        return unpack(result.values, 1, result.values.n)
+    end
+end
 function Proof.ReadAPI(fn, ...)
     if type(fn) ~= "function" then return nil end
     local function pack(...) return { n = select("#", ...), ... } end
     local ok, values = pcall(function(...) return pack(fn(...)) end, ...)
     if ok then return values end
+end
+function Proof.EvaluationAPI(domain, fn, ...)
+    local pass = Proof.evaluation
+    if not pass or pass.db ~= ForeverAchievementsCharDB then return Proof.ReadAPI(fn, ...) end
+    local cache = pass.api[domain]
+    if not cache then cache = {}; pass.api[domain] = cache end
+    local first, second = ...
+    first, second = first or false, second or false
+    local row = cache[first]
+    if not row then row = {}; cache[first] = row end
+    local result = row[second]
+    if result == nil then result = Proof.ReadAPI(fn, ...) or false; row[second] = result end
+    return result or nil
 end
 function Proof.PlainNumber(value)
     if secret(value) or type(value) ~= "number" or value ~= value
@@ -127,17 +169,17 @@ function Proof.CharacterCollection(field, subclass, keys)
     local slotsAPI = C_Container and C_Container.GetContainerNumSlots
     local itemAPI = C_Container and C_Container.GetContainerItemID
     for bag = 0, 4 do
-        local result = Proof.ReadAPI(slotsAPI, bag)
+        local result = Proof.EvaluationAPI("bag-slots", slotsAPI, bag)
         local slots = result and Proof.PlainNumber(result[1])
         if not slots or slots < 0 or slots > 200 or slots ~= math.floor(slots) then
             allKnown = false
         else
             for slot = 1, slots do
-                local item = Proof.ReadAPI(itemAPI, bag, slot)
+                local item = Proof.EvaluationAPI("bag-item", itemAPI, bag, slot)
                 local id = item and Proof.PlainNumber(item[1])
                 if not item or secret(item[1]) or item[1] ~= nil and not id then allKnown = false
                 elseif id and id > 0 and id == math.floor(id) then
-                    local info = Proof.ReadAPI(GetItemInfoInstant, id)
+                    local info = Proof.EvaluationAPI("item-class", GetItemInfoInstant, id)
                     local class, kind = info and Proof.PlainNumber(info[6]), info and Proof.PlainNumber(info[7])
                     if not class or not kind then allKnown = false
                     elseif class == 15 and kind == subclass then observed[id] = true end
@@ -385,7 +427,7 @@ function Proof.MapInfo(mapID, name)
     mapID = Proof.PlainNumber(mapID)
     local expected = NormZone(name)
     if not expected or not mapID or mapID <= 0 or mapID ~= math.floor(mapID) then return nil end
-    local r = Proof.ReadAPI(C_Map and C_Map.GetMapInfo, mapID)
+    local r = Proof.EvaluationAPI("map-info", C_Map and C_Map.GetMapInfo, mapID)
     local info = r and r[1]
     if secret(info) or type(info) ~= "table" then return nil end
     if Proof.PlainNumber(info.mapID) ~= mapID or NormZone(info.name) ~= expected then return nil end
@@ -398,13 +440,13 @@ function Proof.ZoneMap(zone)
     local key = NormZone(zone.zone)
     if not key then return nil end
     if cache.maps[key] then return Proof.MapInfo(cache.maps[key], zone.zone) end
-    local r = Proof.ReadAPI(C_Map and C_Map.GetBestMapForUnit, "player")
+    local r = Proof.EvaluationAPI("best-map", C_Map and C_Map.GetBestMapForUnit, "player")
     local current, visited = r and Proof.PlainNumber(r[1]), {}
     local top
     for _ = 1, 32 do
         if not current or current <= 0 or visited[current] then break end
         visited[current] = true
-        local result = Proof.ReadAPI(C_Map and C_Map.GetMapInfo, current)
+        local result = Proof.EvaluationAPI("map-info", C_Map and C_Map.GetMapInfo, current)
         local info = result and result[1]
         if secret(info) or type(info) ~= "table" or Proof.PlainNumber(info.mapID) ~= current then break end
         top = current
@@ -414,7 +456,7 @@ function Proof.ZoneMap(zone)
     end
     if not top then return nil end
     local zoneType = Enum and Enum.UIMapType and Enum.UIMapType.Zone
-    local children = Proof.ReadAPI(C_Map and C_Map.GetMapChildrenInfo, top, zoneType, true)
+    local children = Proof.EvaluationAPI("map-children", C_Map and C_Map.GetMapChildrenInfo, top, zoneType, true)
     children = children and children[1]
     if secret(children) or type(children) ~= "table" then return nil end
     local match
@@ -442,7 +484,7 @@ function Proof.ExploredOffsets(mapID)
     local result = Proof.ReadAPI(C_MapExplorationInfo and C_MapExplorationInfo.GetExploredMapTextures, mapID)
     local textures = result and result[1]
     if secret(textures) or type(textures) ~= "table" then return nil end
-    local out = { complete = true, previewCount = 0 }
+    local out = { complete = true, previewCount = 0, byOffset = {} }
     for index, tex in ipairs(textures) do
         if index > 512 then out.complete = false; break end
         if secret(tex) or type(tex) ~= "table" then out.complete = false
@@ -453,7 +495,14 @@ function Proof.ExploredOffsets(mapID)
             if not x or not y or x < 0 or y < 0 or not w or not h or w <= 0 or h <= 0
                 or secret(hover) or type(hover) ~= "boolean" then out.complete = false
             elseif hover then out.previewCount = out.previewCount + 1
-            else out[#out + 1] = { x, y, w, h } end
+            else
+                local overlay = { x, y, w, h }
+                out[#out + 1] = overlay
+                local bx, by = math.floor(x), math.floor(y)
+                out.byOffset[bx] = out.byOffset[bx] or {}
+                local bucket = out.byOffset[bx][by] or {}
+                out.byOffset[bx][by] = bucket; bucket[#bucket + 1] = overlay
+            end
         end
     end
     cache.offsets[mapID] = out
@@ -478,17 +527,25 @@ local function AreaExplored(zone, area)
     if not mapID or not x or not y then return nil end
     local overlays = Proof.ExploredOffsets(mapID)
     if not overlays then return nil end
-    for _, o in ipairs(overlays) do
-        if math.abs(o[1] - x) <= 2 and math.abs(o[2] - y) <= 2 then
-            local evidence = { kind = "revealed-map-overlay", verified = true, mapID = mapID,
-                zoneName = zone.zone, offsetX = x, offsetY = y, observedOffsetX = o[1], observedOffsetY = o[2],
-                textureWidth = o[3], textureHeight = o[4] }
-            if d.explorationEvidence == nil then d.explorationEvidence = {} end
-            if type(d.explorationEvidence) == "table" then
-                if d.explorationEvidence[key] == nil then d.explorationEvidence[key] = {} end
-                if type(d.explorationEvidence[key]) == "table" then d.explorationEvidence[key][area[1]] = evidence end
+    for bx = math.floor(x - 2), math.floor(x + 2) do
+        local column = overlays.byOffset[bx]
+        for by = math.floor(y - 2), math.floor(y + 2) do
+            local bucket = column and column[by]
+            if bucket then
+                for _, o in ipairs(bucket) do
+                    if math.abs(o[1] - x) <= 2 and math.abs(o[2] - y) <= 2 then
+                        local evidence = { kind = "revealed-map-overlay", verified = true, mapID = mapID,
+                            zoneName = zone.zone, offsetX = x, offsetY = y, observedOffsetX = o[1], observedOffsetY = o[2],
+                            textureWidth = o[3], textureHeight = o[4] }
+                        if d.explorationEvidence == nil then d.explorationEvidence = {} end
+                        if type(d.explorationEvidence) == "table" then
+                            if d.explorationEvidence[key] == nil then d.explorationEvidence[key] = {} end
+                            if type(d.explorationEvidence[key]) == "table" then d.explorationEvidence[key][area[1]] = evidence end
+                        end
+                        return true
+                    end
+                end
             end
-            return true
         end
     end
     if overlays.complete then return false end
@@ -1009,6 +1066,7 @@ local function Standing(id)
     end
     return 0
 end
+Standing = Proof.CacheRead("standing", Standing)
 
 -- Best standing ever seen, so a dip after a hostile kill keeps the record.
 local function BestStanding(id)
@@ -1305,13 +1363,16 @@ local function FvCriteria(id)
     local out = {}
     if not (id and GetAchievementNumCriteria and GetAchievementCriteriaInfo) then return out end
     local ok, n = pcall(GetAchievementNumCriteria, id)
-    if not ok or not n then return out end
+    n = ok and Proof.PlainNumber(n)
+    if not n or n < 0 or n ~= math.floor(n) then return out end
+    if n > 256 then out.truncated, out.count = true, n; return out end
     for i = 1, n do
         local ok2, name, _, done = pcall(GetAchievementCriteriaInfo, id, i)
         if ok2 and name and name ~= "" then out[#out + 1] = { name, done } end
     end
     return out
 end
+FvCriteria = Proof.CacheRead("native-criteria", FvCriteria)
 
 -- The Forever client's own achievements go into the matching categories;
 -- the ones that repeat an addon achievement are left out.
@@ -1332,6 +1393,7 @@ local function FvAch(e)
         local id, done = FvInfo(e.ids)
         if done then return 1, 1 end
         local crit = FvCriteria(id)
+        if crit.truncated then return nil, crit.count end
         if #crit > 1 then
             local c = 0
             for _, it in ipairs(crit) do if it[2] then c = c + 1 end end
@@ -1608,19 +1670,21 @@ local historyReady = false
 
 local function CheckAll(quiet, event)
     if not historyReady then quiet = true end
-    for _, a in ipairs(ALL) do
-        local d = DB()
-        local held = type(d.completionCorrections) == "table" and d.completionCorrections[a.key] ~= nil
-        if not d.done[a.key] and Available(a) and not held then
-            local progress = Proof.ReadAPI(a.progress)
-            local cur, need = progress and progress[1], progress and progress[2]
-            local satisfied = ProgressKnown(cur, need) and need > 0 and cur >= need
-            Proof.RecordDecision(a, cur, need, event, satisfied, quiet, not progress and "Progress getter unavailable" or nil)
-            if satisfied then
-                if quiet then DB().done[a.key] = time() else Complete(a) end
+    Proof.WithEvaluation(function()
+        for _, a in ipairs(ALL) do
+            local d = DB()
+            local held = type(d.completionCorrections) == "table" and d.completionCorrections[a.key] ~= nil
+            if not d.done[a.key] and Available(a) and not held then
+                local progress = Proof.ReadAPI(a.progress)
+                local cur, need = progress and progress[1], progress and progress[2]
+                local satisfied = ProgressKnown(cur, need) and need > 0 and cur >= need
+                Proof.RecordDecision(a, cur, need, event, satisfied, quiet, not progress and "Progress getter unavailable" or nil)
+                if satisfied then
+                    if quiet then DB().done[a.key] = time() else Complete(a) end
+                end
             end
         end
-    end
+    end)
     if RefreshWindow then RefreshWindow() end
     for _, fn in ipairs(CHECK_HOOKS) do pcall(fn) end
 end
@@ -3130,9 +3194,17 @@ end
 local BY_KEY = {}
 for _, a in ipairs(ALL) do BY_KEY[a.key] = a end
 
+Proof.CharacterCollection = Proof.CacheRead("collections", Proof.CharacterCollection)
+Proof.ZoneMap = Proof.CacheRead("zone-map", Proof.ZoneMap)
+Skills = Proof.CacheRead("skills", Skills)
+RidingRank = Proof.CacheRead("riding", RidingRank)
+StatText = Proof.CacheRead("statistics", StatText)
+CompletedIDs = Proof.CacheRead("completed-quests", CompletedIDs)
+
 ns.FA = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
+    WithProgressSnapshot = Proof.WithEvaluation,
     ProgressionDiagnostics = Proof.trace,
     IsDebug = function() return debugOn end, -- /fach debug, for messages in the other files
     DB = DB, Account = AccountDB, Settings = Settings,

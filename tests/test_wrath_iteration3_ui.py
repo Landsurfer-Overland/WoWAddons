@@ -149,6 +149,8 @@ class Iteration3UITests(unittest.TestCase):
             local native=view.model.byKey['legacy:62013']
             native.completed=true; native.date='10/28/24'; native.dateSort=20241028
             local undated=view.model.byKey['legacy:62382']; undated.completed=true; undated.date=nil; undated.dateSort=nil
+            -- This fixture intentionally edits the existing presentation snapshot.
+            ns.LegacyPresentation.Invalidate(view.model)
             view:Render()
             local recentHeadings=0
             for _,heading in ipairs(view.headings) do

@@ -3,6 +3,23 @@
 local _, ns = ...
 local P, R = {}, ns.LegacyReadOnly
 ns.LegacyPresentation = P
+local function begin(name)
+    local perf = ns.LegacyPerf
+    return perf and perf.Begin and perf.Begin(name)
+end
+local function finish(token)
+    local perf = ns.LegacyPerf
+    if perf and perf.Finish then perf.Finish(token) end
+end
+local function count(name, amount)
+    local perf = ns.LegacyPerf
+    if perf and perf.Count then perf.Count(name, amount) end
+end
+local function arrayCopy(rows, limit)
+    local result = {}
+    for i = 1, math.min(#rows, limit or #rows) do result[i] = rows[i] end
+    return result
+end
 
 local ROOTS = {
     { "general", "General" }, { "quests", "Quests" }, { "exploration", "Exploration" },
@@ -88,8 +105,8 @@ local function ancestors(cat, byKey)
     end
     return path
 end
-local function categoryRoot(cat, byKey)
-    local path = ancestors(cat, byKey)
+local function categoryRoot(cat, byKey, path)
+    path = path or ancestors(cat, byKey)
     -- PvP reputations/ranks and class/profession subcategories retain their
     -- actual native context even when a child name also describes another root.
     for i = #path, 1, -1 do
@@ -110,8 +127,8 @@ local function categoryRoot(cat, byKey)
     end
     return "unmapped"
 end
-function P.NativeCategory(row, categories)
-    local root = categoryRoot(categories[row.category], categories)
+function P.NativeCategory(row, categories, context)
+    local root = context and context.roots[row.category] or categoryRoot(categories[row.category], categories)
     local override = OVERRIDES[row.id]
     if override and (normalized(row.name) == override.name or normalized(row.name) == override.alternate) and
         (root == "unmapped" or root == override.root) then return override.root, true, override.subject end
@@ -155,8 +172,9 @@ local function defaultSubject(root)
     return ({ general = "miscellaneous", exploration = "world", professions = "primary", reputation = "other-factions",
         classes = "challenges", feats = "special" })[root]
 end
-local function nativeSubject(row, root, categories, override)
+local function nativeSubject(row, root, categories, override, context)
     if override then return override end
+    if context then return context.subjects[row.category] or nil end
     local names = {}
     for _, cat in ipairs(ancestors(categories[row.category], categories)) do names[#names + 1] = cat.name end
     return subjectFromNames(root, names) or defaultSubject(root)
@@ -197,9 +215,11 @@ local function customSubject(row, root)
 end
 
 function P.Build(page, nativeCatalog)
+    local token = begin("presentation.build")
     local native, custom = nativeCatalog or ns.LegacyAdapter.Catalog(page), ns.CustomAchievementAdapter.Catalog()
     local model = { records = {}, byKey = {}, categories = {}, roots = {}, byCategory = {}, native = native, custom = custom,
-        unmapped = {}, unmappedIDs = {}, duplicateKeys = {}, criteriaSearchScope = "Loaded criteria only" }
+        unmapped = {}, unmappedIDs = {}, duplicateKeys = {}, criteriaSearchScope = "Loaded criteria only", criteriaVersion = 0,
+        _membership = {}, _counts = {}, _queries = {}, _queryOrder = {}, _queryVersion = 0 }
     model.unmappedRecords = model.unmapped
     local subjects, nativeCategories = {}, {}
     for root, definitions in pairs(SUBJECTS) do
@@ -226,6 +246,29 @@ function P.Build(page, nativeCatalog)
         model.byCategory[cat.key] = { key = cat.key, name = cat.name, parent = cat.parent, records = {}, children = {},
             virtual = true, aliasRows = {}, aliasSubjects = {}, aliasRoots = {} }
     end
+    -- Ancestry and category semantics are stable for this snapshot. Compute
+    -- them once per category instead of walking the same path per record.
+    local categoryToken = begin("category.generate")
+    local context = { paths = {}, roots = {}, subjects = {}, names = {} }
+    for _, cat in ipairs(native.categories or {}) do
+        local path, names = ancestors(cat, nativeCategories), {}
+        for _, ancestor in ipairs(path) do names[#names + 1] = ancestor.name end
+        local root = categoryRoot(cat, nativeCategories, path)
+        context.paths[cat.key], context.names[cat.key], context.roots[cat.key] = path, names, root
+        context.subjects[cat.key] = subjectFromNames(root, names) or defaultSubject(root) or false
+    end
+    local function index(row, key, seen)
+        if not key or seen[key] then return end
+        seen[key] = true
+        local rows, totals = model._membership[key], model._counts[key]
+        if not rows then
+            rows, totals = {}, { completed = 0, total = 0, unknown = 0 }
+            model._membership[key], model._counts[key] = rows, totals
+        end
+        rows[#rows + 1], totals.total = row, totals.total + 1
+        if row.completed == true then totals.completed = totals.completed + 1
+        elseif row.completed == nil then totals.unknown = totals.unknown + 1 end
+    end
     local function targetCategory(root, subject)
         local key = subject and (root .. ":" .. subject)
         if not key or not subjects[key] then return model.byCategory[root] end
@@ -240,18 +283,16 @@ function P.Build(page, nativeCatalog)
         local originalCategories = {}
         if row.source == "legacy" then
             local _, override
-            root, override, subject = P.NativeCategory(row, nativeCategories)
+            root, override, subject = P.NativeCategory(row, nativeCategories, context)
             row.nativeCategory = original.category
-            for _, cat in ipairs(ancestors(nativeCategories[original.category], nativeCategories)) do
-                originalCategories[#originalCategories + 1] = cat.name
-            end
+            originalCategories = context.names[original.category] or {}
             if root == "unmapped" then
                 root, subject = "feats", "other-legacy"
                 row.navigationFallback = true
                 model.unmapped[#model.unmapped + 1] = { id = row.id, key = row.key, name = row.name,
                     nativeCategory = original.category, reason = "Native subject metadata is unavailable or not classified" }
                 model.unmappedIDs[#model.unmappedIDs + 1] = row.id
-            else subject = nativeSubject(row, root, nativeCategories, subject) end
+            else subject = nativeSubject(row, root, nativeCategories, subject, context) end
         else
             root = row.customCategory or (row.category or ""):match("^custom%-category:(.+)$")
             row.customCategory = root
@@ -268,13 +309,22 @@ function P.Build(page, nativeCatalog)
         row.searchText = ((row.name or "") .. " " .. (row.description or "") .. " " .. table.concat(row.categoryMetadata, " ")):lower()
         target.records[#target.records + 1] = row
         model.records[#model.records + 1] = row; model.byKey[row.key] = row
+        row._presentationModel = model
+        local indexed, ancestor = {}, target
+        index(row, "summary", indexed); index(row, row.source, indexed)
+        while ancestor and not indexed[ancestor.key] do
+            index(row, ancestor.key, indexed)
+            ancestor = model.byCategory[ancestor.parent]
+        end
+        if row.navigationFallback then index(row, "unmapped", indexed) end
         local source = model.byCategory[row.source]
         if source then source.records[#source.records + 1] = row end
         if row.source == "legacy" then
-            for _, cat in ipairs(ancestors(nativeCategories[original.category], nativeCategories)) do
+            for _, cat in ipairs(context.paths[original.category] or {}) do
                 local alias = model.byCategory[cat.key]
                 alias.aliasRows[row.key] = true; alias.aliasSubjects[target.key] = true; alias.aliasRoots[root] = true
                 alias.records[#alias.records + 1] = row
+                index(row, cat.key, indexed)
             end
         end
     end
@@ -300,14 +350,28 @@ function P.Build(page, nativeCatalog)
     for _, root in ipairs(model.roots) do
         table.sort(root.children, function(a, b) return a.order < b.order end)
     end
+    model._indexedRecords = model.records
+    count("category.records", #model.records)
+    finish(categoryToken)
+    finish(token)
     return model
+end
+-- Runtime data changes produce a new Build snapshot. Explicit callers that
+-- edit a snapshot can drop its indexes rather than retain stale aggregates.
+function P.Invalidate(model)
+    model._indexedRecords, model._membership, model._counts = nil, nil, nil
+    model._recent, model._summary, model._queries, model._queryOrder = nil, nil, nil, nil
+    model._resolved, model._resolvedOrder = nil, nil
 end
 function P.CategoryKey(model, key)
     local cat = model.byCategory[key]
     return cat and (cat.aliasTarget or cat.key) or "summary"
 end
 
-function P.Rows(model, key, search, filter)
+local function indexed(model)
+    return model._indexedRecords == model.records and model._membership ~= nil
+end
+local function rows(model, key, search, selectedFilter)
     local allowed, out = {}, {}
     local selected = model.byCategory[key]
     local function visit(cat)
@@ -315,10 +379,11 @@ function P.Rows(model, key, search, filter)
         allowed[cat.key] = true
         for _, child in ipairs(cat.children or {}) do visit(child) end
     end
-    visit(model.byCategory[key])
-    search = (search or ""):lower()
-    local selectedFilter = normalized(filter or "All")
-    for _, row in ipairs(model.records) do
+    local candidates
+    if indexed(model) then candidates = model._membership[key] or {}
+    else visit(model.byCategory[key]); candidates = model.records end
+    count("search.rows", #candidates)
+    for _, row in ipairs(candidates) do
         local sourceMatches = selectedFilter == "all" or
             (selectedFilter == "complete" or selectedFilter == "completed") and row.completed == true or
             selectedFilter == "incomplete" and row.completed == false or
@@ -326,12 +391,46 @@ function P.Rows(model, key, search, filter)
             (selectedFilter == "legacy" or selectedFilter == "legacychallenges") and row.source == "legacy"
         local searchMatches = search == "" or (row.searchText or ((row.name or "") .. " " .. (row.description or "")):lower()):find(search, 1, true) or
             row.criteriaSearchText and row.criteriaSearchText:find(search, 1, true)
-        if (key == "summary" or key == row.source or allowed[row.category] or selected and selected.aliasRows and selected.aliasRows[row.key]) and
+        if (indexed(model) or key == "summary" or key == row.source or allowed[row.category] or selected and selected.aliasRows and selected.aliasRows[row.key]) and
             sourceMatches and searchMatches then out[#out + 1] = row end
     end
     return out
 end
+function P.Rows(model, key, search, filter)
+    local token = begin("search.filter")
+    search = (search or ""):lower()
+    local selectedFilter = normalized(filter or "All")
+    local result
+    if not indexed(model) then
+        result = rows(model, key, search, selectedFilter)
+    elseif search == "" and selectedFilter == "all" then
+        result = arrayCopy(model._membership[key] or {})
+    else
+        if model._queryVersion ~= model.criteriaVersion then
+            model._queries, model._queryOrder, model._queryVersion = {}, {}, model.criteriaVersion
+        end
+        local query = tostring(key or "") .. "\031" .. selectedFilter .. "\031" .. search
+        local cached = model._queries[query]
+        if not cached then
+            cached = rows(model, key, search, selectedFilter)
+            -- A typing session must not retain an unbounded set of arrays.
+            if #model._queryOrder >= 32 then
+                local oldest = table.remove(model._queryOrder, 1)
+                model._queries[oldest] = nil
+            end
+            model._queries[query] = cached
+            model._queryOrder[#model._queryOrder + 1] = query
+        else count("search.cache_hits", 1) end
+        result = arrayCopy(cached)
+    end
+    finish(token)
+    return result
+end
 function P.Count(model, key)
+    if indexed(model) then
+        local totals = model._counts[key]
+        return totals and totals.completed or 0, totals and totals.total or 0, totals and totals.unknown or 0
+    end
     local rows = P.Rows(model, key)
     local done, unknown = 0, 0
     for _, row in ipairs(rows) do
@@ -340,6 +439,9 @@ function P.Count(model, key)
     return done, #rows, unknown
 end
 function P.Recent(model, source, limit)
+    if indexed(model) and model._recent and model._recent[source] then
+        return arrayCopy(model._recent[source], limit and math.max(0, math.floor(limit)))
+    end
     local rows = {}
     for _, row in ipairs(P.Rows(model, source)) do
         local reliable = source == "custom" and R.Number(row.timestamp) and row.timestamp > 0 or
@@ -351,10 +453,30 @@ function P.Recent(model, source, limit)
         if av == bv then return a.key < b.key end
         return av > bv
     end)
+    if indexed(model) then
+        model._recent = model._recent or {}
+        model._recent[source] = rows
+        return arrayCopy(rows, limit and math.max(0, math.floor(limit)))
+    end
     if limit then while #rows > math.max(0, math.floor(limit)) do rows[#rows] = nil end end
     return rows
 end
+local function summaryCopy(summary)
+    local result = { categories = {} }
+    for _, source in ipairs({ "custom", "native" }) do
+        result[source] = copy(summary[source])
+        result[source].recent = arrayCopy(summary[source].recent)
+    end
+    for i, category in ipairs(summary.categories) do result.categories[i] = copy(category) end
+    return result
+end
 function P.Summary(model)
+    local token = begin("summary.refresh")
+    if indexed(model) and model._summary then
+        count("summary.cache_hits", 1)
+        finish(token)
+        return summaryCopy(model._summary)
+    end
     local summary = { categories = {} }
     for _, source in ipairs({ "custom", "native" }) do
         local catalog, key = model[source], source == "native" and "legacy" or "custom"
@@ -370,7 +492,9 @@ function P.Summary(model)
                 total = total, unknown = unknown, partial = model.native.partial == true }
         end
     end
-    return summary
+    if indexed(model) then model._summary = summary end
+    finish(token)
+    return summaryCopy(summary)
 end
 function P.Criteria(row)
     if row.criteriaCache then return row.criteriaCache end
@@ -379,6 +503,8 @@ function P.Criteria(row)
     local data = result and result[1]
     if type(data) ~= "table" then data = { items = {}, available = false, complete = false } end
     row.criteriaCache = data
+    local model = row._presentationModel
+    if model then model.criteriaVersion = (model.criteriaVersion or 0) + 1 end
     -- Search never enumerates all native criteria on each keypress. It adds
     -- only objectives already loaded for an expanded card, with a fixed bound.
     local text = {}
@@ -393,5 +519,20 @@ end
 function P.Resolve(model, key)
     if model.byKey[key] then return model.byKey[key] end
     local id = type(key) == "string" and key:match("^legacy:(%d+)$")
-    return id and ns.LegacyAdapter.Resolve(tonumber(id))
+    if not id then return nil end
+    if not indexed(model) then return ns.LegacyAdapter.Resolve(tonumber(id)) end
+    model._resolved, model._resolvedOrder = model._resolved or {}, model._resolvedOrder or {}
+    local cached = model._resolved[key]
+    if cached ~= nil then return cached or nil end
+    count("native.resolve_reads", 1)
+    local result = ns.LegacyAdapter.Resolve(tonumber(id))
+    -- Expanded native meta cards can reference entries outside this catalog.
+    -- Cache misses too, but keep a long click session bounded and snapshot-local.
+    if #model._resolvedOrder >= 256 then
+        local oldest = table.remove(model._resolvedOrder, 1)
+        model._resolved[oldest] = nil
+    end
+    model._resolved[key] = result or false
+    model._resolvedOrder[#model._resolvedOrder + 1] = key
+    return result
 end

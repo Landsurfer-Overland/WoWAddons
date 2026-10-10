@@ -73,6 +73,19 @@ These remain controlled fixtures. The [two-character manual plan](../ForeverAchi
 checks login, character switching, reload/logout persistence, real exploration/pet
 evidence, and genuine completion preservation in the client.
 
+## Stability and performance checks
+
+Performance regressions exercise bounded native read attempts across overlapping,
+duplicate, failed, and provider-fallback records; indexed category counts and Summary;
+query cache limits and loaded-criteria invalidation; fresh progress after model rebuilds;
+and cache results that callers cannot mutate. Optional diagnostic checks verify default
+off behavior without clock reads, bounded names/outstanding tokens, valid zero duration,
+clock conversion/failure/secret handling, one-use tokens, aggregate reports, and preserved
+SavedVariables. Controller/UI fixtures cover redundant-refresh prevention, deferred
+updates, close/disable lifecycle invalidation, frame reuse, navigation, and live-data
+invalidation. These checks establish operation bounds and behavior, not live CPU timing.
+See [stability findings and client verification](../docs/legacy-ui-performance.md).
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

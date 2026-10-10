@@ -89,7 +89,7 @@ local function completionProvenance(row, completedElsewhere)
         row.completionScope, row.completionDetail = "unknown", "Completion unavailable"
     end
 end
-function A.Catalog()
+local function catalog()
     local d = FA.DB()
     local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
         pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false }
@@ -162,7 +162,18 @@ function A.Catalog()
     if not out.possiblePointsAvailable then out.possiblePoints = nil end
     return out
 end
-function A.Criteria(row)
+function A.Catalog()
+    local perf = ns.LegacyPerf
+    local token = perf and perf.Begin("custom.catalog")
+    local ok, result = pcall(function()
+        if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(catalog) end
+        return catalog()
+    end)
+    if perf then perf.Finish(token) end
+    if not ok then error(result, 0) end
+    return result
+end
+local function criteria(row)
     local a = row.achievement
     local data = { items = {}, available = true, complete = true }
     if a.list then
@@ -205,6 +216,10 @@ function A.Criteria(row)
     data.count = #data.items
     row.criteria = data
     return data
+end
+function A.Criteria(row)
+    if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(criteria, row) end
+    return criteria(row)
 end
 function A.Track(row)
     if row and row.source == "custom" and row.achievement and not row.achievement.native then FA.ToggleTrack(row.achievement) end

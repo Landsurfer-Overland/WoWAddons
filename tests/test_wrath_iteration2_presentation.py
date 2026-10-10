@@ -117,6 +117,8 @@ class Iteration2PresentationTests(unittest.TestCase):
         self.check("""
             view.model.byKey["legacy:62013"].completed = nil
             view.model.native.partial = true
+            -- This fixture edits an already-built snapshot in place.
+            ns.LegacyPresentation.Invalidate(view.model)
             view:Render()
             assert(view.bars[1].label:GetText() == "Custom Achievements Earned")
             assert(view.bars[1].text:GetText() == "1/2")
@@ -135,6 +137,8 @@ class Iteration2PresentationTests(unittest.TestCase):
             view.model.byKey["legacy:62013"].completed = true
             view.model.byKey["legacy:62013"].date = nil
             view.model.byKey["legacy:62013"].dateSort = nil
+            -- Runtime data refreshes build a new model; invalidate this edited fixture.
+            ns.LegacyPresentation.Invalidate(view.model)
             view:Render()
             assert(#ns.LegacyPresentation.Recent(view.model, "legacy", 4) == 0)
             assert(view.bars[2].text:GetText() == "1/3")

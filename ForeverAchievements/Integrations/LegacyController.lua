@@ -2,7 +2,9 @@
 -- progression, and the standalone custom achievement window remain intact.
 local _, ns = ...
 local FA, R, B = ns.FA, ns.LegacyReadOnly, ns.LegacyWindowBridge
-local C = { hooked = setmetatable({}, { __mode = "k" }), state = "Disabled" }
+local C = { hooked = setmetatable({}, { __mode = "k" }), state = "Disabled",
+    dirtyData = true, dirtyLayout = true, dirtyMount = true, lifecycle = 0, refreshTicket = 0, nativeRevision = 0,
+    NATIVE_MAX_AGE = 30, NATIVE_MAX_UNTIMED_REUSES = 8, nativeDataReuses = 0 }
 ns.LegacyUIController = C
 local function enabled() return FA.Settings().legacyUI == true end
 local function notify(message) print(FA.TAG .. " Legacy UI: " .. message) end
@@ -18,7 +20,43 @@ local function shown(root)
     local r = R.Method(root, "IsShown")
     return r and r[1] == true
 end
+local function perfBegin(name)
+    local perf = ns.LegacyPerf
+    if perf and type(perf.Begin) == "function" then return perf.Begin(name) end
+end
+local function perfFinish(token)
+    local perf = ns.LegacyPerf
+    if token and perf and type(perf.Finish) == "function" then perf.Finish(token) end
+end
+local function perfCount(name)
+    local perf = ns.LegacyPerf
+    if perf and type(perf.Count) == "function" then perf.Count(name, 1) end
+end
+local function measured(name, fn)
+    local token = perfBegin(name)
+    local ok, result = pcall(fn)
+    perfFinish(token)
+    if not ok then error(result, 0) end
+    return result
+end
+function C:Dirty(reason)
+    if reason == "native" or reason == "open" then
+        self.nativeRevision = self.nativeRevision + 1
+        self.nativeCatalog, self.dirtyData = nil, true
+    elseif reason == "custom" or reason == nil then self.dirtyData = true
+    elseif reason == "layout" then self.dirtyLayout = true
+    elseif reason == "tab" or reason == "statistics" then self.dirtyRender = true end
+    if reason ~= "pending" then self.dirtyMount = true end
+end
+function C:CancelQueuedWork()
+    self.lifecycle = self.lifecycle + 1
+    self.refreshTicket = self.refreshTicket + 1
+    self.queued, self.selectionQueued, self.attachQueued = false, false, false
+    self.attachPending = false
+    if self.ui and type(self.ui.CancelPending) == "function" then pcall(self.ui.CancelPending, self.ui) end
+end
 function C:Release(state)
+    self:CancelQueuedWork()
     self.busy = true
     if self.dragging and self.cover then
         -- Drag cleanup is best effort. Native restoration must still run if
@@ -42,10 +80,12 @@ function C:Release(state)
         self.restorePending = true
         self.state = "Restoration pending: " .. tostring(err)
     end
+    self.dirtyMount = true
     return ok
 end
 function C:Fail(reason)
     if self.ui then self.ui.rendering = false end
+    self.mounting = false
     self:Release("Fallback: " .. tostring(reason))
     if self.lastError ~= self.state then
         notify(self.state .. (self.restorePending and ". Restoration will retry after combat." or ". Native Legacy remains available."))
@@ -96,14 +136,36 @@ function C:SavePosition()
     end
 end
 function C:Fit()
-    local width, height = UIParent:GetWidth(), UIParent:GetHeight()
-    assert(width > 20 and height > 20, "UIParent dimensions unavailable")
-    local name, size = self:Preset()
-    self.cover:SetSize(size[1], size[2] + 140)
-    self.cover:SetScale(math.min(1, (width - 20) / size[1], (height - 20) / (size[2] + 140)))
-    self:RestorePosition()
-    self.ui.sizePreset = name
-    self.ui:Fit(self.cover)
+    measured("window.fit", function()
+        local width, height = UIParent:GetWidth(), UIParent:GetHeight()
+        assert(width > 20 and height > 20, "UIParent dimensions unavailable")
+        local name, size = self:Preset()
+        self.cover:SetSize(size[1], size[2] + 140)
+        self.cover:SetScale(math.min(1, (width - 20) / size[1], (height - 20) / (size[2] + 140)))
+        self:RestorePosition()
+        self.ui.sizePreset = name
+        self.ui:Fit(self.cover, true)
+        self.layoutState = { width = width, height = height, scale = UIParent:GetScale(), preset = name }
+    end)
+end
+function C:LayoutChanged()
+    local state = self.layoutState
+    return not state or state.width ~= UIParent:GetWidth() or state.height ~= UIParent:GetHeight()
+        or state.scale ~= UIParent:GetScale() or state.preset ~= self:Preset()
+end
+local function nativeClock()
+    local r = R.Call(GetTime)
+    local now = r and R.Number(r[1])
+    if now and now >= 0 then return now end
+end
+function C:NativeStale()
+    local now = nativeClock()
+    if now ~= nil then
+        return self.nativeCatalogAt == nil or now < self.nativeCatalogAt or now - self.nativeCatalogAt >= self.NATIVE_MAX_AGE
+    end
+    -- Missing/secret clocks cannot establish an age of zero. Fall back to a
+    -- bounded number of actual data refreshes, without another event ticker.
+    return self.nativeDataReuses >= self.NATIVE_MAX_UNTIMED_REUSES
 end
 function C:SetSizePreset(input)
     local normalized = type(input) == "string" and input:lower() or ""
@@ -112,7 +174,7 @@ function C:SetSizePreset(input)
     if not name then notify("Use /fa legacyui size compact|standard|large."); return false end
     FA.Settings().legacyUISize = name
     if self.ui and self.cover and not combat() then
-        if enabled() and self.root and shown(self.root) then self:Refresh()
+        if enabled() and self.root and shown(self.root) then self:Refresh("layout")
         else self:Guard(function() self:Fit() end) end
     end
     return true
@@ -140,49 +202,127 @@ function C:ReportUnmapped()
     end
     if #rows > 30 then notify("Showing the first 30 records; the full list is retained in the current view model.") end
 end
-function C:Refresh()
-    if self.busy then return end
+function C:Refresh(reason)
+    self:Dirty(reason)
+    if self.busy then self:QueueRefresh(); return false end
     if not enabled() then self:Release("Disabled"); return end
     if gamepad() then self:Release("Native interface in gamepad mode"); return end
-    if not self.root or not shown(self.root) then return end
+    if not self.root or not shown(self.root) then return false end
     if combat() then
         self.pending = true
         self:Release("Waiting for combat to end")
-        return
+        return false
     end
-    self:Guard(function()
+    -- An immediate opening/selection pass consumes earlier queued work. Its
+    -- timer remains harmless even if it runs after the window closes/reopens.
+    self.refreshTicket, self.queued = self.refreshTicket + 1, false
+    if self.dirtyData and self.nativeCatalog then
+        self.nativeDataReuses = self.nativeDataReuses + 1
+        if self:NativeStale() then self:Dirty("native"); perfCount("native.cache.expired") end
+    end
+    -- Geometry callbacks request a comparison, not an unconditional relayout.
+    -- Our own native-page setters can emit the same size notification again.
+    local layout = self:LayoutChanged()
+    local data = self.dirtyData or not self.ui.model
+    local render, mount = self.dirtyRender, self.dirtyMount or not self.bridge
+    if not layout and not data and not render and not mount then return true end
+    self.dirtyData, self.dirtyLayout, self.dirtyRender, self.dirtyMount = false, false, false, false
+    local token = perfBegin("controller.refresh")
+    local ok = self:Guard(function()
         self.busy = true
-        self:Fit()
-        local model = ns.LegacyPresentation.Build(self.page, self.nativeCatalog)
-        self.nativeCatalog = not model.native.partial and model.native or nil
-        self.ui:SetModel(model)
+        if layout then self:Fit() end
+        if data then
+            local revision = self.nativeRevision
+            local newNative = self.nativeCatalog == nil
+            local model = ns.LegacyPresentation.Build(self.page, self.nativeCatalog)
+            -- Retain bounded partial catalogs until a genuine native change;
+            -- tab and character updates must not retry the entire native scan.
+            if revision == self.nativeRevision then
+                self.nativeCatalog = model.native
+                if newNative then self.nativeCatalogAt, self.nativeDataReuses = nativeClock(), 0 end
+            end
+            self.currencyValue, self.currencyObserved = model.native.points, true
+            self.ui:SetModel(model)
+        elseif layout or render then self.ui:Render() end
         if not self.bridge then self.bridge = B.New(self.root) end
-        self.bridge:Mount(self.ui.tab, self.ui.nativeHost)
-        self.cover:Show()
+        self.mounting = true
+        measured("native.mount", function() self.bridge:Mount(self.ui.tab, self.ui.nativeHost) end)
+        self.mounting = false
+        if not shown(self.cover) then self.cover:Show() end
         self.busy = false
         self.state, self.lastError, self.pending = "Enabled", nil, false
     end)
-    self.busy = false
+    self.busy, self.mounting = false, false
+    perfFinish(token)
+    if ok and (self.dirtyData or self.dirtyLayout or self.dirtyRender or self.dirtyMount) then self:QueueRefresh() end
+    if ok and self.attachPending and not self.attaching then self.attachPending = false; self:QueueAttach() end
+    return ok
 end
-function C:Schedule()
+function C:QueueRefresh()
     if not enabled() or not self.root or not shown(self.root) or self.queued then return end
-    self.queued = true
     local timer = R.Field(C_Timer, "After")
-    local function run()
-        self.queued = false
-        if enabled() then self:Refresh() end
+    if type(timer) ~= "function" then
+        if not self.busy then self:Fail("Deferred refresh scheduling unavailable") end
+        self.pending = true
+        return
     end
-    if type(timer) == "function" then timer(.25, run) else run() end
+    self.queued = true
+    self.refreshTicket = self.refreshTicket + 1
+    local ticket, lifecycle = self.refreshTicket, self.lifecycle
+    local function run()
+        if ticket ~= self.refreshTicket or lifecycle ~= self.lifecycle then return end
+        self.queued = false
+        if enabled() then self:Refresh("pending") end
+    end
+    timer(.25, run)
+end
+function C:Schedule(reason)
+    self:Dirty(reason)
+    if self.queued then perfCount("controller.refresh.coalesced") end
+    self:QueueRefresh()
+end
+function C:CurrencyChanged(payload)
+    local r = R.Call(ns.LegacyAdapter.TotalPoints)
+    local value = r and R.Number(r[1])
+    local currencyChanged = false
+    if payload then
+        self.currencyState = self.currencyState or {}
+        for _, key in ipairs({ "quantity", "spentInTree", "maxQuantity", "traitCurrencyID" }) do
+            local observed = R.Number(R.Field(payload, key))
+            if observed ~= nil and self.currencyState[key] ~= observed then
+                self.currencyState[key], currencyChanged = observed, true
+            end
+        end
+    end
+    if currencyChanged and self.ui then
+        self.ui.statisticsCatalog = nil
+        if self.ui.tab == "statistics" then self:Schedule("statistics") end
+    end
+    -- Mounting native Rewards/Trees can emit currency notifications without
+    -- changing the authoritative Legacy point total. Native pages process
+    -- their own tree currency payload; our header never writes that object.
+    if self.currencyObserved and value == self.currencyValue then return end
+    self.currencyValue, self.currencyObserved = value, true
+    self:Schedule("native")
 end
 function C:QueueAttach()
     if self.attachQueued then return end
+    local timer = R.Field(C_Timer, "After")
+    if type(timer) ~= "function" then
+        -- Never retry inline while Attach/Refresh is in progress. The outer
+        -- pass consumes this pending request after releasing its guard.
+        if self.attaching or self.busy then self.attachPending = true; return end
+        if enabled() then self:Attach() end
+        return
+    end
     self.attachQueued = true
+    local lifecycle = self.lifecycle
     local function run()
+        if lifecycle ~= self.lifecycle then return end
         self.attachQueued = false
         if enabled() then self:Attach() end
     end
-    local timer = R.Field(C_Timer, "After")
-    if type(timer) == "function" then timer(0, run) else run() end
+    timer(0, run)
 end
 function C:Close()
     local root = self.root
@@ -193,7 +333,7 @@ function C:Close()
     if type(HideUIPanel) == "function" then HideUIPanel(root) else root:Hide() end
 end
 function C:NativeSelection()
-    if self.busy or not enabled() or not self.bridge or not shown(self.root) then return end
+    if self.mounting or not enabled() or not self.bridge or not shown(self.root) then return end
     -- CallbackRegistry stores callbacks by owner, not registration order.
     -- Read the final currentPage after every native callback has completed.
     if self.selectionQueued then return end
@@ -202,13 +342,15 @@ function C:NativeSelection()
         self:Release("Fallback: Native page coordination unavailable"); return
     end
     self.selectionQueued = true
+    local lifecycle = self.lifecycle
     timer(0, function()
+        if lifecycle ~= self.lifecycle then return end
         self.selectionQueued = false
         if not enabled() or not self.bridge or not shown(self.root) then return end
         local id = R.Number(R.Field(self.root, "currentPage"))
         local view = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
-        self:Guard(function() self.ui:SetTab(view) end)
-        self:Refresh()
+        if self.ui.tab == view then self:Refresh("mount"); return end
+        self:Guard(function() self.ui:SetTab(view, true) end)
     end)
 end
 function C:InputHooks()
@@ -229,6 +371,7 @@ function C:InputHooks()
     self.inputReady = true
 end
 function C:Attach()
+    if self.attaching or self.busy then self.attachPending = true; self:QueueAttach(); return end
     if self.restorePending and not self:Release(enabled() and "Waiting for native Legacy frame" or "Disabled") then return end
     if not enabled() then self:Release("Disabled"); return end
     if combat() then self.pending = true; self.state = "Waiting for combat to end"; return end
@@ -237,6 +380,10 @@ function C:Attach()
     local root, page = LegacySystemFrame, R.Field(LegacySystemFrame, "ChallengesPage")
     if not page then self.state = "Waiting for native Legacy frame"; return end
     if B.Blocked(root) or B.Blocked(page) then self:Fail("Native Legacy frame is protected or incompatible"); return end
+    if self.root and self.root ~= root and self.bridge and not self:Release("Waiting for native Legacy frame") then return end
+    if self.root ~= root or self.page ~= page then self:Dirty("open"); self.dirtyLayout = true end
+    self.attaching = true
+    local token = perfBegin("controller.attach")
     self:Guard(function()
         self.root, self.page = root, page
         if not self.cover then
@@ -252,8 +399,8 @@ function C:Attach()
         end
         if not self.ui then
             self.ui = ns.WrathAchievementUI.Create(self.cover, function(fn) return self:Guard(fn) end,
-                function() self:Refresh() end, {
-                    onTab = function() self:Refresh() end,
+                function() self:Refresh("custom") end, {
+                    onTab = function() self:Refresh("tab"); return true end,
                     onClose = function() self:Close() end,
                     onDragStart = function() self.dragging = true end,
                     onPositionSave = function() self:SavePosition() end,
@@ -262,15 +409,18 @@ function C:Attach()
         end
         if not self.hooked[root] then
             root:HookScript("OnShow", function()
-                if enabled() then
-                    self.nativeCatalog = nil
-                    local id = R.Number(R.Field(root, "currentPage"))
-                    self.ui.tab = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
-                    self:Attach()
+                if enabled() and root == LegacySystemFrame then
+                    self:CancelQueuedWork()
+                    self:Dirty("open")
+                    -- Let ShowChallenges/native callbacks finish selecting
+                    -- their final page before building or rendering a model.
+                    self:QueueAttach()
                 end
             end)
-            root:HookScript("OnHide", function() self:Release(enabled() and "Enabled; native window closed" or "Disabled") end)
-            root:HookScript("OnSizeChanged", function() self:Schedule() end)
+            root:HookScript("OnHide", function()
+                if root == self.root then self:Release(enabled() and "Enabled; native window closed" or "Disabled") end
+            end)
+            root:HookScript("OnSizeChanged", function() if root == self.root then self:Schedule("layout") end end)
             self.hooked[root] = true
         end
         -- Observe the completed native selection event. Do not replace any
@@ -284,26 +434,38 @@ function C:Attach()
         if not self.currencyHooked then
             -- Verified build 70338 event, also emitted after native tree edits.
             -- Re-read authoritative values; never change the currency object.
-            EventRegistry:RegisterCallback("Legacy.UpdateCurrencyInfo", function()
-                if enabled() then self.nativeCatalog = nil; self:Schedule() end
+            EventRegistry:RegisterCallback("Legacy.UpdateCurrencyInfo", function(_, payload)
+                if enabled() then self:CurrencyChanged(payload) end
             end, self)
             self.currencyHooked = true
         end
+        if not self.challengeHooked then
+            EventRegistry:RegisterCallback("Legacy.RefreshChallenges", function()
+                if enabled() then self:Schedule("native") end
+            end, self)
+            self.challengeHooked = true
+        end
         if not self.hooked[UIParent] then
-            UIParent:HookScript("OnSizeChanged", function() self:Schedule() end)
+            UIParent:HookScript("OnSizeChanged", function() self:Schedule("layout") end)
             self.hooked[UIParent] = true
         end
         if not self.bridge then
             local id = R.Number(R.Field(root, "currentPage"))
             self.ui.tab = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
         end
-        self.state = "Enabled; native window closed"
-        self:Refresh()
+        if not shown(root) then self.state = "Enabled; native window closed" end
+        self:Refresh("pending")
     end)
+    self.attaching = false
+    perfFinish(token)
+    if self.attachPending then self.attachPending = false; self:QueueAttach() end
 end
 function C:SetEnabled(value)
+    local previous = enabled()
     FA.Settings().legacyUI = value == true
-    if value then self:Attach()
+    if value then
+        if not previous then self:Dirty("open") end
+        self:Attach()
     else
         self.pending, self.queued = false, false
         self:Release("Disabled")
@@ -323,7 +485,7 @@ end
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
     "INPUT_DEVICE_INTERFACE_TRANSITION", "ACHIEVEMENT_EARNED", "CRITERIA_UPDATE", "CRITERIA_COMPLETE",
-    "RECEIVED_ACHIEVEMENT_LIST", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED" }) do
+    "RECEIVED_ACHIEVEMENT_LIST", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED" }) do
     pcall(events.RegisterEvent, events, event)
 end
 events:SetScript("OnEvent", function(_, event)
@@ -336,8 +498,9 @@ events:SetScript("OnEvent", function(_, event)
     elseif event == "INPUT_DEVICE_INTERFACE_TRANSITION" then
         if gamepad() then C:Release("Native interface in gamepad mode") else C:QueueAttach() end
     elseif event == "PLAYER_LOGIN" or event == "ADDON_LOADED" or event == "PLAYER_REGEN_ENABLED" then C:Attach()
-    else C.nativeCatalog = nil; C:Schedule() end
+    elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then C:Schedule("layout")
+    else C:Schedule("native") end
 end)
-FA.EARN_HOOKS[#FA.EARN_HOOKS + 1] = function() C:Schedule() end
-FA.CHECK_HOOKS[#FA.CHECK_HOOKS + 1] = function() C:Schedule() end
+FA.EARN_HOOKS[#FA.EARN_HOOKS + 1] = function() C:Schedule("custom") end
+FA.CHECK_HOOKS[#FA.CHECK_HOOKS + 1] = function() C:Schedule("custom") end
 -- File load does not open, load, hook or mutate the native Legacy window.

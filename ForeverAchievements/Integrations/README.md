@@ -17,6 +17,7 @@ addon and the native Blizzard addon directories.
 - `/fach` and `/qa` also accept these `legacyui` commands.
 - `/legacyinspect` remains the manual read-only inspector.
 - `/fa progressdebug on|off|status|dump` controls progression diagnostics, disabled by default.
+- `/fa perf on|off|report|reset` controls bounded session performance diagnostics, off by default.
 - `/fa inspectachievement KEY` reports this character's saved state and current condition evidence.
 - `/fa correctachievement KEY` previews a correction and provides a short-lived confirmation token.
 - `/fa correctachievement KEY confirm TOKEN` corrects only that key on this character.
@@ -262,6 +263,15 @@ custom accomplishment. Back up existing SavedVariables; do not reset them for te
    diagnostics off after capturing the result.
 
 ## Reporting
+
+For intermittent timeouts, run `/fa perf on` before opening the window, then exercise
+close/reopen, all four tabs, scrolling, search/filter changes, and size presets. Verify
+ordinary earned progress, zone/bag updates, native criteria, and Legacy currency still
+refresh live values. Test closing/disabling with pending work and combat/input-mode
+fallback. Capture `/fa perf report`, then `/fa perf off`. Reports contain bounded timing
+and count aggregates, with explicit unavailable clocks; they do not collect individual
+call traces or change saved progression. Collection is off after reload. See
+[stability findings and performance test steps](../../docs/legacy-ui-performance.md).
 
 Include chat status, client build, UI scale/resolution, size preset, tab, selected
 category/challenge ID, combat/input mode, and Lua error. Preserve SavedVariables;
