@@ -79,9 +79,10 @@ class Iteration4UITests(unittest.TestCase):
             local row=view.model.byKey['legacy:62013']; row.completed=true; row.date='10/10/26'
             view:RenderCard(row,1,0)
             local c=view.cards[1]
-            assert(c.nativeCompleted and not c.characterCompleted and c.saturated)
-            assert(c.borderColor[1]<c.borderColor[3] and c.glow.color[1]<c.glow.color[3])
-            assert(c.shield.icon.color[1]<c.shield.icon.color[3])
+            assert(c.nativeCompleted and not c.characterCompleted and not c.saturated)
+            assert(c.visualState=='native-complete' and c.borderColor[1]==c.borderColor[3])
+            assert(c.shield.icon.color[1]==1 and c.shield.icon.color[3]==1)
+            assert(c.shield.wreath.color[1]<c.shield.wreath.color[3] and c.shield.wreath:IsShown())
             assert(c.shield.points.color[1]<c.shield.points.color[3])
             assert(c.dateCompleted:IsShown() and c.dateCompleted:GetText()=='10/10/26')
             view:RenderCard(view.model.byKey['custom:first'],1,0)
@@ -122,8 +123,9 @@ class Iteration4UITests(unittest.TestCase):
             assert(c.nativeCompleted and not c.characterCompleted and not c.saturated)
             assert(c.shield.points:GetText()=='20' and c.shield.icon.coords[1]==.5)
             assert(c.shield.icon.color[1]==1 and c.shield.icon.color[3]==1)
-            assert(c.nativeStatus:IsShown() and c.nativeStatus:GetText()=='Legacy: 1 point · Complete')
-            assert(c.nativeStatus.color[1]<c.nativeStatus.color[3] and c.borderColor[1]<c.borderColor[3])
+            assert(c.nativeStatus:IsShown() and c.nativeStatus:GetText()=='Completed via Legacy')
+            assert(c.nativeStatus.color[1]<c.nativeStatus.color[3] and c.borderColor[1]==c.borderColor[3])
+            assert(c.shield.wreath.color[1]<c.shield.wreath.color[3])
             assert(not c.dateCompleted:IsShown() and c.completionText:GetText()=='Completed by Aldrin Stone')
             assert(not c.scopeText:IsShown() and c.tracked:IsShown())
             assert(c.progressPool[1].value==3 and c.progressPool[2].value==5)
@@ -141,7 +143,7 @@ class Iteration4UITests(unittest.TestCase):
             assert(c.characterCompleted and not c.nativeCompleted and c.saturated)
             assert(c.shield.points:GetText()=='20' and c.shield.icon.coords[1]==0)
             assert(c.borderColor[1]>c.borderColor[3] and c.dateCompleted:GetText()=='10/09/26')
-            assert(c.nativeStatus:GetText()=='Legacy: 1 point' and not c.completionText:IsShown())
+            assert(not c.nativeStatus:IsShown() and c.nativeStatus:GetText()=='' and not c.completionText:IsShown())
             local foundNative=false
             for _,f in ipairs(c.criteriaPool) do
                 if f:IsShown() then
@@ -186,7 +188,7 @@ class Iteration4UITests(unittest.TestCase):
             combined.completed=nil; custom.completed=nil; combined.completionDetail='Completion unavailable'
             view:RenderCard(combined,1,0); local c=view.cards[1]
             assert(not c.characterCompleted and not c.saturated and c.nativeCompleted)
-            assert(c.shield.points:GetText()=='20' and c.nativeStatus:GetText()=='Legacy · Complete')
+            assert(c.shield.points:GetText()=='20' and c.nativeStatus:GetText()=='Completed via Legacy')
             assert(#c.progressPool==1 and c.progressPool[1].text:GetText()=='Custom objective: 3 / 10')
             local nativeHeading=false
             for _,f in ipairs(c.criteriaPool) do if f:IsShown() then
@@ -225,7 +227,7 @@ class Iteration4UITests(unittest.TestCase):
             local c=cardFor('custom:explore802')
             assert(c and c.selected and c:GetHeight()>84 and c.record==zoneCard)
             assert(c.nativeCompleted and not c.characterCompleted and not c.saturated)
-            assert(c.nativeStatus:GetText()=='Legacy: 1 point · Complete' and not c.dateCompleted:IsShown())
+            assert(c.nativeStatus:GetText()=='Completed via Legacy' and not c.dateCompleted:IsShown())
             local shown=0; for _,card in ipairs(view.cards) do if card:IsShown() then shown=shown+1 end end
             assert(shown==1 and realModel.custom.points==0 and saved.done.explore802==nil)
             assert(c.criteriaPool[1].label:GetText()=='Achievement criteria')

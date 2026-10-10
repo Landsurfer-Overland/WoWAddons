@@ -17,11 +17,11 @@ class Iteration3UITests(unittest.TestCase):
             GameFontHighlight={name='highlight'}
             host=CreateFrame('Frame','Iteration3Host'); host:SetSize(900,760)
             function guard(fn) fn() end
-            dragStarts,positionSaves,sizeCycles=0,0,0
+            dragStarts,positionSaves,sizeSelections=0,0,0
             view=ns.WrathAchievementUI.Create(host,guard,function() end,{
                 onDragStart=function() dragStarts=dragStarts+1 end,
                 onPositionSave=function(frame) assert(frame==host); positionSaves=positionSaves+1 end,
-                onSizePresetCycle=function() sizeCycles=sizeCycles+1 end,
+                onSizePreset=function(name) sizeSelections=sizeSelections+1; selectedSize=name end,
             })
             view:Fit(host); view:SetModel(ns.LegacyPresentation.Build())
             function categoryButton(key)
@@ -105,14 +105,17 @@ class Iteration3UITests(unittest.TestCase):
             assert(shield.icon.textureValue:find('NoPoints',1,true) and shield.points:GetText()=='3')
         """)
 
-    def test_awarded_legacy_shield_is_distinct_and_pool_returns_to_character_colors(self):
+    def test_completed_legacy_wreath_is_distinct_and_pool_returns_to_character_colors(self):
         self.check("""
-            view:RenderCard(view.model.byKey['legacy:62013'],1,0)
+            local native=view.model.byKey['legacy:62013']; native.completed=true
+            view:RenderCard(native,1,0)
             local shield=view.cards[1].shield
-            assert(shield.icon.color[1]<shield.icon.color[3])
-            assert(shield.points.color[1]==1 and shield.points.color[2]==.82)
+            assert(shield.icon.color[1]==1 and shield.icon.coords[1]==.5)
+            assert(shield.wreath.color[1]<shield.wreath.color[3] and shield.wreath:IsShown())
+            assert(shield.points.color[1]==.63 and shield.points.color[2]==.79)
             view:RenderCard(view.model.byKey['custom:first'],1,0)
             assert(shield.icon.color[1]==1 and shield.icon.color[2]==1 and shield.icon.color[3]==1)
+            assert(shield.wreath.color[1]==1 and shield.wreath.coords[1]==0)
             assert(shield.points.color[1]==1 and shield.points.color[2]==1)
             assert(shield.points:GetText()=='10')
         """)
@@ -272,7 +275,9 @@ class Iteration3UITests(unittest.TestCase):
             assert(host.moving and dragStarts==1)
             FAWrathAchievementFrameHeader:Fire('OnDragStop')
             assert(not host.moving and positionSaves==1)
-            view.sizeButton:Fire('OnClick'); assert(sizeCycles==1)
+            view.sizeButton:Fire('OnClick'); assert(sizeSelections==0 and view.sizeMenu:IsShown())
+            view.sizeChoices[3]:Fire('OnClick')
+            assert(sizeSelections==1 and selectedSize=='Large' and not view.sizeMenu:IsShown())
         """)
 
     def test_native_views_use_only_native_page_backgrounds(self):

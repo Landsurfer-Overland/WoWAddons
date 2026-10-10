@@ -1,4 +1,4 @@
-# Unified Wrath Legacy interface — iteration 5
+# Unified Wrath Legacy interface — iteration 6
 
 Install the complete `ForeverAchievements` folder in the active Forever client's
 `Interface/AddOns` directory, replacing the previous addon files. Keep your
@@ -26,8 +26,9 @@ addon and the native Blizzard addon directories.
 - `/fa correctachievement KEY resume`, then `/fa correctachievement KEY resume confirm TOKEN`, explicitly permits future verified earning of that corrected key.
 
 The feature is disabled by default. The account option, selected size, and dragged
-position persist across reloads. Large is the initial size; an explicitly saved
-Compact or Standard preference remains respected. Size presets enlarge
+position persist across reloads. Standard is the initial size; every valid saved
+size preference remains respected. The footer dropdown selects Compact, Standard
+or Large. Size presets enlarge
 usable content space while retaining fixed decorative corners and classic artwork;
 the window fits the available screen. Use the header to drag it and reset if needed
 after a resolution or UI-scale change. The existing standalone `/fach` window,
@@ -36,7 +37,7 @@ character tracker, settings, social features, and original saved keys remain ava
 | Preset | Logical body dimensions |
 | --- | --- |
 | Compact | 768 × 500 |
-| Standard | 900 × 620 |
+| Standard | 960 × 620 |
 | Large | 1024 × 720 |
 
 Roof/footer space is additional; the complete window scales down when needed to
@@ -78,8 +79,10 @@ Legacy/account completion is relevant. Another character's completion never
 changes this character's custom completion, date, points, or completed artwork.
 Historical account snapshots without reliable character identity do not establish
 who earned an achievement.
-Current custom completion uses gold; completed native records use a restrained blue
-accent. A merged card retains character completion separately, including when native
+Current custom completion uses gold. Native completion alone keeps the card and
+central shield gray and colors only its separate laurel layer blue, with a subtle
+`Completed via Legacy` label. Character gold takes precedence over Legacy blue.
+A merged card retains character completion separately, including when native
 progress is complete and this character's custom achievement is incomplete. Reliable
 other-character history for Legacy-linked cards names its recorded earner without
 granting character points.
@@ -197,8 +200,11 @@ The older `/fach reset` directs you to this targeted flow instead of wiping prog
 
 ## Manual in-game test plan
 
-Use the [Iteration 5 checklist](../../docs/iteration5-regression-plan.md#manual-client-checklist)
-for the current shell, controls, card cleanup and historical Moonglade checks.
+Use the [Iteration 6 checklist](../../docs/iteration6-regression-plan.md#manual-in-game-checklist)
+for current sizing, headings, scrollbars, menus and completion artwork. Its texture
+limits and `Unavailable` investigation are documented alongside the checks.
+The [Iteration 5 checklist](../../docs/iteration5-regression-plan.md#manual-client-checklist)
+retains the historical Moonglade and progression checks.
 
 Automated/static checks cannot validate game assets, protected UI, real native
 progression, or SavedVariables disk writes. Keep your existing saves and record errors

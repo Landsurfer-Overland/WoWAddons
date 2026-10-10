@@ -71,7 +71,7 @@ class Iteration5CardTests(unittest.TestCase):
             assert(not c.scopeText:IsShown() and not c.otherCompletion:IsShown())
             assert(c.nativeCompleted and not c.characterCompleted and not c.saturated)
             assert(c.shield.points:GetText()=='20' and c.shield.icon.coords[1]==.5)
-            assert(c.nativeStatus:GetText()=='Legacy: 1 point · Complete')
+            assert(c.nativeStatus:GetText()=='Completed via Legacy')
             assert(c.criteriaPool[1].label:GetText()=='Achievement criteria')
             assert(c.criteriaPool[2].label:GetText()=='Legacy criteria')
             ns.WrathAchievementUI.ShieldEnter(c.shield)
@@ -89,7 +89,7 @@ class Iteration5CardTests(unittest.TestCase):
             nativeCriteria.available=false; nativeCriteria.complete=false; nativeCriteria.items={}
             local advance=view:MeasureCard(combined); view:RenderCard(combined,1,0)
             local c=view.cards[1]
-            assert(c:GetHeight()+4==advance and c.nativeStatus:GetText()=='Legacy')
+            assert(c:GetHeight()+4==advance and not c.nativeStatus:IsShown() and c.nativeStatus:GetText()=='')
             assert(not c.nativeCompleted and not c.saturated and not c.completionText:IsShown())
             assert(#c.criteriaPool==2 and #c.progressPool==1)
             ns.WrathAchievementUI.ShieldEnter(c.shield)

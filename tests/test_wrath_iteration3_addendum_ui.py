@@ -94,11 +94,12 @@ class AddendumUITests(unittest.TestCase):
             native.completed=true; native.scopeType='account'; native.completionScope='native_account'
             native.completionDetail='Legacy challenge completed account-wide'
             view.selected=native.key; view:RenderCard(native,1,0)
-            assert(card.saturated and card.nativeCompleted and not card.characterCompleted)
+            assert(not card.saturated and card.nativeCompleted and not card.characterCompleted)
+            assert(card.visualState=='native-complete' and card.shield.wreath.color[1]<card.shield.wreath.color[3])
             assert(not card.completionText:IsShown() and not card.scopeText:IsShown() and saved.done.second==nil)
             native.completionScope='unknown'; native.completionDetail='Completion scope unavailable'
             view:RenderCard(native,1,0)
-            assert(card.saturated and not card.completionText:IsShown())
+            assert(not card.saturated and card.visualState=='native-complete' and not card.completionText:IsShown())
             assert(native.completionDetail=='Completion scope unavailable')
             assert(#calls==0)
         """)
@@ -146,7 +147,8 @@ class AddendumUITests(unittest.TestCase):
             local native=view.model.byKey['legacy:62013']
             assert(native.completed==true and native.completionScope=='native_account')
             view.selected=native.key; view:RenderCard(native,1,0)
-            assert(view.cards[1].saturated and view.cards[1].nativeCompleted and not view.cards[1].completionText:IsShown())
+            assert(not view.cards[1].saturated and view.cards[1].nativeCompleted and not view.cards[1].completionText:IsShown())
+            assert(view.cards[1].visualState=='native-complete' and view.cards[1].nativeStatus:GetText()=='Completed via Legacy')
             assert(native.completionDetail=='Legacy challenge completed account-wide')
             assert(custom.completed==false and saved.done.second==nil and view.model.custom.points==10)
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10' and #calls==0)

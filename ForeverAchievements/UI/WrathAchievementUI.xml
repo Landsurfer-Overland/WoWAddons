@@ -933,6 +933,21 @@
               <TexCoords left="0" right=".5" top="0" bottom=".5" />
             </Texture>
           </Layer>
+          <Layer level="ARTWORK">
+            <Texture name="$parentWreath" file="Interface\AchievementFrame\UI-Achievement-Shields" parentKey="wreath" hidden="true">
+              <Size>
+                <AbsDimension x="66" y="64" />
+              </Size>
+              <Anchors>
+                <Anchor point="TOPRIGHT">
+                  <Offset>
+                    <AbsDimension x="0" y="-6" />
+                  </Offset>
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0" right=".5" top="0" bottom=".5" />
+            </Texture>
+          </Layer>
           <Layer level="OVERLAY">
             <FontString name="$parentPoints" inherits="FAWrathAchievementPointsFont" parentKey="points">
               <Size x="32" y="16" />
@@ -1339,14 +1354,14 @@
           <Layer level="BORDER">
             <Texture name="$parentPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="170" y="39" />
+                <AbsDimension x="134" y="39" />
               </Size>
               <Anchors>
                 <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
                   <Offset x="-174" y="19" />
                 </Anchor>
               </Anchors>
-              <TexCoords left="0.419921875" right="0.6796875" top="0.4140625" bottom="0.56640625" />
+              <TexCoords left=".455078125" right=".64453125" top="0.4140625" bottom="0.56640625" />
             </Texture>
             <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Achievement Points">
               <Size x="188" y="18" />
@@ -1364,16 +1379,52 @@
                 </Anchor>
               </Anchors>
             </Texture>
+            <Texture name="$parentPointBorderLeft" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="18" y="39" />
+              </Size>
+              <Anchors>
+                <Anchor point="RIGHT" relativeTo="$parentPointBorder" relativePoint="LEFT" />
+              </Anchors>
+              <TexCoords left=".419921875" right=".455078125" top=".4140625" bottom=".56640625" />
+            </Texture>
+            <Texture name="$parentPointBorderRight" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="18" y="39" />
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentPointBorder" relativePoint="RIGHT" />
+              </Anchors>
+              <TexCoords left=".64453125" right=".6796875" top=".4140625" bottom=".56640625" />
+            </Texture>
             <Texture name="$parentLegacyPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="170" y="39" />
+                <AbsDimension x="134" y="39" />
               </Size>
               <Anchors>
                 <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
                   <Offset x="174" y="19" />
                 </Anchor>
               </Anchors>
-              <TexCoords left="0.419921875" right="0.6796875" top="0.4140625" bottom="0.56640625" />
+              <TexCoords left=".455078125" right=".64453125" top="0.4140625" bottom="0.56640625" />
+            </Texture>
+            <Texture name="$parentLegacyPointBorderLeft" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="18" y="39" />
+              </Size>
+              <Anchors>
+                <Anchor point="RIGHT" relativeTo="$parentLegacyPointBorder" relativePoint="LEFT" />
+              </Anchors>
+              <TexCoords left=".419921875" right=".455078125" top=".4140625" bottom=".56640625" />
+            </Texture>
+            <Texture name="$parentLegacyPointBorderRight" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="18" y="39" />
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentLegacyPointBorder" relativePoint="RIGHT" />
+              </Anchors>
+              <TexCoords left=".64453125" right=".6796875" top=".4140625" bottom=".56640625" />
             </Texture>
             <FontString name="$parentLegacyTitle" inherits="GameFontNormalLarge" text="Legacy Points">
               <Size x="188" y="18" />

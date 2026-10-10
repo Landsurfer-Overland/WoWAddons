@@ -3,7 +3,7 @@
 -- comparison, tracking setters and HybridScrollFrame code are not loaded.
 local _, ns = ...
 local U = {}
-U.PRESETS = { Compact = { 768, 500 }, Standard = { 900, 620 }, Large = { 1024, 720 } }
+U.PRESETS = { Compact = { 768, 500 }, Standard = { 960, 620 }, Large = { 1024, 720 } }
 ns.WrathAchievementUI = U
 ForeverAchievementsWrathUI = U -- only our XML callbacks, never Blizzard globals
 local P = ns.LegacyPresentation
@@ -30,7 +30,38 @@ function U.IconOnLoad(self)
     self.bling, self.texture, self.frame = region(self, "Bling"), region(self, "Texture"), region(self, "Overlay")
 end
 function U.ShieldOnLoad(self)
-    self.icon, self.points = region(self, "Icon"), region(self, "Points")
+    self.icon, self.wreath, self.points = region(self, "Icon"), region(self, "Wreath"), region(self, "Points")
+    self.separateWreath = false
+    if type(self.CreateMaskTexture) == "function" and type(self.icon.AddMaskTexture) == "function"
+        and type(self.wreath.AddMaskTexture) == "function" and type(self.icon.RemoveMaskTexture) == "function"
+        and type(self.wreath.RemoveMaskTexture) == "function" then
+        -- Complementary masks divide the actual client atlas into one central
+        -- shield and its original laurel. They do not redraw or stack shields.
+        local iconAttempted, wreathAttempted
+        local ok, reason = pcall(function()
+            self.shieldMask = self:CreateMaskTexture(nil, "BACKGROUND")
+            self.wreathMask = self:CreateMaskTexture(nil, "BACKGROUND")
+            local shieldReady = self.shieldMask:SetTexture("Interface\\AddOns\\ForeverAchievements\\Media\\Achievement-Shield-Mask")
+            local wreathReady = self.wreathMask:SetTexture("Interface\\AddOns\\ForeverAchievements\\Media\\Achievement-Wreath-Mask")
+            if shieldReady == false or wreathReady == false then error("Achievement mask texture unavailable") end
+            self.shieldMask:SetAllPoints(self.icon); self.wreathMask:SetAllPoints(self.wreath)
+            iconAttempted = true; self.icon:AddMaskTexture(self.shieldMask)
+            wreathAttempted = true; self.wreath:AddMaskTexture(self.wreathMask)
+        end)
+        if ok then self.separateWreath = true
+        else
+            -- Mask setup is optional and attempted once per pooled shield.
+            -- Roll back even an API which attached its mask before failing.
+            -- Other initialization/renderer errors retain the normal fallback.
+            if iconAttempted then self.icon:RemoveMaskTexture(self.shieldMask) end
+            if wreathAttempted then self.wreath:RemoveMaskTexture(self.wreathMask) end
+            self.maskSetupFailure = tostring(reason)
+            perfCount("UI.WreathMaskSetupFailure")
+        end
+    else
+        perfCount("UI.WreathMaskUnavailable")
+    end
+    self.wreath:Hide()
     self:EnableMouse(true)
     self:SetScript("OnEnter", U.ShieldEnter)
     self:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -80,11 +111,25 @@ function U.CardOnLoad(self)
     self.otherCompletion:SetJustifyH("RIGHT"); self.otherCompletion:Hide()
     -- A text accent shares the existing card; it is not another point shield.
     self.nativeStatus = font(self, "GameFontNormalSmall")
-    self.nativeStatus:SetPoint("BOTTOMRIGHT", -9, 6); self.nativeStatus:SetHeight(16)
+    self.nativeStatus:SetPoint("BOTTOMRIGHT", -90, 6); self.nativeStatus:SetHeight(16)
     self.nativeStatus:SetJustifyH("RIGHT"); self.nativeStatus:Hide()
 end
+-- Select one presentation state before applying any artwork. The underlying
+-- character component owns a unified card's gold completion; Legacy completion
+-- never supplies character points, dates or a fictional completion requirement.
+function U.CardVisualState(row)
+    local character = row.source == "combined" and row.character or row.source ~= "legacy" and row or nil
+    local native = row.source == "combined" and row.native or row.source == "legacy" and row or nil
+    if character and character.completed == true then return "character-complete", character, native end
+    if native and native.completed == true then
+        return character and "legacy-complete" or "native-complete", character, native
+    end
+    return character and "incomplete" or "native-incomplete", character, native
+end
 -- Original AchievementButton_Saturate / Desaturate colors and texture slices.
-local function saturate(card, completed)
+local function saturate(card, state)
+    local completed = state == "character-complete"
+    local legacy = state == "legacy-complete" or state == "native-complete"
     local icon = card.icon
     card.titleBackground:SetTexCoord(0, .9765625, completed and 0 or .34375, completed and .3125 or .65625)
     card.background:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Parchment-Horizontal" .. (completed and "" or "-Desaturated"))
@@ -103,6 +148,14 @@ local function saturate(card, completed)
         card.description:SetTextColor(1, 1, 1); card.description:SetShadowOffset(1, -1)
         card:SetBackdropBorderColor(.5, .5, .5)
     end
+    -- The central shield stays neutral. Complementary masks keep only the
+    -- original laurel in the other layer; only that layer carries Legacy blue.
+    card.shield.icon:SetVertexColor(1, 1, 1, 1)
+    card.shield.wreath:SetTexCoord(completed and 0 or .5, completed and .5 or 1, 0, .5)
+    if legacy then card.shield.wreath:SetVertexColor(.35, .65, .95, 1)
+    else card.shield.wreath:SetVertexColor(1, 1, 1, 1) end
+    card.shield.wreath:SetAlpha(1)
+    show(card.shield.wreath, card.shield.separateWreath == true)
     card.saturated = completed
 end
 local function pool(owner, key, index, kind, parent, template)
@@ -114,10 +167,42 @@ local function pool(owner, key, index, kind, parent, template)
     local f = entries[index]; f:ClearAllPoints(); return f
 end
 local function hidePool(entries) for _, f in ipairs(entries) do f:Hide() end end
+local function syncScrollbar(scrollFrame, child, requested)
+    local bar = scrollFrame.faScrollbar
+    if not bar then return end
+    local viewport, content = scrollFrame:GetHeight(), child:GetHeight()
+    local maximum = math.max(0, content - viewport)
+    local value = math.max(0, math.min(requested or scrollFrame:GetVerticalScroll(), maximum))
+    local trackHeight = math.max(1, viewport - 36)
+    -- One owned slider and two arrows live alongside the clipped scroll child.
+    -- Native template callbacks can replace the range/thumb during rect updates;
+    -- these controls instead synchronize only when our content geometry changes.
+    bar.syncing = true
+    if bar.viewportHeight ~= viewport then
+        bar.holder:SetHeight(viewport); bar:SetHeight(trackHeight)
+        bar.viewportHeight = viewport
+    end
+    if bar.maximum ~= maximum then
+        bar:SetMinMaxValues(0, maximum); bar.maximum = maximum
+    end
+    local thumbHeight = math.min(trackHeight, math.max(18, trackHeight * viewport / math.max(content, viewport, 1)))
+    if bar.thumbHeight ~= thumbHeight then
+        bar.thumb:SetSize(18, thumbHeight); bar.thumbHeight = thumbHeight
+    end
+    show(bar.thumb, maximum > 0)
+    bar:EnableMouse(maximum > 0)
+    bar.up:SetEnabled(value > 0); bar.down:SetEnabled(value < maximum)
+    if bar:GetValue() ~= value then bar:SetValue(value) end
+    bar.syncing = false
+end
+function U.LayoutContentScrollbar(self)
+    syncScrollbar(self.contentScroll, self.contentChild)
+end
 local function clampScroll(scrollFrame, child, requested)
     local value = math.max(0, math.min(requested or scrollFrame:GetVerticalScroll(), math.max(0, child:GetHeight() - scrollFrame:GetHeight())))
     local changed = value ~= scrollFrame:GetVerticalScroll()
     if changed then scrollFrame:SetVerticalScroll(value) end
+    syncScrollbar(scrollFrame, child, value)
     return changed
 end
 local function resetScroll(self)
@@ -158,9 +243,6 @@ end
 local function pointValue(row)
     if row.pointValue ~= nil then return row.pointValue end
     if row.pointType == nil then return row.points end
-end
-local function pointLabel(points)
-    return points ~= nil and points .. (points == 1 and " point" or " points") or nil
 end
 local function criteriaSections(row, data)
     -- Relationships are established by the presentation adapter. The view
@@ -314,10 +396,49 @@ function U.CloseClick(self)
     action(self, function(owner) if owner.callbacks.onClose then owner.callbacks.onClose() end end)
 end
 local function scroll(parent, name, width, height, x, y)
-    local s = CreateFrame("ScrollFrame", name, parent, "UIPanelScrollFrameTemplate")
+    local s = CreateFrame("ScrollFrame", name, parent)
     s:SetSize(width, height); s:SetPoint("TOPLEFT", x, y)
     local child = CreateFrame("Frame", name .. "Child", s)
     child:SetSize(width, height); s:SetScrollChild(child)
+    local holder = CreateFrame("Frame", name .. "Scrollbar", s)
+    holder:SetSize(18, height); holder:SetPoint("TOPLEFT", s, "TOPRIGHT", 2, 0)
+    local bar = CreateFrame("Slider", name .. "ScrollBar", holder)
+    bar:SetSize(18, math.max(1, height - 36)); bar:SetPoint("TOPLEFT", 0, -18)
+    bar:SetOrientation("VERTICAL"); bar:SetValueStep(1)
+    if type(bar.SetObeyStepOnDrag) == "function" then bar:SetObeyStepOnDrag(false) end
+    bar.holder = holder
+    bar.track = bar:CreateTexture(nil, "BACKGROUND")
+    bar.track:SetAllPoints(bar); bar.track:SetColorTexture(.12, .09, .055, .8)
+    bar.thumb = bar:CreateTexture(nil, "OVERLAY")
+    bar.thumb:SetTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
+    bar.thumb:SetTexCoord(.20, .80, .125, .875)
+    bar:SetThumbTexture(bar.thumb)
+    local function arrow(direction)
+        local button = CreateFrame("Button", name .. "Scroll" .. direction .. "Button", holder)
+        button:SetSize(18, 16)
+        button:SetPoint(direction == "Up" and "TOP" or "BOTTOM", holder, direction == "Up" and "TOP" or "BOTTOM", 0, 0)
+        local prefix = "Interface\\Buttons\\UI-ScrollBar-Scroll" .. direction .. "Button-"
+        for _, state in ipairs({ "Normal", "Pushed", "Disabled", "Highlight" }) do
+            local texture = button:CreateTexture(nil, state == "Highlight" and "HIGHLIGHT" or "ARTWORK")
+            texture:SetAllPoints(button); texture:SetTexCoord(.20, .80, .25, .75)
+            texture:SetTexture(prefix .. ({ Normal = "Up", Pushed = "Down", Disabled = "Disabled", Highlight = "Highlight" })[state])
+            if state == "Highlight" then texture:SetBlendMode("ADD") end
+            button["Set" .. state .. "Texture"](button, texture)
+        end
+        button:SetScript("OnClick", function()
+            clampScroll(s, child, s:GetVerticalScroll() + (direction == "Up" and -44 or 44))
+        end)
+        return button
+    end
+    bar.up, bar.down = arrow("Up"), arrow("Down")
+    s.faScrollbar = bar
+    bar:SetScript("OnValueChanged", function(_, value)
+        if not bar.syncing then clampScroll(s, child, value) end
+    end)
+    s:EnableMouseWheel(true)
+    s:SetScript("OnMouseWheel", function(_, delta) clampScroll(s, child, s:GetVerticalScroll() - delta * 44) end)
+    s:HookScript("OnVerticalScroll", function() syncScrollbar(s, child) end)
+    syncScrollbar(s, child)
     return s, child
 end
 function U.Create(cover, guard, refresh, callbacks)
@@ -325,7 +446,7 @@ function U.Create(cover, guard, refresh, callbacks)
         expanded = {}, statisticsExpanded = {}, statisticsCategory = "stats:summary", scrollOffsets = {}, sidebarOffsets = {},
         categories = {}, cards = {}, bars = {}, stats = {}, headings = {}, callbacks = callbacks or {} }
     self.root = CreateFrame("Frame", "FAWrathAchievementFrame", cover, "FAWrathWindowTemplate")
-    self.root:SetSize(1024, 720)
+    self.root:SetSize(U.PRESETS.Standard[1], U.PRESETS.Standard[2])
     self.root:SetPoint("TOP", cover, "TOP", 0, -82)
     -- This is the original BACKDROP_ACHIEVEMENTS_0_64 geometry. Corner art
     -- alone leaves the long outer edges missing when the body grows.
@@ -372,7 +493,7 @@ function U.Create(cover, guard, refresh, callbacks)
     if type(self.searchBox.SetTextInsets) == "function" then self.searchBox:SetTextInsets(23, 22, 0, 0) end
     self.searchBox:SetAutoFocus(false); self.searchBox:SetMaxLetters(100)
     self.searchBox:SetScript("OnEscapePressed", function(box)
-        if self.filterMenu then self.filterMenu:Hide() end
+        self:DismissMenus()
         box:ClearFocus()
     end)
     self.searchBox:SetScript("OnTextChanged", function(box, userInput)
@@ -416,7 +537,7 @@ function U.Create(cover, guard, refresh, callbacks)
         self.search, self.filter, self.focus = "", "All", nil
         self.searchQueued, self.suppressSearchChange = false, true
         self.searchBox:SetText(""); self.suppressSearchChange = false; self.setFilter("All")
-        self.filterMenu:Hide()
+        self:DismissMenus()
         self.searchBox:ClearFocus(); resetScroll(self); self:Render()
     end) end)
     self.filterButton = CreateFrame("Button", "FAWrathFilter", self.root, "FAWrathCategoryTemplate")
@@ -486,7 +607,10 @@ function U.Create(cover, guard, refresh, callbacks)
     self.filterButton:SetScript("OnClick", function()
         guard(function()
             if self.filterMenu:IsShown() then self.filterMenu:Hide()
-            else self.setFilter(self.filter); self.filterDismiss:Show(); self.filterMenu:Show() end
+            else
+                self:DismissMenus(); self.setFilter(self.filter)
+                self.filterDismiss:Show(); self.filterMenu:Show()
+            end
         end)
     end)
     self.tabs = {}
@@ -506,17 +630,99 @@ function U.Create(cover, guard, refresh, callbacks)
     end
     self.nativePoints = region(self.root, "HeaderLegacyPoints")
     region(self.root, "HeaderLegacyShield"):SetVertexColor(.63, .79, 1)
+    -- Forever's native Timer uses these faction logos. Read the actual player
+    -- faction once; the XML's neutral seal remains the unavailable fallback.
+    local reader = ns.LegacyReadOnly
+    local factionResult = reader and reader.Call and reader.Call(UnitFactionGroup, "player")
+    local faction = factionResult and reader.Text(factionResult[1])
+    local logo = faction == "Alliance" and "Interface\\Timer\\Alliance-Logo" or
+        faction == "Horde" and "Interface\\Timer\\Horde-Logo"
+    if logo then
+        local crest = region(self.root, "HeaderCrest")
+        local ok, applied = pcall(crest.SetTexture, crest, logo)
+        if ok and applied ~= false then
+            -- Both native images are square. A common square crop trims only
+            -- transparent padding and preserves their centered proportions.
+            crest:SetTexCoord(.0625, .9375, .0625, .9375); crest:SetSize(66, 66)
+        else
+            crest:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints")
+        end
+    end
     self.sizeButton = CreateFrame("Button", "FAWrathSizePreset", self.root, "FAWrathCategoryTemplate")
-    self.sizeButton:SetSize(110, 24); self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -25, -18)
+    self.sizeButton:SetSize(128, 24); self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -25, -10)
     self.sizeButton.background:SetAllPoints(self.sizeButton)
-    self.sizeButton.label:SetText("Large")
+    self.sizeButton.label:ClearAllPoints(); self.sizeButton.label:SetPoint("LEFT", 9, 0)
+    self.sizeButton.label:SetSize(94, 16); self.sizeButton.label:SetJustifyH("LEFT")
+    self.sizeButton.label:SetJustifyV("MIDDLE"); self.sizeButton.label:SetFontObject(GameFontNormalSmall)
+    self.sizeArrow = self.sizeButton:CreateTexture(nil, "OVERLAY")
+    self.sizeArrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+    self.sizeArrow:SetSize(16, 16); self.sizeArrow:SetPoint("RIGHT", -5, 0)
+    -- Owned options are pooled for the life of the presentation. Selecting a
+    -- preset changes geometry through the controller without rebuilding data.
+    self.sizeDismiss = CreateFrame("Button", nil, self.root)
+    self.sizeDismiss:SetAllPoints(cover); self.sizeDismiss:SetFrameLevel(self.root:GetFrameLevel() + 100)
+    self.sizeDismiss:Hide()
+    self.sizeMenu = CreateFrame("Frame", "FAWrathSizeMenu", self.root, "BackdropTemplate")
+    self.sizeMenu:SetFrameLevel(self.sizeDismiss:GetFrameLevel() + 1)
+    self.sizeMenu:SetSize(128, 90); self.sizeMenu:SetPoint("BOTTOMRIGHT", self.sizeButton, "TOPRIGHT", 0, 3)
+    self.sizeMenu:SetBackdrop({ bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+    self.sizeMenu:SetBackdropColor(.12, .09, .05, 1)
+    self.sizeMenu:EnableMouse(true); self.sizeMenu:Hide()
+    self.sizeChoices = {}
+    for i, name in ipairs({ "Compact", "Standard", "Large" }) do
+        local choice = CreateFrame("Button", nil, self.sizeMenu)
+        choice:SetSize(116, 26); choice:SetPoint("TOPLEFT", 6, -6 - (i - 1) * 26)
+        choice.value = name
+        choice.label = font(choice, "GameFontHighlightSmall", name)
+        choice.label:SetPoint("LEFT", 19, 0); choice.label:SetSize(94, 16); choice.label:SetJustifyH("LEFT")
+        choice.check = choice:CreateTexture(nil, "OVERLAY")
+        choice.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        choice.check:SetSize(16, 16); choice.check:SetPoint("LEFT", 0, 0); choice.check:Hide()
+        choice.highlight = choice:CreateTexture(nil, "BACKGROUND")
+        choice.highlight:SetAllPoints(choice); choice.highlight:SetColorTexture(1, .82, .25, .16); choice.highlight:Hide()
+        choice:SetScript("OnEnter", function(button) button.highlight:Show() end)
+        choice:SetScript("OnLeave", function(button) button.highlight:Hide() end)
+        choice:SetScript("OnClick", function(button) guard(function()
+            self:DismissMenus()
+            if button.value ~= self.layoutName and self.callbacks.onSizePreset then self.callbacks.onSizePreset(button.value) end
+        end) end)
+        self.sizeChoices[i] = choice
+    end
+    self.sizeDismiss:SetScript("OnClick", function() self.sizeMenu:Hide() end)
+    self.sizeMenu:SetScript("OnHide", function()
+        self.sizeDismiss:Hide()
+        if type(self.sizeMenu.EnableKeyboard) == "function" then self.sizeMenu:EnableKeyboard(false) end
+    end)
+    if type(self.sizeMenu.EnableKeyboard) == "function" and type(self.sizeMenu.SetPropagateKeyboardInput) == "function" then
+        self.sizeMenu:SetScript("OnKeyDown", function(menu, key)
+            menu:SetPropagateKeyboardInput(key ~= "ESCAPE")
+            if key == "ESCAPE" then menu:Hide() end
+        end)
+        self.sizeMenu:SetScript("OnShow", function(menu)
+            menu:SetPropagateKeyboardInput(true); menu:EnableKeyboard(true)
+        end)
+    end
+    self.sizeButton:SetScript("OnHide", function() self.sizeMenu:Hide() end)
+    self.root:HookScript("OnHide", function() self.sizeMenu:Hide() end)
     self.sizeButton:SetScript("OnClick", function() guard(function()
-        if self.callbacks.onSizePresetCycle then self.callbacks.onSizePresetCycle() end
+        if self.sizeMenu:IsShown() then self.sizeMenu:Hide()
+        else
+            self:DismissMenus()
+            for _, choice in ipairs(self.sizeChoices) do show(choice.check, choice.value == self.layoutName) end
+            self.sizeDismiss:Show(); self.sizeMenu:Show()
+        end
     end) end)
+    U.CreateCategoryHeading(self)
     -- Explicit method table keeps our controller out of Blizzard globals.
-    for _, name in ipairs({ "Fit", "Layout", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
-    self:Layout(1024, 720)
+    for _, name in ipairs({ "Fit", "Layout", "DismissMenus", "CategoryHeading", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
+    self:Layout(U.PRESETS.Standard[1], U.PRESETS.Standard[2])
     return self
+end
+function U.DismissMenus(self)
+    if self.filterMenu then self.filterMenu:Hide() end
+    if self.sizeMenu then self.sizeMenu:Hide() end
 end
 function U.Fit(self, page, suppressRender)
     local width, height = page:GetWidth(), page:GetHeight()
@@ -531,12 +737,14 @@ function U.Layout(self, width, height, suppressRender)
     assert(width >= 768 and height >= 500, "Wrath window requires at least Compact logical dimensions")
     if self.width == width and self.height == height then return end
     local token = perfBegin("UI.Resize")
+    self:DismissMenus()
     self.sidebarSignature, self.listPlan, self.measureCache, self.renderState = nil, nil, nil, nil
     self.width, self.height = width, height
     self.root:SetSize(width, height)
     self.sidebarWidth = width >= 900 and 220 or 195
     self.contentLeft = self.sidebarWidth + 39
-    self.contentWidth = width - self.contentLeft - 38
+    self.contentPanelWidth = width - self.contentLeft - 38
+    self.contentWidth = self.contentPanelWidth - 22
     self.contentHeight = height - 98
     self.categoryHeight = height - 58
     self.nativeHost:SetSize(width - 50, height - 46)
@@ -558,21 +766,24 @@ function U.Layout(self, width, height, suppressRender)
     -- The ornate roof and corner ornaments retain their original pixel size.
     -- Only plain border strips and the parchment centers grow with the panes.
     self.searchBox:ClearAllPoints(); self.searchBox:SetPoint("TOPLEFT", self.root, "TOPLEFT", self.contentLeft, -25)
-    self.searchBox:SetWidth(self.contentWidth - 180)
+    self.searchBox:SetWidth(self.contentPanelWidth - 180)
     self.searchHint:SetWidth(self.searchBox:GetWidth() - 46)
     self.searchClear:ClearAllPoints(); self.searchClear:SetPoint("RIGHT", self.searchBox, "RIGHT", -2, 0)
     self.filterButton:ClearAllPoints(); self.filterButton:SetPoint("LEFT", self.searchBox, "RIGHT", 12, 0)
     self.filterButton:SetSize(168, 24)
     self.notice:ClearAllPoints(); self.notice:SetPoint("TOPLEFT", self.contentLeft + 4, -51)
-    self.notice:SetWidth(self.contentWidth - 8)
+    self.notice:SetWidth(self.contentPanelWidth - 8)
     self.layoutName = "Standard"
     for name, preset in pairs(U.PRESETS) do if preset[1] == width and preset[2] == height then self.layoutName = name; break end end
     self.sizeButton.label:SetText(self.layoutName)
+    for _, choice in ipairs(self.sizeChoices) do show(choice.check, choice.value == self.layoutName) end
+    U.LayoutContentScrollbar(self)
     if self.model and not suppressRender then self:Render() end
     perfFinish(token)
 end
 function U.SetTab(self, view, notify)
     if view ~= "achievements" and view ~= "rewards" and view ~= "trees" and view ~= "statistics" then return end
+    self:DismissMenus()
     local token = perfBegin("UI.TabSwitch")
     local changed = self.tab ~= view
     if changed then
@@ -669,6 +880,78 @@ function U.Heading(self, text, y)
     h:ClearAllPoints(); h:SetPoint("TOP", self.contentChild, "TOP", 0, -y); h:SetText(text); h:Show()
     return y + 30
 end
+-- The original Wrath statistic header provides matching ornamental end caps
+-- and a plain center strip. Only that center strip grows with the panel; the
+-- 23px end artwork keeps its original proportions at every window preset.
+local CATEGORY_DIVIDER = "Interface\\AchievementFrame\\UI-Achievement-Stat-Buttons"
+function U.CreateCategoryHeading(self)
+    if self.categoryHeading then return end
+    local h = CreateFrame("Frame", nil, self.root)
+    self.categoryHeading = h
+    h.title = font(h, "GameFontNormalLarge")
+    h.subtitle = font(h, "GameFontNormal")
+    for _, label in ipairs({ h.title, h.subtitle }) do
+        label:SetJustifyH("CENTER"); label:SetJustifyV("MIDDLE")
+        label:SetWordWrap(true)
+        if type(label.SetNonSpaceWrap) == "function" then label:SetNonSpaceWrap(true) end
+        label:SetTextColor(1, .82, .25)
+    end
+    h.left, h.middle, h.right = h:CreateTexture(nil, "ARTWORK"), h:CreateTexture(nil, "ARTWORK"), h:CreateTexture(nil, "ARTWORK")
+    for _, texture in ipairs({ h.left, h.middle, h.right }) do
+        texture:SetTexture(CATEGORY_DIVIDER); texture:SetVertexColor(1, .82, .35)
+    end
+    h.left:SetTexCoord(0, .08984375, 0, .1796875)
+    h.middle:SetTexCoord(.08984375, .91015625, 0, .1796875)
+    h.right:SetTexCoord(.91015625, 1, 0, .1796875)
+    h:EnableMouse(true)
+    h:SetScript("OnEnter", function(header)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(header, "ANCHOR_TOP")
+        GameTooltip:SetText(header.title:GetText())
+        if header.subtitle:IsShown() then GameTooltip:AddLine(header.subtitle:GetText(), 1, .82, .25, true) end
+        GameTooltip:Show()
+    end)
+    h:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    h:Hide()
+end
+function U.CategoryHeading(self, category)
+    local h = self.categoryHeading
+    if not h or not category then
+        if h then h:Hide() end
+        return 0
+    end
+    -- Resolve only existing presentation ancestry. No category, criterion or
+    -- native provider rebuild is needed to decorate the selected heading.
+    local parent = category.parent and self.model.byCategory[category.parent]
+    local title = parent and parent.name or category.name
+    local subtitle = parent and category.name or ""
+    local width = self.contentPanelWidth or self.contentWidth
+    if h.category ~= category.key or h.titleText ~= title or h.subtitleText ~= subtitle or h.panelWidth ~= width then
+        h.category, h.titleText, h.subtitleText, h.panelWidth = category.key, title, subtitle, width
+        h:ClearAllPoints(); h:SetPoint("TOPLEFT", self.root, "TOPLEFT", self.contentLeft, -69)
+        h:SetWidth(width)
+        local textWidth = math.max(80, width - 46)
+        h.title:ClearAllPoints(); h.title:SetPoint("TOP", h, "TOP", 0, 0)
+        h.title:SetWidth(textWidth); h.title:SetHeight(0); h.title:SetText(title)
+        local titleHeight = math.min(48, math.max(20, h.title:GetStringHeight()))
+        h.title:SetHeight(titleHeight)
+        h.subtitle:ClearAllPoints()
+        h.subtitle:SetWidth(textWidth); h.subtitle:SetHeight(0); h.subtitle:SetText(subtitle)
+        local subtitleHeight = subtitle ~= "" and math.min(36, math.max(18, h.subtitle:GetStringHeight())) or 0
+        h.subtitle:SetHeight(subtitleHeight); show(h.subtitle, subtitle ~= "")
+        local dividerHeight = math.max(23, subtitleHeight)
+        h.subtitle:SetPoint("TOP", h, "TOP", 0, -titleHeight - 6 - (dividerHeight - subtitleHeight) / 2)
+        local dividerY = -titleHeight - 6 - dividerHeight / 2
+        h.left:ClearAllPoints(); h.left:SetSize(23, 23); h.left:SetPoint("LEFT", h, "TOPLEFT", 8, dividerY)
+        h.right:ClearAllPoints(); h.right:SetSize(23, 23); h.right:SetPoint("RIGHT", h, "TOPRIGHT", -8, dividerY)
+        h.middle:ClearAllPoints(); h.middle:SetHeight(23)
+        h.middle:SetPoint("TOPLEFT", h.left, "TOPRIGHT", 0, 0)
+        h.middle:SetPoint("BOTTOMRIGHT", h.right, "BOTTOMLEFT", 0, 0)
+        h:SetHeight(titleHeight + 6 + dividerHeight + 4)
+    end
+    h:Show()
+    return h:GetHeight()
+end
 function U.SummaryBar(self, key, label, y, column, summary)
     self.barIndex = self.barIndex + 1
     local b = pool(self, "bars", self.barIndex, "StatusBar", self.contentChild, "FAWrathSummaryBarTemplate")
@@ -696,8 +979,9 @@ function U.RenderCard(self, row, index, y)
     local width = self.contentWidth - 6
     local textWidth = width - 160
     local selected = self.selected == row.key
+    local state, character, native = U.CardVisualState(row)
     if self.scrollPass and c.record == row and c.selected == selected and c:GetWidth() == width
-        and c.modelGeneration == self.modelGeneration and c.criteriaVersion == self.model.criteriaVersion then
+        and c.visualState == state and c.modelGeneration == self.modelGeneration and c.criteriaVersion == self.model.criteriaVersion then
         c:SetPoint("TOPLEFT", 0, -y); c:Show(); return y + c:GetHeight() + 4
     end
     c:SetWidth(width); c:SetPoint("TOPLEFT", 0, -y)
@@ -707,46 +991,37 @@ function U.RenderCard(self, row, index, y)
     c.description:SetWidth(textWidth); c.hiddenDescription:SetWidth(textWidth)
     c.objectives:SetWidth(textWidth)
     c.icon.texture:SetTexture(row.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-    local points = pointValue(row)
-    local feat = row.achievementType == "feat_of_strength"
-    c.shield.points:SetText(feat and row.pointType == "none" and "" or points == nil and "?" or tostring(points))
+    local pointRecord = character or native or row
+    local points = pointValue(pointRecord)
+    local feat = pointRecord.achievementType == "feat_of_strength"
+    c.shield.points:SetText(feat and pointRecord.pointType == "none" and "" or points == nil and "?" or tostring(points))
     if type(c.shield.points.SetFontObject) == "function" then
         c.shield.points:SetFontObject(points and points > 100 and GameFontHighlight or FAWrathAchievementPointsFont)
     end
     c.shield.icon:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
+    c.shield.wreath:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
     c.description:SetText(row.description); c.hiddenDescription:SetText(row.description)
     c.description:SetHeight(c.selected and math.max(36, c.hiddenDescription:GetStringHeight()) or 36)
-    c.dateCompleted:SetText(row.date or ""); show(c.dateCompleted, row.completed and row.date)
+    local dateRecord = state == "character-complete" and character or state == "native-complete" and native or nil
+    c.dateCompleted:SetText(dateRecord and dateRecord.date or ""); show(c.dateCompleted, dateRecord and dateRecord.date)
     local reward = row.reward or ""
     c.reward:SetText(reward)
     -- The date occupies the shield column. Keep reward lettering within the
     -- description column while retaining the original full-width reward band.
     c.reward:SetWidth(textWidth); c.reward:SetHeight(20)
     show(c.reward, reward ~= ""); show(c.rewardBackground, reward ~= "")
-    saturate(c, row.completed == true)
-    local native = row.source == "combined" and row.native or row.source == "legacy" and row or nil
+    saturate(c, state)
     local nativeDone = native and native.completed == true
-    c.nativeCompleted, c.characterCompleted = nativeDone == true, row.source ~= "legacy" and row.completed == true
-    if nativeDone then
-        c:SetBackdropBorderColor(.28, .57, .85)
-        if row.source == "legacy" then c.glow:SetVertexColor(.55, .75, 1) end
-    end
-    -- Blue accents identify native completion while retaining the original
-    -- Wrath shield. A combined card's shield remains character-specific.
-    if row.pointType == "legacy" or row.pointType == nil and row.source == "legacy" then
-        c.shield.icon:SetVertexColor(row.completed == true and .63 or .45, row.completed == true and .79 or .56, row.completed == true and 1 or .75)
-        if nativeDone then c.shield.points:SetTextColor(.63, .79, 1)
-        else c.shield.points:SetTextColor(1, .82, .2) end
-    elseif row.source == "legacy" and nativeDone then
-        c.shield.icon:SetVertexColor(.63, .79, 1); c.shield.points:SetTextColor(.63, .79, 1)
-    else c.shield.icon:SetVertexColor(1, 1, 1) end
+    c.visualState = state
+    c.nativeCompleted, c.characterCompleted = nativeDone == true, character and character.completed == true or false
+    if state == "native-complete" then c.shield.points:SetTextColor(.63, .79, 1) end
     c.nativeStatus:Hide(); c.otherCompletion:Hide()
-    if row.source == "combined" and native then
-        local nativePoints = pointValue(native)
-        c.nativeStatus:SetWidth(width - 90)
-        local label = pointLabel(nativePoints)
-        c.nativeStatus:SetText("Legacy" .. (label and ": " .. label or "") .. (nativeDone and " · Complete" or ""))
-        c.nativeStatus:SetTextColor(nativeDone and .35 or .45, nativeDone and .65 or .56, nativeDone and .95 or .75)
+    c.nativeStatus:SetText("")
+    c.nativeStatus:ClearAllPoints(); c.nativeStatus:SetPoint("BOTTOMRIGHT", -90, 6)
+    c.nativeStatus:SetWidth(textWidth)
+    c.nativeStatus:SetTextColor(.35, .65, .95)
+    if state == "legacy-complete" or state == "native-complete" then
+        c.nativeStatus:SetText("Completed via Legacy")
         c.nativeStatus:Show()
     end
     show(c.highlight, c.selected)
@@ -1098,6 +1373,7 @@ function U.RenderPass(self, reason)
         -- already belong to the ScrollFrame. Scrolling needs no rebuild.
         return
     end
+    self:DismissMenus()
     hidePool(self.cards); hidePool(self.bars); hidePool(self.stats); hidePool(self.headings)
     self.headingIndex, self.barIndex = 0, 0
     local achievements = self.tab == "achievements"
@@ -1120,13 +1396,19 @@ function U.RenderPass(self, reason)
     self.nativeBackground:Hide()
     show(region(self.root, "CategoriesBG"), sidebar)
     show(region(self.root, "WaterMark"), sidebar)
+    local categoryHeadingHeight = 0
+    local categoryList = achievements and not self.focus and not (self.category == "summary" and self.search == "" and self.filter == "All")
+    if categoryList then categoryHeadingHeight = self:CategoryHeading(self.model.byCategory[self.category])
+    else self:CategoryHeading(nil) end
     self.contentBackground:ClearAllPoints()
     self.contentBackground:SetPoint("TOPLEFT", sidebar and self.sidebarWidth + 25 or 25, -23)
     self.contentBackground:SetPoint("BOTTOMRIGHT", -25, 23)
     self.contentScroll:ClearAllPoints()
-    self.contentScroll:SetPoint("TOPLEFT", self.contentLeft, achievements and -69 or -33)
-    self.contentScroll:SetSize(self.contentWidth, achievements and self.contentHeight or self.height - 62)
+    local contentTop = achievements and (69 + categoryHeadingHeight + (categoryHeadingHeight > 0 and 8 or 0)) or 33
+    self.contentScroll:SetPoint("TOPLEFT", self.contentLeft, -contentTop)
+    self.contentScroll:SetSize(self.contentWidth, self.height - contentTop - 29)
     self.contentChild:SetWidth(self.contentWidth)
+    if U.LayoutContentScrollbar then U.LayoutContentScrollbar(self) end
     for _, tab in ipairs(self.tabs) do
         local selected = tab.view == self.tab
         for _, suffix in ipairs({ "Left", "Middle", "Right" }) do
@@ -1175,7 +1457,6 @@ function U.RenderPass(self, reason)
         perfFinish(summaryToken)
     else
         self.renderMode = "list"
-        y = self:Heading(self.model.byCategory[self.category].name, y)
         y = self:RenderList(y)
     end
     self.contentChild:SetHeight(math.max(y + 12, self.contentScroll:GetHeight()))

@@ -164,7 +164,28 @@ function UIObject(kind, name, parent)
     function f:SetBackdropBorderColor(...) self.borderColor={...} end
     function f:SetStatusBarColor(...) self.barColor={...} end
     function f:SetMinMaxValues(a,b) self.minimum=a; self.maximum=b end
-    function f:SetValue(v) self.value=v end
+    function f:GetMinMaxValues() return self.minimum or 0,self.maximum or 0 end
+    function f:SetValue(v)
+        if self.kind=="Slider" then
+            v=math.max(self.minimum or 0,math.min(v,self.maximum or 0))
+            local changed=self.value~=v; self.value=v
+            if changed then self:Fire("OnValueChanged",v) end
+        else self.value=v end
+    end
+    function f:GetValue() return self.value or 0 end
+    function f:SetOrientation(value) self.orientation=value end
+    function f:SetValueStep(value) self.valueStep=value end
+    function f:SetObeyStepOnDrag(value) self.obeyStep=value end
+    function f:SetThumbTexture(texture) self.thumbTexture=texture end
+    function f:GetThumbTexture() return self.thumbTexture end
+    function f:SetEnabled(value) self.enabled=not not value end
+    function f:IsEnabled() return self.enabled~=false end
+    function f:Enable() self:SetEnabled(true) end
+    function f:Disable() self:SetEnabled(false) end
+    function f:SetNormalTexture(texture) self.normalTexture=texture end
+    function f:SetPushedTexture(texture) self.pushedTexture=texture end
+    function f:SetDisabledTexture(texture) self.disabledTexture=texture end
+    function f:SetHighlightTexture(texture) self.highlightTexture=texture end
     function f:GetStatusBarTexture() if not self.barTexture then self.barTexture=UIObject("Texture",nil,self) end; return self.barTexture end
     function f:SetDrawLayer(v) self.layer=v end
     function f:SetBlendMode(v) self.blendMode=v end
@@ -196,6 +217,15 @@ function UIObject(kind, name, parent)
     function f:SetWordWrap(v) self.wordWrap=v end
     function f:SetShadowOffset(...) self.shadow={...} end
     function f:CreateTexture(name) return UIObject("Texture",name,self) end
+    function f:CreateMaskTexture(name,layer)
+        local mask=UIObject("MaskTexture",name,self); mask:SetDrawLayer(layer); return mask
+    end
+    function f:AddMaskTexture(mask)
+        self.masks=self.masks or {}; self.masks[#self.masks+1]=mask
+    end
+    function f:RemoveMaskTexture(mask)
+        for i=#(self.masks or {}),1,-1 do if self.masks[i]==mask then table.remove(self.masks,i) end end
+    end
     function f:CreateFontString(name) return UIObject("FontString",name,self) end
     return f
 end
@@ -588,14 +618,14 @@ class ControllerTests(unittest.TestCase):
             assert(#calls==0)
         ''')
 
-    def test_enable_uses_large_size_and_restores_original_native_window(self):
+    def test_enable_uses_standard_size_and_restores_original_native_window(self):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
             assert(c.state=="Enabled", c.state)
-            assert(c.cover.parent==UIParent and c.cover.width==1024 and c.cover.height==860)
+            assert(c.cover.parent==UIParent and c.cover.width==960 and c.cover.height==760)
             assert(c.cover:IsVisible() and c.ui.root.parent==c.cover and c.ui.root.scale==1)
-            assert(c.ui.root.width==1024 and c.ui.root.height==720)
+            assert(c.ui.root.width==960 and c.ui.root.height==620)
             assert(not LegacySystemFrame.Background:IsShown() and not LegacySystemFrame.NineSlice:IsShown())
             assert(not LegacySystemFrame.NativeTabs:IsShown() and not LegacySystemFrame.ChallengesPage:IsShown())
             assert(not LegacySystemFrame:IsMouseEnabled())
@@ -610,7 +640,7 @@ class ControllerTests(unittest.TestCase):
             local c=ns.LegacyUIController
             local done,history,explored=saved.done,saved.history,saved.explored
             local originalDefinition=ns.FA.BY_KEY.first
-            local cases={{"compact","Compact",768,640,500},{"standard","Standard",900,760,620},{"large","Large",1024,860,720}}
+            local cases={{"compact","Compact",768,640,500},{"standard","Standard",960,760,620},{"large","Large",1024,860,720}}
             for _,case in ipairs(cases) do
                 ns.FA.SLASH.legacyui("size "..case[1]); FlushTimers()
                 assert(settings.legacyUISize==case[2])
@@ -641,7 +671,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             assert(type(c.ui.callbacks.onSizePresetCycle)=="function")
-            for _,expected in ipairs({"Compact","Standard","Large"}) do
+            for _,expected in ipairs({"Large","Compact","Standard"}) do
                 c.ui.callbacks.onSizePresetCycle(); FlushTimers()
                 assert(settings.legacyUISize==expected and c.cover:IsVisible())
                 local width=c.cover:GetWidth()
@@ -733,7 +763,7 @@ class ControllerTests(unittest.TestCase):
             settings.legacyUIPosition={point="NOT_AN_ANCHOR",relativePoint={},x=0/0,y=math.huge}
             ns.FA.SLASH.legacyui("on"); FlushTimers()
             local c=ns.LegacyUIController
-            assert(c.cover:IsVisible() and c.cover:GetWidth()==1024 and c.cover:GetHeight()==860)
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==960 and c.cover:GetHeight()==760)
             local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
             assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER" and x==0 and y==0)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
@@ -1384,6 +1414,21 @@ class PackagingTests(unittest.TestCase):
                 # independent shell tests verify matching U coordinates.
                 self.assertEqual(texture.get("file"), "Interface\\AchievementFrame\\UI-Achievement-AchievementBackground")
                 self.assertEqual(e.attrib, {"left": "0", "right": "1", "top": "0", "bottom": ".5"})
+                continue
+            # Iteration 6 splits each original plaque into fixed ends and a
+            # widened center. Validate exact subregions, not arbitrary crops.
+            name = texture.get("name", "")
+            if name.startswith(("$parentPointBorder", "$parentLegacyPointBorder")):
+                left, right, width = (.455078125, .64453125, 134)
+                if name.endswith("Left"):
+                    left, right, width = (.419921875, .455078125, 18)
+                elif name.endswith("Right"):
+                    left, right, width = (.64453125, .6796875, 18)
+                self.assertEqual(texture.get("file"), "Interface\\AchievementFrame\\UI-Achievement-Header")
+                self.assertEqual({k: float(v) for k, v in e.attrib.items()},
+                                 {"left": left, "right": right, "top": .4140625, "bottom": .56640625})
+                size = texture.find(URI + "Size").find(URI + "AbsDimension")
+                self.assertEqual((int(size.get("x")), int(size.get("y"))), (width, 39))
                 continue
             # Forever's current shield sheet adds the guild row below the
             # original player row. This one compatibility crop is deliberate.

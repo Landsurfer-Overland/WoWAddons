@@ -131,6 +131,21 @@ Follow the [Iteration 5 client checklist](../docs/iteration5-regression-plan.md)
 actual texture quality, input behavior, native interaction, two-character history
 and live timing checks. These remain pending until performed in the Forever client.
 
+## Iteration 6 checks
+
+Actual Lua/XML fixtures cover the Standard default and preserved preferences,
+bounded decorative parent/child headings and long names, pooled size/filter menus,
+footer geometry and faction/neutral crests. Scroll fixtures exercise proportional
+thumbs, wheel/arrows/drag feedback, expansion/collapse, resizing, viewport access and
+control reuse without provider reads. Card fixtures cover explicit gray/blue/gold
+precedence, complementary shield/laurel masks, capability fallback, actual source
+points and completion dates. Header fixtures reproduce the retained-history path
+to an unknown custom total without rewriting progress. Existing indexed-query,
+native restoration, reentrancy, frame-pool and performance suites remain active.
+
+Follow the [Iteration 6 client checklist](../docs/iteration6-regression-plan.md)
+for actual artwork, mask alignment, input, native functionality and timing.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

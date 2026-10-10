@@ -27,7 +27,7 @@ class Iteration5ShellTests(unittest.TestCase):
             refreshCalls,resizeCalls=0,0
             function guard(fn) fn() end
             view=ns.WrathAchievementUI.Create(host,guard,function() refreshCalls=refreshCalls+1 end,{
-                onSizePresetCycle=function() resizeCalls=resizeCalls+1 end,
+                onSizePreset=function() resizeCalls=resizeCalls+1 end,
             })
             view:SetModel(ns.LegacyPresentation.Build())
         """)
@@ -35,10 +35,10 @@ class Iteration5ShellTests(unittest.TestCase):
     def check(self, code):
         self.h.execute(code)
 
-    def test_large_initial_layout_restores_original_connecting_wood_backdrop(self):
+    def test_standard_initial_layout_restores_original_connecting_wood_backdrop(self):
         self.check("""
-            assert(view.root:GetWidth()==1024 and view.root:GetHeight()==720)
-            assert(view.layoutName=='Large' and view.sizeButton.label:GetText()=='Large')
+            assert(view.root:GetWidth()==960 and view.root:GetHeight()==620)
+            assert(view.layoutName=='Standard' and view.sizeButton.label:GetText()=='Standard')
             assert(view.root:GetScale()==1 and view.root.backdrop.edgeSize==64 and view.root.backdrop.tileEdge)
             assert(view.root.backdrop.edgeFile=='Interface\\\\AchievementFrame\\\\UI-Achievement-WoodBorder')
             assert(#view.tabs==4 and view.tabs[1].view=='achievements' and view.tabs[2].view=='rewards')
@@ -58,7 +58,7 @@ class Iteration5ShellTests(unittest.TestCase):
                 assert(view.searchIcon:GetLeft()>view.searchBox:GetLeft())
                 assert(view.searchClear:GetRight()<view.searchBox:GetRight())
                 assert(view.filterButton:GetLeft()-view.searchBox:GetRight()==12)
-                assert(view.filterButton:GetRight()==rootLeft+view.contentLeft+view.contentWidth)
+                assert(view.filterButton:GetRight()==rootLeft+view.contentLeft+view.contentPanelWidth)
                 local _, searchCenter=view.searchBox:GetCenter()
                 local _, filterCenter=view.filterButton:GetCenter()
                 assert(searchCenter==filterCenter)

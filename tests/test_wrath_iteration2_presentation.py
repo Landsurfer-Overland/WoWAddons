@@ -55,6 +55,8 @@ class Iteration2PresentationTests(unittest.TestCase):
             assert(shield.icon.coords[1] == .5 and shield.icon.coords[2] == 1)
             assert(shield.icon.coords[3] == 0 and shield.icon.coords[4] == .5)
             assert(shield.points:GetText() == "20" and shield:IsShown())
+            assert(shield.separateWreath and #shield.icon.masks==1 and #shield.wreath.masks==1)
+            assert(shield.icon.masks[1]~=shield.wreath.masks[1])
             view:RenderCard(view.model.byKey["custom:first"], 1, 0)
             assert(shield.icon.coords[1] == 0 and shield.icon.coords[2] == .5)
             assert(shield.icon.coords[4] == .5 and shield.points:GetText() == "10")
@@ -62,8 +64,10 @@ class Iteration2PresentationTests(unittest.TestCase):
         xml = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
         card = next(e for e in xml if e.get("name") == "FAWrathCardTemplate")
         shields = [e for e in card.iter(URI + "Texture") if "UI-Achievement-Shields" in e.get("file", "")]
-        self.assertEqual(len(shields), 1)
-        self.assertEqual(shields[0].find(URI + "TexCoords").get("bottom"), ".5")
+        self.assertEqual([texture.get("name") for texture in shields], ["$parentIcon", "$parentWreath"])
+        self.assertEqual(shields[1].get("hidden"), "true")
+        for texture in shields:
+            self.assertEqual(texture.find(URI + "TexCoords").get("bottom"), ".5")
 
     def test_pooled_card_removes_reward_after_genuine_native_reward(self):
         self.check("""

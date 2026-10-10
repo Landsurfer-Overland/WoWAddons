@@ -1,6 +1,6 @@
 # WoWAddons
 
-ForeverAchievements iteration 5 refines the visible native Forever Legacy
+ForeverAchievements iteration 6 refines the visible native Forever Legacy
 System window with an experimental original-Wrath interface, disabled by default.
 Native Legacy Challenges and custom achievements share one subject hierarchy;
 their points, completion authority, and character/account scopes stay separate.
@@ -36,6 +36,15 @@ The existing 50-point `worldexplorer` key is now named Explore Azeroth; uncertai
 native relationships remain separate. Historical Moonglade completion without
 verified character evidence remains saved but cannot supply gold artwork or points.
 See the [Iteration 5 changes and manual checks](docs/iteration5-regression-plan.md).
+
+Iteration 6 defaults to Standard (960 × 620 body), preserving saved size choices.
+It adds ornamental parent/subcategory headings, inset proportional scrollbars and
+a size dropdown. Complementary masks separate the original shield and laurels:
+Legacy completion alone keeps the card/shield gray with blue laurels; verified
+character completion takes gold precedence. Native faction crests use compatible
+client textures with a neutral fallback. Tracking, categories and progress are
+unchanged. See the [Iteration 6 changes and client checklist](docs/iteration6-regression-plan.md),
+including artwork limitations and the investigated `Unavailable` total.
 
 Header dragging and size selection persist; Statistics has its own category navigation. Unsupported
 daily-quest definitions are inactive while their historical saved keys remain.

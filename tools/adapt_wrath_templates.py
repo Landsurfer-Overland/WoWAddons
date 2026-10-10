@@ -72,6 +72,17 @@ for original, renamed in mapping.items():
         # supplied Wrath XML predates the guild row; sampling the entire height
         # stacks both shields. Keep the original single region and player row.
         shield.find('.//' + tag('TexCoords')).set('bottom', '.5')
+        # This complementary masked laurel shares the original shield sheet.
+        # Lua attaches masks once during ShieldOnLoad; without mask support it
+        # stays hidden, preserving the untouched single Wrath shield.
+        shield_layers = shield.find(tag('Layers'))
+        icon_layer = next(layer for layer in shield_layers if layer.get('level') == 'BACKGROUND')
+        shield_icon = icon_layer.find(tag('Texture'))
+        wreath_layer = ET.Element(tag('Layer'), {'level': 'ARTWORK'})
+        wreath = deepcopy(shield_icon)
+        wreath.set('name', '$parentWreath'); wreath.set('parentKey', 'wreath'); wreath.set('hidden', 'true')
+        wreath_layer.append(wreath)
+        shield_layers.insert(1, wreath_layer)
     elif renamed == 'FAWrathCategoryTemplate': handlers['OnClick'] = 'CategoryClick'
     elif renamed == 'FAWrathTrackTemplate': handlers['OnClick'] = 'TrackClick'
     elif renamed == 'FAWrathMetaTemplate': handlers['OnClick'] = 'MetaClick'
@@ -123,9 +134,24 @@ header.find(tag('Size') + '/' + tag('AbsDimension')).set('y', '118')
 # Two matching Wrath point counters fit within the existing roof. They use the
 # original point-border and tiny-shield artwork, not another outer frame.
 border = header.find('.//' + tag('Texture') + "[@name='$parentPointBorder']")
-border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '170')
+border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '134')
 border.find('.//' + tag('Offset')).set('x', '-174')
 border.find('.//' + tag('Offset')).set('y', '19')
+# Keep the original 18px plaque ends at their native scale. Only the plain
+# center grows from 97px to 134px; the visible border remains 170px overall.
+border.find(tag('TexCoords')).set('left', '.455078125')
+border.find(tag('TexCoords')).set('right', '.64453125')
+border_layer = next(layer for layer in header.find(tag('Layers')) if border in list(layer))
+for suffix, point, relative_point, left, right in [
+        ('Left', 'RIGHT', 'LEFT', '.419921875', '.455078125'),
+        ('Right', 'LEFT', 'RIGHT', '.64453125', '.6796875')]:
+    end = ET.SubElement(border_layer, tag('Texture'), {
+        'name': '$parentPointBorder' + suffix, 'file': border.get('file')})
+    ET.SubElement(ET.SubElement(end, tag('Size')), tag('AbsDimension'), {'x': '18', 'y': '39'})
+    ET.SubElement(ET.SubElement(end, tag('Anchors')), tag('Anchor'), {
+        'point': point, 'relativeTo': '$parentPointBorder', 'relativePoint': relative_point})
+    ET.SubElement(end, tag('TexCoords'), {
+        'left': left, 'right': right, 'top': '.4140625', 'bottom': '.56640625'})
 title = header.find('.//' + tag('FontString') + "[@name='$parentTitle']")
 title.find(tag('Size')).set('x', '188')
 title.find(tag('Size')).set('y', '18')
@@ -137,7 +163,8 @@ points.set('inherits', 'GameFontHighlightLarge')
 points.find(tag('Size')).set('y', '20')
 points.find('.//' + tag('Offset')).set('x', '-10')
 points.find('.//' + tag('Offset')).set('y', '-10')
-for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'LegacyTitle'),
+for name, replacement in [('PointBorder', 'LegacyPointBorder'),
+                          ('PointBorderLeft', 'LegacyPointBorderLeft'), ('PointBorderRight', 'LegacyPointBorderRight'), ('Title', 'LegacyTitle'),
                           ('Points', 'LegacyPoints'), ('Shield', 'LegacyShield')]:
     item = deepcopy(header.find('.//*[@name="$parent' + name + '"]'))
     item.set('name', '$parent' + replacement)
@@ -145,6 +172,7 @@ for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'Legac
         if 'relativeTo' in node.attrib:
             value = node.get('relativeTo')
             value = value.replace('HeaderPointBorder', 'HeaderLegacyPointBorder')
+            if value == '$parentPointBorder': value = '$parentLegacyPointBorder'
             if value == '$parentPoints': value = '$parentLegacyPoints'
             node.set('relativeTo', value)
     if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '174')

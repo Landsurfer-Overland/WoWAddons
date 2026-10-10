@@ -58,29 +58,29 @@ class Iteration5MoneyPresentationTests(unittest.TestCase):
 
 
 class Iteration5DefaultLayoutTests(unittest.TestCase):
-    def test_new_and_invalid_preferences_use_large_without_rewriting_saved_choices(self):
+    def test_new_and_invalid_preferences_use_standard_without_rewriting_saved_choices(self):
         h = Harness(controller=True)
         h.execute('''
             local c=ns.LegacyUIController
-            assert(settings.legacyUISize==nil and c:Preset()=="Large")
+            assert(settings.legacyUISize==nil and c:Preset()=="Standard")
             settings.legacyUISize="Invalid"
-            assert(c:Preset()=="Large" and settings.legacyUISize=="Invalid")
+            assert(c:Preset()=="Standard" and settings.legacyUISize=="Invalid")
             settings.legacyUISize="Standard"
             local name,size=c:Preset()
-            assert(name=="Standard" and size[1]==900 and size[2]==620)
+            assert(name=="Standard" and size[1]==960 and size[2]==620)
             settings.legacyUISize="Compact"
             assert(c:Preset()=="Compact" and settings.legacyUISize=="Compact")
             assert(saved.done.first==1730000000 and saved.history[1]=="keep")
         ''')
 
-    def test_first_open_uses_large_and_still_fits_a_smaller_screen(self):
+    def test_first_open_uses_standard_and_still_fits_a_smaller_screen(self):
         h = Harness(controller=True)
         h.execute('UIParent:SetSize(800,600)')
         h.enable()
         h.execute('''
             local c=ns.LegacyUIController
-            assert(c.cover:GetWidth()==1024 and c.cover:GetHeight()==860)
-            assert(c.ui.root:GetWidth()==1024 and c.ui.root:GetHeight()==720)
+            assert(c.cover:GetWidth()==960 and c.cover:GetHeight()==760)
+            assert(c.ui.root:GetWidth()==960 and c.ui.root:GetHeight()==620)
             assert(c.cover:GetScale()<1 and c.cover:IsVisible())
             assert(c.cover:GetWidth()*c.cover:GetScale()<=780)
             assert(c.cover:GetHeight()*c.cover:GetScale()<=580)
