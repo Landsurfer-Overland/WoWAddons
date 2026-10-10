@@ -80,6 +80,33 @@ local function scope(flags)
     if account == false then return "Character", "character" end
     return "Scope unavailable", "unknown"
 end
+local function completionProvenance(row, wasEarnedByMe)
+    row.wasEarnedByMe = wasEarnedByMe
+    if row.completed == false then
+        row.completionScope, row.completionDetail = "incomplete", "Not completed"
+        row.completedOnCurrentCharacter, row.completedByOtherCharacter = false, false
+    elseif row.completed == true then
+        row.completedOnCurrentCharacter = wasEarnedByMe
+        -- Build 70338's LegacyChallengeDetailPane reads this exact thirteenth
+        -- GetAchievementInfo return to distinguish accomplishments by others.
+        if wasEarnedByMe == true then
+            row.completionScope, row.completionDetail = "current_character", "Completed on this character"
+            row.completedByOtherCharacter = false
+        elseif row.scopeType == "account" then
+            row.completionScope, row.completionDetail = "native_account", "Legacy challenge completed account-wide"
+            if wasEarnedByMe == false then row.completedByOtherCharacter = true end
+        elseif wasEarnedByMe == false then
+            row.completionScope, row.completionDetail = "other_character", "Completed by another character"
+            row.completedByOtherCharacter = true
+        else
+            row.completionScope, row.completionDetail = "unknown", "Completion scope unavailable"
+        end
+    else
+        row.completionScope, row.completionDetail = "unknown", "Completion unavailable"
+    end
+    if row.scopeType == "account" then row.nativeAccountCompleted = row.completed
+    elseif row.scopeType == "character" then row.nativeAccountCompleted = false end
+end
 -- Build 70338's AchievementUtil identifies Feats through native category 81
 -- or guild category 15093 and their ancestors. Read the same category contract
 -- with cycle/depth bounds; never classify from a zero point value, a Legacy
@@ -132,7 +159,7 @@ local function record(info, category, categoryID, categories)
     local key, points = "legacy:" .. id, A.Points(id)
     local scopeLabel, scopeType = scope(flags)
     local achievementType, typeEvidence = A.AchievementType(id, categoryID, categories)
-    return { key = key, uniqueID = key, source = "legacy", sourceType = "native_legacy", id = id, category = category,
+    local row = { key = key, uniqueID = key, source = "legacy", sourceType = "native_legacy", id = id, category = category,
         name = R.Text(info[2]) or ("Legacy Challenge " .. id), description = R.Text(info[8]) or "Description unavailable.",
         completed = completed, completionState = R.CompletionState(completed),
         date = completionDate, completionDate = completionDate, dateSort = dateSort, completionDateParts = completionDateParts,
@@ -142,6 +169,8 @@ local function record(info, category, categoryID, categories)
         pointValue = points, points = points, pts = points,
         nativeAchievementPoints = R.Number(info[3]), progress = { available = false },
         icon = R.ID(info[10]) or R.Text(info[10]), reward = R.Text(info[11]) }
+    completionProvenance(row, R.Bool(info[13]))
+    return row
 end
 function A.Resolve(id)
     id = R.ID(id)

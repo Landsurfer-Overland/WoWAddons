@@ -25,21 +25,30 @@ Existing categories are General, Quests, Exploration, Professions, Dungeons
 & Raids, Reputation, PvP and Feats of Strength. The core owns character
 counters, exploration/collection sets, quests, profession/boss/reputation
 checks, series, history, completion timestamps, notifications and tracking.
-The standalone UI, account view, social comparison, chat links, titles,
+The standalone UI, verified character account overview, social comparison, chat links, titles,
 tracker, minimap, themes, settings and diagnostic remain available.
 
 ForeverAchievementsDB stores account settings and character snapshots.
 ForeverAchievementsCharDB stores done[key] timestamps, tracked keys, history
-and existing counters/sets. The new interface reads their original keys,
-without migration, completion writes, deletion or native progress import.
+and existing counters/sets. The presentation reads their original keys without
+native progress import. Addendum evidence and identity fields are additive;
+historical completion is not automatically deleted or revalidated into a grant.
+Only an explicitly confirmed, character-specific correction removes its intended
+custom completion, after archiving that timestamp and identity. Source evidence and
+other history are preserved; the corrected key receives a reaward hold.
 Account settings.legacyUI controls the optional replacement. `legacyUISize`
 and `legacyUIPosition` are additive, account-scoped presentation preferences; they do not
 migrate character progression. Explicit custom tracking clicks delegate to the
 existing ToggleTrack service.
 
-This view uses this character's completion timestamps even with standalone
-account view enabled; the existing tracking service still honors its own
-account-view rules. Native scope uses the runtime account-flag constant.
+The standalone account-union toggle is removed while its stored `accountView`
+preference and historical records remain preserved. The account overview lists only
+verified character snapshots, labels unreliable totals `Unavailable`, and filters
+malformed recent completion timestamps. Both browsers use this character's valid
+completion timestamps. Another character's reliable snapshot supplies detail only,
+not completion, dates, tracking completion, or points for this character.
+Native scope uses the runtime account-flag constant and separate readable
+`GetAchievementInfo` slot-13 evidence for current-character accomplishment.
 Character achievement points and native Legacy Points remain separate.
 Old native imports keep their saved keys/behavior in the alpha UI; the new
 custom adapter excludes them to avoid duplicates and synthetic addon points.
@@ -110,6 +119,7 @@ remain unavailable rather than defaulting to one Legacy Point or ten custom poin
 | `achievementType` | Independent standard/feat/special classification with evidence; unavailable native metadata stays unknown |
 | `pointType`, `pointValue` | Actual custom definition value or native trait-currency getter; native positive awards are Legacy, confirmed native zero awards are none with value 0, missing awards remain unknown |
 | `completionState`, `completionDate` | Original saved custom completion or authoritative native completion/date, not inferred from criteria |
+| `completionScope`, `completionDetail` | Current character, reliably recorded other character, native account completion, incomplete, or unknown; never changes the underlying source completion |
 | `criteria`, `progress` | Read-only actual objectives/quantities; missing data is explicitly unavailable |
 | `reward` | Actual description only; no generic source label or invented reward |
 
@@ -131,6 +141,53 @@ Challenges navigation fallback does not change the record's real achievement
 type, scope, point value, reward or completion. Exact duplicate identities are
 removed from a displayed list; separate sources, native meta milestones and
 custom progression tiers remain distinct.
+
+The card's selected identity and expansion state are independent. Clicking its
+expanded row again collapses it; another row becomes the single expanded entry.
+Icons, heights, neighboring rows, and valid scroll positions refresh locally,
+without a native challenge-selection side effect merely to collapse the card.
+Verified completion detail appears only in expanded text and point-shield tooltips.
+
+## Addendum progression authority
+
+Pet and collection-mount grants use distinct current-character classified items
+observed in bags and new character-scoped item evidence; unscoped journal ownership,
+legacy companion counts, and historical `petsBest`/`mountsBest` do not prove acquisition
+by this character. Pre-observation learned collections cannot be reconstructed from
+shared journal totals; existing completion remains preserved.
+Exploration validates authored map identity at runtime and accepts only readable,
+revealed overlays with `isShownByMouseOver == false`. Historical visits, hover
+previews, and zone entry cannot grant missing completions. The documented
+`MAP_EXPLORATION_UPDATED` event invalidates cached evidence. `Going Down?` uses
+measured vertical displacement and a continuous guarded grounded/falling/landing
+sequence with survival, instead of elapsed falling time. Missing/secret/failing
+evidence remains unavailable. Original completed records are preserved.
+When an authored map ID needs a validated runtime fallback, saved proof retains the
+actual zone name, map ID, positive overlay dimensions, and readable nonnegative offsets. It does
+not import proximity or historical visit flags. Meta-achievement children count only
+finite positive current-character completion timestamps; malformed child history
+remains unknown and cannot establish a missing parent completion.
+
+New account snapshots prefer a verified GUID/realm identity and guarded native
+full-name/surname/realm fallback. Old first-name/realm snapshots are retained but
+cannot establish a reliable other-character attribution. No snapshot completion
+is imported into `ForeverAchievementsCharDB.done`.
+
+`/fa progressdebug on|off|status|dump` is opt-in diagnostic output, disabled by default.
+Enablement persists across reloads; the 64-record trace does not persist across sessions.
+`/fa inspectachievement KEY` inspects evidence without granting completion. A correction starts with
+`/fa correctachievement KEY`, then requires the displayed 60-second token through
+`/fa correctachievement KEY confirm TOKEN` for that same verified character and
+unchanged record. The service archives only that key's old timestamp and identity in
+`correctionHistory`, clears `done[key]`, and adds `completionCorrections[key]` as a reaward
+hold. All source evidence/history and other completions remain intact. Separately
+confirmed `KEY resume` / `KEY resume confirm TOKEN` removes only that hold; later normal
+verified checks may award the key again. Native imports cannot be corrected through
+this flow, and `/fach reset` directs the user to it instead of wiping progress.
+No correction runs automatically. See the
+[audit](iteration3-achievement-audit.md) for demonstrated unsafe paths versus
+unproven incident-specific explanations, and the
+[two-character manual plan](../ForeverAchievements/Integrations/README.md#two-character-progression-regression).
 
 ## Unified category mapping
 

@@ -58,6 +58,21 @@ cards, the tracker, and social tooltips, confirmed zero, and hiding unsupported 
 tracked keys without deleting saved history. Release checks include cleanup failures
 and retrying a failed native restoration.
 
+Addendum checks use two isolated character fixtures to distinguish current-character
+completion from reliable elsewhere history and native account completion. They cover
+unscoped pet ownership and old maxima, hover-only exploration overlays and invalid
+map evidence, measured versus time-only falls, character identity/snapshot preservation,
+default-off diagnostics with reload-persistent enablement and a session-only trace,
+explicitly confirmed targeted correction/reaward holds and separately confirmed resume,
+preserved source/history/other keys, rejected native imports, and card
+expand/collapse behavior independent of selection. Meta-child checks accept only finite
+positive character timestamps, validated dynamic
+map proofs preserve zone identity/dimensions, and standalone account/recent views reject
+ambiguous snapshots and malformed history without deleting the saved records.
+These remain controlled fixtures. The [two-character manual plan](../ForeverAchievements/Integrations/README.md#two-character-progression-regression)
+checks login, character switching, reload/logout persistence, real exploration/pet
+evidence, and genuine completion preservation in the client.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

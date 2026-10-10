@@ -2,7 +2,7 @@
 
 Install the complete `ForeverAchievements` folder in the active Forever client's
 `Interface/AddOns` directory, replacing the previous addon files. Keep your
-existing `WTF/SavedVariables` files. No progress reset or migration is required.
+existing `WTF/SavedVariables` files. No progress reset is required.
 Original Wrath reference files belong in the repository, outside the installed
 addon and the native Blizzard addon directories.
 
@@ -16,6 +16,11 @@ addon and the native Blizzard addon directories.
 - `/fa legacyui` shows status/help.
 - `/fach` and `/qa` also accept these `legacyui` commands.
 - `/legacyinspect` remains the manual read-only inspector.
+- `/fa progressdebug on|off|status|dump` controls progression diagnostics, disabled by default.
+- `/fa inspectachievement KEY` reports this character's saved state and current condition evidence.
+- `/fa correctachievement KEY` previews a correction and provides a short-lived confirmation token.
+- `/fa correctachievement KEY confirm TOKEN` corrects only that key on this character.
+- `/fa correctachievement KEY resume`, then `/fa correctachievement KEY resume confirm TOKEN`, explicitly permits future verified earning of that corrected key.
 
 The feature is disabled by default. The account option, selected size, and dragged
 position persist across reloads. Standard is the initial size. Size presets enlarge
@@ -55,6 +60,16 @@ Native Legacy completion and rewards come from the game. Custom completion follo
 original character SavedVariables. Similar custom/native accomplishments, zone
 achievements, parent meta-achievements, and progression tiers remain distinct; repeated
 instances of the same namespaced identity are removed from a listing.
+Expanded details and point-shield tooltips distinguish completion on this character,
+reliably recorded completion on another character, native account-wide completion,
+incomplete progress, and unavailable provenance. Another character's completion never
+changes this character's custom completion, date, points, or completed artwork.
+Historical account snapshots without reliable character identity do not establish
+who earned an achievement.
+The standalone account overview shows verified character snapshots and labels
+unreliable totals `Unavailable`. Its old account-union toggle is removed; the stored
+preference and historical records remain preserved. Malformed timestamps do not
+appear as earned recent achievements or count toward a new meta completion.
 
 The header is the main location for separate **Character Achievement Points** and
 **Legacy Points**. They are never added together. Cards use their actual point system
@@ -71,6 +86,9 @@ Summary starts with compact source completion bars, then up to six reliable rece
 custom/native achievements in one section and category progress. Native partial collections
 are labeled; unavailable native dates
 are not fabricated. Expand cards for criteria and follow linked meta-achievements.
+Click the expanded card again to collapse it; opening another card collapses the
+previous one. The icon, card height, surrounding rows, and valid scroll position update
+without selecting a native challenge just to collapse a card.
 Custom tracking delegates to the original tracker. Search and completion/source filters
 operate locally within the selected subject; they do not change the native search state.
 Search includes titles, descriptions, category metadata, and criteria already loaded
@@ -123,6 +141,30 @@ confirmed zero remains zero. Unsupported daily tracked keys stay saved but hidde
 Complex money/progression chains remain unchanged.
 See [classification and data audit](../../docs/iteration3-achievement-audit.md) and
 [compatibility/API notes](../../docs/legacy-wrath-compatibility.md).
+
+Pet and collection-mount achievements now require classified items positively observed
+in this character's bags; shared/unscoped journal counts and older cached maxima do not
+grant custom completion. Learned collections acquired before reliable observation
+cannot be reconstructed from an account journal. Existing genuine completion stays saved.
+Exploration requires verified map identity and revealed overlay evidence;
+hover previews, zone entry, and old unverified visits do not grant missing completions.
+Validated fallback maps retain their actual zone name and overlay dimensions as proof;
+they do not import old proximity flags. Meta children require finite positive
+current-character completion timestamps; malformed history remains unknown and saved.
+`Going Down?` requires a measured, continuous 65-yard fall and verified survival after
+landing; elapsed falling time alone is insufficient. Unavailable evidence cannot award
+these achievements. Previously saved completion remains intact.
+
+Inspect `pet1`, `explore855`, or `fall` when investigating a suspect record; inspection
+does not award completion. Diagnostic enablement persists across reloads, while its
+64-record trace is session-only. A targeted correction requires its explicit confirmation
+token within 60 seconds, on the same verified character and unchanged original record.
+It archives that key's completion timestamp and identity in character correction history,
+clears only that completion, and places that key on a reaward hold. All source evidence,
+history, other achievements, and native progression stay intact. Use the separately
+confirmed `resume` form to lift only that hold; a later normal check may then earn the
+key from verified evidence. Correction is optional and never runs automatically.
+The older `/fach reset` directs you to this targeted flow instead of wiping progress.
 
 ## Manual in-game test plan
 
@@ -189,6 +231,35 @@ for testing.
     remains character-specific and native scope follows client metadata. Disable/reload
     and verify original Challenges, Rewards, Trees, search/filters, normal closing, and
     standalone features. Use `/legacyinspect` with native Challenges open for evidence.
+
+### Two-character progression regression
+
+Use two characters, A with genuine recorded accomplishments and B without the relevant
+custom accomplishment. Back up existing SavedVariables; do not reset them for testing.
+
+1. On A, inspect `pet1`, `explore855`, and `fall` and record genuine completions, dates,
+   character points, native Legacy state, and identity. Log out normally to save a snapshot.
+2. On B, enable progression diagnostics, reload, and open the panel immediately. Account
+   pet ownership, old cached maxima, and A's history must not newly grant B's custom
+   achievements. Check the recorded triggering event, character, values, and condition.
+3. Compare a custom exploration achievement incomplete on B with its native Legacy
+   counterpart completed elsewhere. Native completion must remain visible; the custom
+   card must retain B's incomplete state and points. An elsewhere detail needs reliable
+   saved identity; account-wide native completion must not invent an earning character.
+4. On B, inspect previously visited and unvisited zones, especially Moonglade. Hover
+   preview art and entering a zone must not establish its full exploration criteria.
+   Verify genuine revealed evidence separately. Do not perform dangerous falls solely
+   to test; ordinary movement, flight/taxi transitions, and reloads must not award `fall`.
+5. Expand, collapse, and switch cards, including a linked meta entry. Check `+`/`−`, row
+   height, surrounding entries, and scrolling. Reload, log out/in, then return to A;
+   genuine dates, completions, points, and character evidence must survive.
+   Check the standalone account overview: only verified snapshots appear, unavailable
+   totals are labeled, and no account-union toggle or malformed recent date appears.
+6. If a known false record needs correction, inspect and preview only its intended key.
+   Confirm only with the displayed token on that character. Verify the archive, preserved
+   source/history/other achievements/native progression, and the corrected key's reaward
+   hold. Resume only that key through its separate confirmation when intended. Turn
+   diagnostics off after capturing the result.
 
 ## Reporting
 

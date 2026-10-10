@@ -10,6 +10,66 @@ local C = Kit.COLORS
 
 local CLASS_COLORS = RAID_CLASS_COLORS or {}
 
+local function SnapshotSafe(value)
+    if type(FA.secret) ~= "function" then return true end
+    local ok, hidden = pcall(FA.secret, value)
+    return ok and not hidden
+end
+local function SnapshotField(object, key)
+    if not SnapshotSafe(object) or type(object) ~= "table" then return nil end
+    local ok, value = pcall(function() return object[key] end)
+    if ok and SnapshotSafe(value) then return value end
+end
+local function SnapshotText(value)
+    if SnapshotSafe(value) and type(value) == "string" and value ~= "" then return value end
+end
+local function SnapshotNumber(value)
+    if SnapshotSafe(value) and type(value) == "number" and value == value and value >= 0 and value < math.huge then return value end
+end
+local function CharacterSnapshots()
+    local entries, omitted = {}, 0
+    local chars = SnapshotField(FA.Account(), "chars")
+    if type(chars) ~= "table" then return entries, omitted end
+    for key, snapshot in pairs(chars) do
+        local identity = SnapshotField(snapshot, "identity")
+        local identityKey = SnapshotText(SnapshotField(identity, "key"))
+        local name, surname, realm = SnapshotText(SnapshotField(identity, "name")), SnapshotText(SnapshotField(identity, "surname")), SnapshotText(SnapshotField(identity, "realm"))
+        local guid = SnapshotText(SnapshotField(identity, "guid"))
+        if guid and not guid:match("^Player%-%w[%w%-]*$") then guid = nil end
+        if SnapshotText(key) == identityKey and identityKey and name and realm and (surname or guid)
+            and SnapshotField(identity, "verified") == true and SnapshotField(snapshot, "identityVersion") == 1
+            and SnapshotField(snapshot, "characterKey") == identityKey and SnapshotField(snapshot, "completionScope") == "character"
+            and SnapshotField(snapshot, "pointType") == "character" then
+            entries[#entries + 1] = { snapshot = snapshot, key = identityKey, name = name, surname = surname, realm = realm,
+                guid = guid, last = SnapshotNumber(SnapshotField(snapshot, "last")) }
+        else omitted = omitted + 1 end
+    end
+    table.sort(entries, function(a, b)
+        if a.last ~= b.last then
+            if a.last == nil then return false elseif b.last == nil then return true else return a.last > b.last end
+        end
+        if (a.guid ~= nil) ~= (b.guid ~= nil) then return a.guid ~= nil end
+        return a.key < b.key
+    end)
+    local unique = {}
+    for _, entry in ipairs(entries) do
+        local duplicate = false
+        for _, other in ipairs(unique) do
+            if entry.realm == other.realm and (entry.guid and other.guid and entry.guid == other.guid
+                or (not entry.guid or not other.guid) and entry.name == other.name and entry.surname == other.surname) then
+                duplicate = true; break
+            end
+        end
+        if not duplicate then unique[#unique + 1] = entry end
+    end
+    return unique, omitted
+end
+local function SnapshotValue(snapshot, key, available)
+    local value = SnapshotNumber(SnapshotField(snapshot, key))
+    if value == nil or available and SnapshotField(snapshot, available) == false then return "Unavailable" end
+    return tostring(value)
+end
+
 local function Line(child, y, height)
     local f = CreateFrame("Frame", nil, child)
     f:SetSize(child:GetWidth() - 40, height or 26)
@@ -123,7 +183,8 @@ FA.VIEWS.summary = function(child, width)
     local recent = {}
     for key, t in pairs(FA.DB().done) do
         local a = FA.BY_KEY[key]
-        if a then recent[#recent + 1] = { a, t } end
+        local timestamp = SnapshotNumber(t)
+        if a and timestamp and timestamp > 0 then recent[#recent + 1] = { a, timestamp } end
     end
     table.sort(recent, function(p, q) return p[2] > q[2] end)
     if #recent > 0 then
@@ -201,32 +262,36 @@ FA.VIEWS.summary = function(child, width)
         y = y - 6
     end
 
-    -- Characters on this account
-    local chars = {}
-    for _, c in pairs(FA.Account().chars) do chars[#chars + 1] = c end
-    table.sort(chars, function(p, q) return (p.pts or 0) > (q.pts or 0) end)
+    -- Verified saved character snapshots are separate observations, not an
+    -- authoritative account total or native Legacy point balance.
+    local chars, omitted = CharacterSnapshots()
     if #chars > 0 then
-        _, h = W:SectionHeader(child, "CHARACTERS", y)
+        _, h = W:SectionHeader(child, "CHARACTER SNAPSHOTS", y)
         y = y - h
-        local total = 0
-        for _, c in ipairs(chars) do
-            total = total + (c.pts or 0)
+        for _, entry in ipairs(chars) do
+            local c = entry.snapshot
             local row = Line(child, y, 30)
             CardBg(row)
-            local col = CLASS_COLORS[c.class or ""]
+            local col = CLASS_COLORS[SnapshotText(SnapshotField(c, "class")) or ""]
             local name = Kit.MakeFont(row, 12, nil, col and col.r or 1, col and col.g or 1, col and col.b or 1, 1)
             name:SetPoint("LEFT", 12, 0)
-            name:SetText((c.title and c.title:format(c.name) or c.name) .. "  |cff9aa5b1" .. (c.realm or "") .. "|r")
+            local fullName = entry.name .. (entry.surname and (" " .. entry.surname) or "")
+            local title = SnapshotText(SnapshotField(c, "title"))
+            if title then local ok, display = pcall(string.format, title, fullName); if ok then fullName = display end end
+            name:SetText(fullName .. "  |cff9aa5b1" .. entry.realm .. "|r")
             local info = Kit.MakeFont(row, 12, nil, C.dim[1], C.dim[2], C.dim[3], 1)
             info:SetPoint("RIGHT", -12, 0)
-            info:SetText(("level %d   |   %d earned   |   %d points   |   %s"):format(c.level or 0, c.count or 0,
-                c.pts or 0, c.last and date("%d.%m.%Y", c.last) or "-"))
+            info:SetText(("level %s   |   %s earned   |   %s character points   |   %s"):format(SnapshotValue(c, "level"),
+                SnapshotValue(c, "count", "countAvailable"), SnapshotValue(c, "pts", "pointsAvailable"),
+                entry.last and entry.last > 0 and date("%d.%m.%Y", entry.last) or "Last seen unavailable"))
             y = y - 34
         end
-        local sum = Kit.MakeFont(child, 13, nil, r, g, b, 1)
-        sum:SetPoint("TOPRIGHT", -32, y - 4)
-        sum:SetText(("Account: %d points"):format(total))
-        y = y - 30
+    end
+    if omitted > 0 then
+        local note = Kit.MakeFont(child, 11, nil, C.dim[1], C.dim[2], C.dim[3], 1)
+        note:SetPoint("TOPLEFT", 20, y - 4); note:SetWidth(width - 40); note:SetHeight(26)
+        note:SetText("Older or unverified character snapshots are preserved but are not shown here.")
+        y = y - 32
     end
     return -y + 10
 end
@@ -389,8 +454,12 @@ FA.VIEWS.settings = function(child, width)
     y = y - 6
     _, h = W:SectionHeader(child, "PROGRESS", y)
     y = y - h
-    y = Toggle(child, y, "Account-wide view", "accountView", false,
-        "Show an achievement as earned when any of your characters has it.", function() C_Timer.After(0, FA.Refresh) end)
+    -- Keep the historical accountView setting intact. Earned state now always
+    -- means this character; no control should promise a union of completions.
+    local scope = Kit.MakeFont(child, 11, nil, C.dim[1], C.dim[2], C.dim[3], 1)
+    scope:SetPoint("TOPLEFT", 20, y); scope:SetWidth(width - 40); scope:SetHeight(32)
+    scope:SetText("Achievements and points use this character's progress. Verified completion on another character appears in achievement details in the Wrath view.")
+    y = y - 38
     y = Toggle(child, y, "Show keys and IDs in tooltips", "showIDs", false, "For reporting a problem with an achievement.")
     y = y - 6
     _, h = W:WideDualButton(child, "Reset tracker position", "Stop comparing", y,

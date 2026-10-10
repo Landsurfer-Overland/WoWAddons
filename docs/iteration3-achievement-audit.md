@@ -33,9 +33,14 @@ character point system. No blanket ten-point or one-point default is introduced.
 timestamp source. Its tracked keys, explored subzones, boss records, counters,
 daily history, and all other existing progression fields are retained.
 `ForeverAchievementsDB.chars` remains a separate account snapshot collection.
-The new custom browser reads the current character's `done` timestamps even when
-the standalone alpha interface's account-view preference is enabled. Account
-snapshots never grant the current character completion.
+Both browsers read valid current-character `done` timestamps. The standalone
+account-union toggle has been removed while its stored preference and old histories
+remain preserved. Its account overview lists verified character snapshots and labels
+unreliable totals `Unavailable`; malformed timestamps do not appear as earned recent
+records. Account snapshots never grant the current character completion.
+The addendum records new account snapshots with verified character identity, including
+Forever surname/realm handling, while retaining older snapshot keys. Ambiguous older
+snapshots do not supply a confident other-character indicator.
 
 The 59 old `native=true` imports retain their definitions and saved keys in the
 core. The unified custom adapter excludes them, and the native adapter reads
@@ -57,6 +62,7 @@ delete historical imported completion or select a substitute mirrored native ID.
 | `pointValue` / `points` / `pts` | Original authored `a.pts` | Exact `C_Traits.GetTraitCurrencyForAchievement` return value |
 | `completionState` | `complete`, `incomplete`, or `unknown` for malformed/unreadable saved data | `complete`, `incomplete`, or `unknown`, from `GetAchievementInfo` |
 | `completionDate` / `date` | Readable original timestamp formatted for presentation | Valid completed month/day/year, validated for leap years and calendar days |
+| `completionScope` / `completionDetail` | Current character, reliably recorded other character, incomplete, or unknown; snapshot detail never changes current completion | Current character, other character, native account completion, incomplete, or unknown, from independent native evidence |
 | `progress` / `criteria` | Existing progress evaluators and criteria, with unavailable values left unavailable | Read-only criteria loaded for expansion; never used to grant completion |
 | `reward` | Explicit reward text only | Actual native reward text only |
 
@@ -93,8 +99,10 @@ type 8 and the actual slot-eight asset ID.
 
 There are **44 individual custom zone achievements**: 23 Eastern Kingdoms, 20
 Kalimdor, and one Zephras Isle. Each retains **10 character achievement points**.
-Their underlying custom progress comes from saved visits and the original
-world-map overlay checks. They do not independently award Legacy Points.
+Their underlying custom progress now requires verified map identity and genuinely
+revealed world-map overlay evidence. Historical visit sets remain saved but do not
+grant missing completions merely from zone/subzone presence. They do not independently
+award Legacy Points.
 
 | Region | Saved key | Data/reference ID | Achievement |
 | --- | --- | --- | --- |
@@ -154,8 +162,10 @@ saved key, so a similarly numbered native record cannot overwrite it.
 | `custom:worldexplorer` | 46 | 50 | `custom:exploreEK`, `custom:exploreKal` |
 
 Zephras Isle is a separate zone and is not added to the two-continent world meta.
-These relationships are metadata for existing definitions; they introduce no
-new completion rule or merged native/custom achievement.
+These relationships retain the existing definitions and separate native/custom
+achievements. The addendum accepts a meta child only through a finite positive
+current-character completion timestamp. Malformed child history stays saved and
+unknown; it cannot establish a missing parent completion through truthiness.
 
 Available native evidence establishes these distinct records:
 
@@ -171,6 +181,68 @@ The in-game screenshot's apparent award is not an authoritative replacement for
 the getter. The automated zero-award fixture verifies preservation of an API
 return of zero; it does not claim that the real client currently returns zero
 for every Explorer record.
+
+## Cross-character false-unlock audit
+
+The alternate-character report identifies unexpected completions for `pet1` and
+`explore855`, and retains the earlier `fall` report. No diagnostic trace from those
+particular awards is available. The following are demonstrated unsafe source paths;
+they are not a claim that a specific historical incident has been reproduced in-game.
+
+| Record | Previous condition and verified risk | Corrected evidence policy |
+| --- | --- | --- |
+| `pet1` — Can I Keep Him?; reference ID 1017; 10 character points | `PetCount` took the maximum of journal ownership, legacy companion counts, and bag items, then permanently copied it into per-character `petsBest`. The pinned collection UI exposes ownership totals without an earning-character identity; those totals and old maxima cannot prove this character obtained a pet. | Count distinct companion items positively observed in this character's bags (Miscellaneous class 15, Companion Pets subclass 2) and new character-scoped observed-item evidence. Ignore journal totals, unproven companion-count scope, and the old cached maximum as grant evidence. Keep original completed records and saved values. |
+| `mount10` — Stable Keeper; reference ID 2141; 10 character points | Adjacent audit found the same journal/legacy-count promotion into `mountsBest`; this was not one of the user's reported false awards. | Apply the same current-character observed-item policy to Mount subclass 5. Preserve old maxima and completed records without using unproven account collection counts to grant this character completion. |
+| `explore855` — Explore Moonglade; 10 character points | The authored Wrath dataset has one criterion named `Moonglade`, UI map 1450, and overlay pixel offset (244, 89). The old overlay reader counted matching textures even when `isShownByMouseOver` marked them as hover previews. It also accepted saved subzone visits as completion evidence. | Verify runtime map name/ID, readable actual overlay dimensions/offsets, and `isShownByMouseOver == false`. Only revealed overlay evidence can establish a missing completion. Retain old visit history without promoting it. Invalidate/recheck on `MAP_EXPLORATION_UPDATED`. |
+| `fall` — Going Down?; reference ID 964; 10 character points | An `IsFalling` interval of at least 2.6 seconds followed by an alive check substituted elapsed time for the authored 65-yard requirement. There was no measured vertical distance or guarded continuous landing/world state. | Require a measured vertical drop of at least 65 yards from grounded state through one continuous fall and landing in the same instance, with readable state and survival after landing. Flight, taxi, swimming, death, loading/world transitions, or unknown evidence cannot establish completion. |
+
+The build 70338 `MapExplorationDocumentation.lua` declares the overlay's
+`isShownByMouseOver` flag and `MAP_EXPLORATION_UPDATED` event. Its actual
+`MapExplorationDataProvider.lua` hides those flagged textures and reveals them on
+mouseover, confirming why preview art cannot prove earned exploration. The custom
+Moonglade UI map/offset were authored from Wrath build 3.4.3.58936; they still require
+runtime Forever validation. A validated dynamic map fallback retains its actual map ID,
+zone name, positive overlay dimensions, and readable nonnegative offsets as evidence, rather than importing
+historical proximity flags. The MIT LegacyNext captured Explore Kalimdor fixture
+independently lists Moonglade as type-8 achievement criterion asset ID 855, but does
+not establish its scope or a current player's completion.
+
+`SavedVariablesPerCharacter` already isolates `CharDB.done`; the old standalone
+`accountView` used an account union for display rather than writing that union into
+the character database. Separately, the old Social snapshot key omitted surname
+and could collide for characters sharing a first name and realm. Build 70338's
+Camelot `NameUtil.lua` confirms surname is part of character identity. New snapshots
+prefer verified GUID plus realm, with guarded full-name/surname/realm fallback.
+Older ambiguous entries remain preserved and untrusted for elsewhere attribution.
+Unexpected collisions in the new canonical snapshot namespace are archived in
+`ForeverAchievementsDB.characterSnapshotArchives` before replacement. New snapshot
+point/count availability is explicit when malformed history prevents a reliable total.
+
+Current-character completion, completion reliably recorded on another character,
+native account completion, incomplete progress, and unknown provenance are separate
+`completionScope` states (`current_character`, `other_character`, `native_account`,
+`incomplete`, `unknown`). `completionDetail` supplies the displayed explanation.
+Native `GetAchievementInfo` slot 13 (`wasEarnedByMe`) is explicitly
+used by the pinned native Legacy detail pane. Its readable value can distinguish
+native character accomplishment from a shared completion; missing values do not
+identify an earning character. These details never write custom completion, merge
+dates, or inflate current-character custom point totals.
+
+No correction automatically revokes a completion. `/fa progressdebug on|off|status|dump`
+controls diagnostics, disabled by default; enablement persists across reloads while
+the 64-record ring is session-only. `/fa inspectachievement KEY` reports
+the current character, triggering/evaluated evidence, and saved condition state.
+Inspection does not grant completion.
+`/fa correctachievement KEY` previews a narrowly scoped correction. Its
+`KEY confirm TOKEN` form requires explicit confirmation within 60 seconds, verified
+current-character identity, and the unchanged original timestamp. It archives only
+that key's old completion timestamp and identity in `CharDB.correctionHistory`, clears
+only `done[key]`, and adds a `completionCorrections[key]` reaward hold. Source evidence,
+all history, other keys, and native Legacy state remain untouched. `KEY resume`, then
+`KEY resume confirm TOKEN`, separately confirms removal of only that hold; the next
+normal verified check may award the key again. Native imports are rejected, and the
+older `/fach reset` no longer performs an unconfirmed bulk wipe. Preserved historical
+completions therefore require player review if they may have been falsely awarded.
 
 ## Exact duplicates, overlaps, and deferred chains
 

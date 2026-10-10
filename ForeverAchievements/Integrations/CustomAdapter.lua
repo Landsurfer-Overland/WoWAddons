@@ -28,12 +28,74 @@ local function explorationMetadata()
     end
     return byKey, continents
 end
+local function completionTime(value)
+    local timestamp = R.Number(value)
+    if timestamp and timestamp > 0 then return timestamp end
+end
+local function verifiedIdentity(identity)
+    if type(identity) ~= "table" or R.Field(identity, "verified") ~= true then return nil end
+    local key, name, surname, realm = R.Text(R.Field(identity, "key")), R.Text(R.Field(identity, "name")),
+        R.Text(R.Field(identity, "surname")), R.Text(R.Field(identity, "realm"))
+    local guid = R.Text(R.Field(identity, "guid"))
+    if not guid or not guid:match("^Player%-%w[%w%-]*$") then guid = nil end
+    if not key or key == "" or not name or name == "" or not realm or realm == "" or not guid and not surname then return nil end
+    return { key = key, name = name, surname = surname, realm = realm, guid = guid }
+end
+local function sameCharacter(a, b)
+    if a.key == b.key then return true end
+    if a.guid and b.guid then return a.guid == b.guid and a.realm == b.realm end
+    -- A login-time GUID omission may produce a different fallback key for the
+    -- same character. Excluding this alias is conservative; no data is merged.
+    if a.name ~= b.name or a.realm ~= b.realm then return false end
+    if not a.surname or not b.surname then return true end
+    return a.surname == b.surname
+end
+local function otherCharacterCompletions()
+    local current = verifiedIdentity(first(FA.CharacterIdentity))
+    local other = {}
+    if not current then return other end
+    local chars = R.Field(first(FA.Account), "chars")
+    if type(chars) ~= "table" or not R.Safe(chars) then return other end
+    for key, snapshot in pairs(chars) do
+        local identity = verifiedIdentity(R.Field(snapshot, "identity"))
+        -- Untagged alpha snapshots used first-name/realm keys and can collide
+        -- on Forever surnames. Preserve them without inferring an earner.
+        if identity and R.Text(key) == identity.key and R.Field(snapshot, "identityVersion") == 1
+            and R.Field(snapshot, "characterKey") == identity.key
+            and R.Field(snapshot, "completionScope") == "character" and not sameCharacter(current, identity) then
+            local done = R.Field(snapshot, "done")
+            if type(done) == "table" and R.Safe(done) then
+                for savedKey, timestamp in pairs(done) do
+                    if R.Text(savedKey) and completionTime(timestamp) then other[savedKey] = true end
+                end
+            end
+        end
+    end
+    return other
+end
+local function completionProvenance(row, completedElsewhere)
+    row.completedOnCurrentCharacter = row.completed
+    row.nativeAccountCompleted = false
+    if row.completed == true then
+        row.completionScope, row.completionDetail = "current_character", "Completed on this character"
+        row.completedByOtherCharacter = false
+    elseif row.completed == false and completedElsewhere then
+        row.completionScope, row.completionDetail = "other_character", "Completed by another character"
+        row.completedByOtherCharacter = true
+    elseif row.completed == false then
+        row.completionScope, row.completionDetail = "incomplete", "Not completed on this character"
+        row.completedByOtherCharacter = false
+    else
+        row.completionScope, row.completionDetail = "unknown", "Completion unavailable"
+    end
+end
 function A.Catalog()
     local d = FA.DB()
     local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
         pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false }
     local labels, seen = {}, {}
     local zones, continents = explorationMetadata()
+    local completedElsewhere = otherCharacterCompletions()
     for _, c in ipairs(FA.CATEGORIES) do labels[c.key] = c.label end
     for _, key in ipairs(FA.CATEGORY_ORDER) do
         local cat = { key = "custom-category:" .. key, customKey = key, parent = "custom", name = labels[key] or key, source = "custom", records = {} }
@@ -43,7 +105,7 @@ function A.Catalog()
                 if not a.native and not seen[a.key] and first(FA.Available, a) == true then
                     seen[a.key] = true
                     local savedCompletion = rawget(d.done, a.key)
-                    local timestamp = R.Number(savedCompletion)
+                    local timestamp = completionTime(savedCompletion)
                     local completed
                     if R.Safe(savedCompletion) then
                         if savedCompletion == nil then completed = false elseif timestamp then completed = true end
@@ -66,6 +128,7 @@ function A.Catalog()
                         current = progress and R.Number(progress[1]), required = progress and R.Number(progress[2]),
                         quantityText = progress and R.Text(progress[3]), tracked = d.tracked[a.key] == true,
                         reward = R.Text(a.rewardDescription) or R.Text(a.reward) }
+                    completionProvenance(row, completedElsewhere[a.key])
                     row.progress = { current = row.current, required = row.required, quantityText = row.quantityText,
                         available = row.current ~= nil and row.required ~= nil }
                     if key == "exploration" then
@@ -135,7 +198,7 @@ function A.Criteria(row)
             if tier == a then break end
             if not tier.native then
                 data.items[#data.items + 1] = { name = tier.name, link = "custom:" .. tier.key,
-                    completed = R.Number(FA.DB().done[tier.key]) ~= nil }
+                    completed = completionTime(FA.DB().done[tier.key]) ~= nil }
             end
         end
     end

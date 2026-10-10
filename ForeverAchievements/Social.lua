@@ -294,17 +294,84 @@ end
 -------------------------------------------------------------------------------
 --  Account overview: every character's points, for the Summary page
 -------------------------------------------------------------------------------
+local function SnapshotSafe(value)
+    local ok, hidden = pcall(secret, value)
+    return ok and not hidden
+end
+local function SnapshotText(value)
+    if SnapshotSafe(value) and type(value) == "string" then return value end
+end
+local function SnapshotNumber(value)
+    if SnapshotSafe(value) and type(value) == "number" and value == value
+        and value > -math.huge and value < math.huge then return value end
+end
+local function SnapshotField(object, key)
+    if not SnapshotSafe(object) or type(object) ~= "table" then return nil end
+    local ok, value = pcall(function() return object[key] end)
+    if ok and SnapshotSafe(value) then return value end
+end
+local function SnapshotIdentity()
+    if type(FA.CharacterIdentity) ~= "function" then return nil end
+    local ok, identity = pcall(FA.CharacterIdentity)
+    if not ok or SnapshotField(identity, "verified") ~= true then return nil end
+    local key, name, surname, realm = SnapshotText(SnapshotField(identity, "key")), SnapshotText(SnapshotField(identity, "name")),
+        SnapshotText(SnapshotField(identity, "surname")), SnapshotText(SnapshotField(identity, "realm"))
+    local guid = SnapshotText(SnapshotField(identity, "guid"))
+    if not guid or not guid:match("^Player%-%w[%w%-]*$") then guid = nil end
+    if not key or key == "" or not name or name == "" or not realm or realm == "" or not guid and not surname then return nil end
+    return { key = key, name = name, surname = surname, realm = realm,
+        guid = guid, verified = true }
+end
 local function SaveCharacter()
-    local name, realm = UnitName("player"), GetRealmName()
-    if not name or secret(name) then return end
-    local pts, _, n = FA.TotalPoints()
+    local identity = SnapshotIdentity()
+    if not identity then return false, "Character identity unavailable" end
+    local db, account = FA.DB(), FA.Account()
     local done = {}
-    for k, v in pairs(FA.DB().done) do done[k] = v end
-    local _, class = UnitClass("player")
-    FA.Account().chars[name .. "-" .. (realm or "")] = {
-        name = name, realm = realm, class = class, level = UnitLevel("player"),
-        pts = pts, count = n, last = time(), done = done, title = FA.CurrentTitle(),
+    for k, v in pairs(db.done) do done[k] = v end
+    -- Derive character points from the current character's authored custom
+    -- definitions. Account-view settings and old native imports never enter
+    -- this snapshot's completion, count, or point total.
+    local pts, n, pointsAvailable, countAvailable, seen = 0, 0, true, true, {}
+    for _, a in ipairs(FA.ALL) do
+        if not a.native and not seen[a.key] and FA.Available(a) == true then
+            seen[a.key] = true
+            local savedCompletion = done[a.key]
+            local timestamp = SnapshotNumber(savedCompletion)
+            if timestamp and timestamp > 0 then
+                n = n + 1
+                local points = SnapshotNumber(a.pts)
+                if points and points >= 0 then pts = pts + points else pointsAvailable = false end
+            elseif not SnapshotSafe(savedCompletion) or savedCompletion ~= nil then
+                pointsAvailable, countAvailable = false, false
+            end
+        end
+    end
+    local _, class
+    if type(UnitClass) == "function" then _, class = UnitClass("player") end
+    class = SnapshotText(class)
+    local level = type(UnitLevel) == "function" and SnapshotNumber(UnitLevel("player")) or nil
+    local previous = account.chars[identity.key]
+    local previousIdentity = SnapshotField(previous, "identity")
+    if previous ~= nil and (SnapshotField(previous, "identityVersion") ~= 1
+        or SnapshotField(previous, "characterKey") ~= identity.key
+        or SnapshotField(previousIdentity, "key") ~= identity.key or SnapshotField(previousIdentity, "verified") ~= true
+        or SnapshotField(previousIdentity, "name") ~= identity.name or SnapshotField(previousIdentity, "surname") ~= identity.surname
+        or SnapshotField(previousIdentity, "realm") ~= identity.realm) then
+        -- Canonical keys use their own namespace. Preserve an unexpected
+        -- conflicting entry verbatim rather than silently discarding history.
+        account.characterSnapshotArchives = account.characterSnapshotArchives or {}
+        account.characterSnapshotArchives[#account.characterSnapshotArchives + 1] = {
+            key = identity.key, snapshot = previous, archivedAt = time(),
+        }
+    end
+    account.chars[identity.key] = {
+        name = identity.name .. (identity.surname and identity.surname ~= "" and " " .. identity.surname or ""),
+        surname = identity.surname, realm = identity.realm, class = class, level = level,
+        pts = pointsAvailable and pts or nil, pointsAvailable = pointsAvailable, pointType = "character",
+        count = n, countAvailable = countAvailable, last = time(), done = done, title = FA.CurrentTitle(),
+        characterKey = identity.key, identityVersion = 1, identity = identity, completionScope = "character",
     }
+    return true
 end
 FA.SaveCharacter = SaveCharacter
 

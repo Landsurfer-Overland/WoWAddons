@@ -64,6 +64,8 @@ function U.CardOnLoad(self)
     self.criteriaPool, self.progressPool, self.metaPool = {}, {}, {}
     self.scopeText = font(self.objectives, "GameFontNormalSmall")
     self.scopeText:SetPoint("TOPLEFT", 0, 0); self.scopeText:SetHeight(18); self.scopeText:Hide()
+    self.completionText = font(self.objectives, "GameFontNormalSmall")
+    self.completionText:SetPoint("TOPLEFT", 0, -22); self.completionText:SetHeight(18); self.completionText:Hide()
 end
 -- Original AchievementButton_Saturate / Desaturate colors and texture slices.
 local function saturate(card, completed)
@@ -105,13 +107,22 @@ local function colors(label, completed, parentDone)
 end
 function U.CardClick(self)
     action(self, function(owner)
-        owner.focus = nil
-        owner.selected = owner.selected == self.record.key and nil or self.record.key
+        -- Lua's "condition and nil or key" always returns key. Clear the
+        -- expanded entry explicitly; linked navigation is a separate state.
+        local key = self.record.key
+        if owner.selected == key then owner.selected = nil else owner.selected = key end
+        if owner.focus and owner.focus.key ~= key then owner.focus = nil end
         owner:Render()
     end)
 end
 function U.CardEnter(self) if self.record then self.highlight:Show() end end
 function U.CardLeave(self) if not self.selected then self.highlight:Hide() end end
+local function completionDetail(row)
+    -- Adapters verify character identity and completion provenance. This view
+    -- displays their result without deriving an earner from source or scope.
+    if type(row.completionDetail) == "string" and row.completionDetail ~= "" then return row.completionDetail end
+    if row.completed == nil then return "Completion unavailable" end
+end
 function U.ShieldEnter(self)
     local row, tooltip = self:GetParent().record, GameTooltip
     if not row or not tooltip then return end
@@ -126,7 +137,8 @@ function U.ShieldEnter(self)
     tooltip:AddLine("Scope: " .. (scopes[row.scopeType] or row.scope or "Unknown"), 1, .82, 0)
     if row.achievementType == "feat_of_strength" then tooltip:AddLine("Feat of Strength", 1, .82, 0)
     elseif row.achievementType == "unknown" then tooltip:AddLine("Achievement classification unavailable", .7, .7, .7) end
-    if row.completed == nil then tooltip:AddLine("Completion unavailable", .7, .7, .7) end
+    local detail = completionDetail(row)
+    if detail then tooltip:AddLine(detail, .7, .7, .7, true) end
     tooltip:Show()
 end
 function U.CategoryClick(self)
@@ -480,7 +492,7 @@ function U.RenderCard(self, row, index, y)
     c.plusMinus:Show()
     c.plusMinus:SetTexCoord(row.completed and 0 or .5, row.completed and .5 or 1, c.selected and .25 or 0, c.selected and .5 or .25)
     hidePool(c.criteriaPool); hidePool(c.progressPool); hidePool(c.metaPool)
-    c.scopeText:Hide()
+    c.scopeText:Hide(); c.completionText:Hide()
     local height, cy = 84, 0
     if c.selected then
         local data = P.Criteria(row)
@@ -491,6 +503,12 @@ function U.RenderCard(self, row, index, y)
         c.scopeText:SetText("Scope: " .. (scopes[row.scopeType] or row.scope or "Unknown"))
         c.scopeText:SetTextColor(row.completed and .3 or .7, row.completed and .22 or .7, row.completed and .12 or .7)
         c.scopeText:Show(); cy = 22
+        local detail = completionDetail(row)
+        if detail then
+            c.completionText:SetWidth(textWidth); c.completionText:SetText(detail)
+            c.completionText:SetTextColor(row.completed and .3 or .7, row.completed and .22 or .7, row.completed and .12 or .7)
+            c.completionText:Show(); cy = cy + 22
+        end
         local texts, bars, metas = 0, 0, 0
         for _, item in ipairs(data.items) do
             local f
