@@ -1,0 +1,22 @@
+{
+  "Localization.lua": {
+    "bytes": 2430,
+    "sha256": "b10081a1a6f10dd72fa6ecba3ceedf80ee97e8405da4a6c6e04eeca2dff42e71"
+  },
+  "Blizzard_AchievementUI.xml": {
+    "bytes": 101448,
+    "sha256": "b71a43539347c92e6313aa70077c37750a140d7ab94968c7607170681d5a79e6"
+  },
+  "Blizzard_AchievementUI_Shared.lua": {
+    "bytes": 35337,
+    "sha256": "40787906aec90b0faad036794ef28f5e945a3b8b176e7217bd0444af011e31fe"
+  },
+  "Blizzard_AchievementUI.toc": {
+    "bytes": 372,
+    "sha256": "73d6a5b5f9c753187d5a9b9fc3781286403bb307b835ec8166d0da9f21ffca14"
+  },
+  "Blizzard_AchievementUI.lua": {
+    "bytes": 62527,
+    "sha256": "dcbf0a9d2fdf4087077357d8fa4a4eb452ce8b52faa71f5b075bc5f042c247fe"
+  }
+}

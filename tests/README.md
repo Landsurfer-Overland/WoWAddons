@@ -1,9 +1,9 @@
-# Legacy inspector checks
+# Legacy inspector and Wrath integration checks
 
 From the repository root, run:
 
 ```sh
-python -B tests/test_legacy_inspector.py
+python -B -m unittest discover -s tests
 ```
 
 The harness requires `lupa` with its Lua 5.1 runtime. The cloud setup already
@@ -23,3 +23,12 @@ and exhausted object budgets prevent namespace key inspection.
 These are isolated diagnostic behavior checks. The fixtures do not validate
 Forever's actual API availability, native frame contents, or in-game rendering.
 Those require running `/legacyinspect` in the client.
+
+The Wrath integration suite additionally loads the actual adapted XML and
+executes its OnLoad callbacks with explicit UI doubles. It checks native/custom
+data separation, retained progress and native scripts, opt-in persistence,
+combat/error fallback, API field semantics, meta navigation, local filters,
+bounded scrolling, template dependencies and original reference hashes.
+It does not emulate game rendering, asset lookup, native protected UI or
+SavedVariables disk writes. Follow the manual test in
+ForeverAchievements/Integrations/README.md for those checks.

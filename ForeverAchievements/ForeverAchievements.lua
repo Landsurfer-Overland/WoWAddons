@@ -2692,6 +2692,7 @@ end
 
 SLASH_FOREVERACHIEVEMENTS1 = "/fach"
 SLASH_FOREVERACHIEVEMENTS2 = "/qa" -- short alias, same commands
+SLASH_FOREVERACHIEVEMENTS3 = "/fa" -- also used by the experimental native Legacy UI
 SlashCmdList.FOREVERACHIEVEMENTS = function(input)
     local msg, rest = (input or ""):match("^%s*(%S*)%s*(.-)%s*$")
     msg = (msg or ""):lower()
@@ -2708,6 +2709,7 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
             { "/fach compare Firstname Lastname", "compare with a player who runs the addon (or right-click them)" },
             { "/fach compare off", "stop comparing" },
             { "/fach welcome", "show the welcome screen again" },
+            { "/fa legacyui on|off", "enable or disable the experimental Wrath UI in native Legacy Challenges" },
             { "/fach debug", "debug messages for critters, pests and kills" },
             { "/fach reset", "clear this character's progress" },
             { "/fach help", "this list" },
