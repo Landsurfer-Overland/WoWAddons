@@ -203,7 +203,7 @@ class RealCoreAuditTests(unittest.TestCase):
             UnitLevel=function()return 21 end; UnitFactionGroup=function()return "Alliance" end
         ''')
         for path in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua", "DataExtra.lua",
-                     "ForeverAchievements.lua", "Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua"):
+                     "MoneyTracking.lua", "ForeverAchievements.lua", "Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua"):
             fn = self.lua.execute("return assert(loadstring(...))", (ADDON / path).read_text(), "@" + path)
             fn("ForeverAchievements", self.lua.globals().ns)
 

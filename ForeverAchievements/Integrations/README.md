@@ -1,4 +1,4 @@
-# Unified Wrath Legacy interface — iteration 3
+# Unified Wrath Legacy interface — iteration 4
 
 Install the complete `ForeverAchievements` folder in the active Forever client's
 `Interface/AddOns` directory, replacing the previous addon files. Keep your
@@ -18,6 +18,8 @@ addon and the native Blizzard addon directories.
 - `/legacyinspect` remains the manual read-only inspector.
 - `/fa progressdebug on|off|status|dump` controls progression diagnostics, disabled by default.
 - `/fa perf on|off|report|reset` controls bounded session performance diagnostics, off by default.
+- `/fa money report` reports observed/lifetime money sources, units and the custom copper thresholds.
+- `/fa money threshold KEY COPPER` configures one custom money target; the loot tiers must stay increasing.
 - `/fa inspectachievement KEY` reports this character's saved state and current condition evidence.
 - `/fa correctachievement KEY` previews a correction and provides a short-lived confirmation token.
 - `/fa correctachievement KEY confirm TOKEN` corrects only that key on this character.
@@ -47,9 +49,10 @@ The complete visible window uses the Wrath roof, borders, parchment, and close b
 Native outer artwork and side tabs are temporarily suppressed.
 
 Achievements has one subject hierarchy. Populated subcategories organize character
-progression, quests, geography, primary professions, Fishing, Cooking, First Aid,
-dungeons/raids, reputation, PvP, class challenges, and special achievements. Select a
-parent to see all relevant descendants once; select a child for that narrower subject.
+progression, quests, geography, individual professions, dungeons/raids, reputation,
+PvP, supported classes, and special achievements. Selecting a parent lists only
+records assigned directly to it; its completion count can include descendants.
+General profession and broad reputation milestones belong in their parent categories.
 Expansion and selection are independent, and the selected row has a green highlight.
 
 Unknown native mappings appear under **Feats of Strength → Other Legacy Challenges**.
@@ -58,15 +61,22 @@ reward, native ID, and completion. There is no separate Unmapped Challenges root
 no Daily Quests category. Historical unsupported daily keys remain saved but inactive.
 
 Native Legacy completion and rewards come from the game. Custom completion follows
-original character SavedVariables. Similar custom/native accomplishments, zone
-achievements, parent meta-achievements, and progression tiers remain distinct; repeated
-instances of the same namespaced identity are removed from a listing.
+original character SavedVariables. Zone records with verified matching stable IDs
+and complete requirements share a presentation card, with independent custom/native
+components. Unverified or different requirements remain separate; repeated instances
+of the same namespaced identity are removed from a listing. World Explorer and
+Explore Azeroth remain separate in World Exploration until their complete required
+zone sets and relationships are verified as equivalent.
 Expanded details and point-shield tooltips distinguish completion on this character,
 reliably recorded completion on another character, native account-wide completion,
 incomplete progress, and unavailable provenance. Another character's completion never
 changes this character's custom completion, date, points, or completed artwork.
 Historical account snapshots without reliable character identity do not establish
 who earned an achievement.
+Current custom completion uses gold; completed native records use a restrained blue
+accent. A merged card retains character completion separately, including when native
+progress is complete and this character's custom achievement is incomplete. Reliable
+other-character history names its recorded earner without granting character points.
 The standalone account overview shows verified character snapshots and labels
 unreliable totals `Unavailable`. Its old account-union toggle is removed; the stored
 preference and historical records remain preserved. Malformed timestamps do not
@@ -114,9 +124,8 @@ Statistics and Achievements keep separate navigation state.
 Target: Forever `1.60.1 / 70338`, Interface `16001`, project `18`, Lua `5.1`.
 No actual in-game validation has been performed for these changes.
 
-The iteration 3 brief refers to four newer screenshots and a generated mockup, but
-those images were not attached to this request. Implementation uses the original
-Wrath sources, existing references, and the written brief; no mockup review is claimed.
+The [Iteration 4 audit and manual checks](../../docs/iteration4-regression-plan.md)
+describe character attribution, relationship uncertainty, and monetary tuning.
 
 The native root remains a registered UI panel with its original width reservation,
 so spacing beside other open panels can retain native dimensions despite smaller
@@ -129,8 +138,11 @@ Combat or newly protected frames can defer required restoration; the chat report
 pending work, which retries when legal. Disabling records the option immediately.
 No native progression state is changed to force a restoration.
 
-Native catalog reads are bounded at 256 categories, 2500 challenges, and 256 criteria
-per card; larger/unavailable results are labeled. English subject recognition cannot
+Native catalog reads are bounded at 256 category-information attempts, 2500 challenge
+attempts, and 256 criteria per card. Exploration relationship validation has a separate
+shared 256-attempt budget per native snapshot; unverified pairs stay separate and are
+retried only on a later real data refresh. Larger/unavailable results are labeled.
+English subject recognition cannot
 reliably classify every localized or new native category; uncertain IDs remain in
 Other Legacy Challenges for future review.
 
@@ -139,7 +151,10 @@ optional quest-database checks remain; missing data does not establish a complet
 quest history or a fabricated count. Standalone cards, sorting, the tracker, and social
 tooltips show unavailable quest/Loremaster progress without a filled progress bar;
 confirmed zero remains zero. Unsupported daily tracked keys stay saved but hidden.
-Complex money/progression chains remain unchanged.
+Custom monetary targets now use configurable Forever defaults with explicit copper
+normalization. `/fa money report` distinguishes verified lifetime totals from dated
+observations and retains the original raw source for diagnosis. Older unverified money
+counters remain saved but cannot fabricate a lifetime baseline.
 See [classification and data audit](../../docs/iteration3-achievement-audit.md) and
 [compatibility/API notes](../../docs/legacy-wrath-compatibility.md).
 
@@ -147,10 +162,13 @@ Pet and collection-mount achievements now require classified items positively ob
 in this character's bags; shared/unscoped journal counts and older cached maxima do not
 grant custom completion. Learned collections acquired before reliable observation
 cannot be reconstructed from an account journal. Existing genuine completion stays saved.
-Exploration requires verified map identity and revealed overlay evidence;
-hover previews, zone entry, and old unverified visits do not grant missing completions.
-Validated fallback maps retain their actual zone name and overlay dimensions as proof;
-they do not import old proximity flags. Meta children require finite positive
+New exploration observations require this character's presence in the named area,
+verified current-map identity and a genuine revealed overlay. Where the full discovered
+area-at-position API is available, it must also confirm the required area. Hover previews,
+remote map reads, zone entry alone, and old unattributed visits do not grant missing
+completions. Validated fallback maps retain their actual zone name and overlay dimensions
+as proof. Old observations remain saved; uncertain areas may need revisiting.
+Meta children require finite positive
 current-character completion timestamps; malformed history remains unknown and saved.
 `Going Down?` requires a measured, continuous 65-yard fall and verified survival after
 landing; elapsed falling time alone is insufficient. Unavailable evidence cannot award

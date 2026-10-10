@@ -33,7 +33,7 @@ local SUBJECTS = {
     general = { { "character", "Character" }, { "progression", "Progression" }, { "miscellaneous", "Miscellaneous" } },
     quests = { { "eastern-kingdoms", "Eastern Kingdoms" }, { "kalimdor", "Kalimdor" }, { "storylines", "Storylines" }, { "loremaster", "Loremaster" } },
     exploration = { { "eastern-kingdoms", "Eastern Kingdoms" }, { "kalimdor", "Kalimdor" }, { "world", "World Exploration" }, { "zephras-isle", "Zephras Isle" } },
-    professions = { { "primary", "Primary Professions" }, { "alchemy", "Alchemy" }, { "blacksmithing", "Blacksmithing" },
+    professions = { { "alchemy", "Alchemy" }, { "blacksmithing", "Blacksmithing" },
         { "enchanting", "Enchanting" }, { "engineering", "Engineering" }, { "herbalism", "Herbalism" },
         { "leatherworking", "Leatherworking" }, { "mining", "Mining" }, { "skinning", "Skinning" },
         { "tailoring", "Tailoring" }, { "fishing", "Fishing" }, { "cooking", "Cooking" }, { "first-aid", "First Aid" } },
@@ -41,7 +41,7 @@ local SUBJECTS = {
     reputation = { { "alliance", "Alliance" }, { "horde", "Horde" }, { "other-factions", "Other Factions" } },
     pvp = { { "battlegrounds", "Battlegrounds" }, { "world", "World PvP" }, { "honorable-kills", "Honorable Kills" },
         { "ranks", "Ranks" }, { "reputations", "Battleground Reputations" }, { "season-journey", "Season Journey" } },
-    classes = { { "challenges", "Class Challenges" }, { "progression", "Class Progression" } },
+    classes = {},
     feats = { { "special", "Special Achievements" }, { "other-legacy", "Other Legacy Challenges" } },
 }
 local function normalized(name)
@@ -75,7 +75,7 @@ local PROFESSION_NAMES = { alchemy = "alchemy", blacksmithing = "blacksmithing",
 local SKILL_SUBJECTS = { [171] = "alchemy", [164] = "blacksmithing", [333] = "enchanting", [202] = "engineering", [182] = "herbalism",
     [165] = "leatherworking", [186] = "mining", [393] = "skinning", [197] = "tailoring", [356] = "fishing", [185] = "cooking", [129] = "first-aid" }
 local SERIES_SUBJECTS = { cook = "cooking", recipes = "cooking", fishing = "fishing", fish = "fishing", firstaid = "first-aid",
-    qfzones = "fishing", qfrares = "fishing", qfkinds = "fishing", prof = "primary" }
+    qfzones = "fishing", qfrares = "fishing", qfkinds = "fishing" }
 local FISH_KEYS = { oldgnome = true, diplomat = true, masterangler = true, rarefish = true }
 
 -- Limited individual exceptions for the mixed Adventure category. Each ID is
@@ -129,6 +129,8 @@ local function categoryRoot(cat, byKey, path)
 end
 function P.NativeCategory(row, categories, context)
     local root = context and context.roots[row.category] or categoryRoot(categories[row.category], categories)
+    local class = context and context.classes.nativeIDs[row.id]
+    if class and normalized(row.name) == class.name then return "classes", true, class.subject end
     local override = OVERRIDES[row.id]
     if override and (normalized(row.name) == override.name or normalized(row.name) == override.alternate) and
         (root == "unmapped" or root == override.root) then return override.root, true, override.subject end
@@ -140,7 +142,7 @@ local function geography(value)
     if name == "kal" or name == "kalimdor" then return "kalimdor" end
     if name == "zephrasisle" then return "zephras-isle" end
 end
-local function subjectFromNames(root, names)
+local function subjectFromNames(root, names, classSubjects)
     for _, name in ipairs(names) do
         name = normalized(name)
         if root == "professions" and PROFESSION_NAMES[name] then return PROFESSION_NAMES[name] end
@@ -165,12 +167,15 @@ local function subjectFromNames(root, names)
             if name == "character" or name == "collections" then return "character" end
         elseif root == "reputation" then
             if name == "alliance" or name == "horde" then return name end
-        elseif root == "classes" and (name == "classprogression" or name == "progression") then return "progression" end
+        elseif root == "classes" then
+            if classSubjects and classSubjects[name] then return classSubjects[name] end
+            if name == "classprogression" or name == "progression" then return "progression" end
+        end
     end
 end
 local function defaultSubject(root)
-    return ({ general = "miscellaneous", exploration = "world", professions = "primary", reputation = "other-factions",
-        classes = "challenges", feats = "special" })[root]
+    return ({ general = "miscellaneous", exploration = "world", reputation = "other-factions",
+        feats = "special" })[root]
 end
 local function nativeSubject(row, root, categories, override, context)
     if override then return override end
@@ -189,7 +194,9 @@ local function customSubject(row, root)
         if subject then return subject end
         subject = subjectFromNames(root, { section or "" })
         if subject then return subject end
-        subject = SERIES_SUBJECTS[row.series or a.series]
+        local series = row.series or a.series
+        if series == "prof" then return nil end
+        subject = SERIES_SUBJECTS[series]
         if subject then return subject end
         local key = row.savedKey or a.key or ""
         if key:match("^cook%d") or key:match("^recipes%d") then return "cooking" end
@@ -202,6 +209,7 @@ local function customSubject(row, root)
         local sectionSubject = subjectFromNames(root, { section or "" })
         if sectionSubject then return sectionSubject end
     elseif root == "reputation" then
+        if (row.series or a.series) == "exalted" or normalized(section) == "exalted" then return nil end
         local faction = normalized(row.faction or a.faction)
         if faction == "alliance" or faction == "horde" then return faction end
     elseif root == "exploration" then
@@ -214,18 +222,285 @@ local function customSubject(row, root)
     return subjectFromNames(root, { section or "" }) or defaultSubject(root)
 end
 
+-- Playable classes come from this client's enumeration. If that API is absent,
+-- only the Forever client references with actual class challenge definitions
+-- supply a fallback; icon/color globals are not proof of playable classes.
+local classCache
+local function classDefinitions(native)
+    if classCache then return classCache end
+    local definitions, names, byID, byToken = {}, {}, {}, {}
+    local function add(label, token, id)
+        label, token, id = R.Text(label), R.Text(token), R.ID(id)
+        if not label or label == "" then return end
+        local subject = normalized(token or label)
+        if subject == "" or names[subject] then return end
+        definitions[#definitions + 1] = { subject, label }
+        names[normalized(label)], names[subject] = subject, subject
+        if id then byID[id] = subject end
+        if token then byToken[token:upper()] = subject end
+    end
+    local evidence, nativeByCategory = {}, {}
+    for _, section in ipairs(ns.FOREVER_ACH or {}) do
+        if normalized(section.title) == "classes" then
+            for _, achievement in ipairs(section.list or {}) do evidence[normalized(achievement.group)] = true end
+        end
+    end
+    local current = R.Call(UnitClass, "player")
+    if current then evidence[normalized(current[1])], evidence[normalized(current[2])] = true, true end
+    for _, category in ipairs(native.categories or {}) do nativeByCategory[category.key] = category end
+    for _, category in ipairs(native.categories or {}) do
+        for _, ancestor in ipairs(ancestors(category, nativeByCategory)) do
+            if normalized(ancestor.name) == "classes" then evidence[normalized(category.name)] = true; break end
+        end
+    end
+    local allowedAPI = C_GameRules and C_GameRules.IsClassAllowedForGameMode
+    local runtimeKnown = false
+    local function supported(label, token, id)
+        if type(allowedAPI) == "function" then
+            local result = R.Call(allowedAPI, id)
+            local state = result and R.Bool(result[1])
+            if state ~= nil then runtimeKnown = true end
+            return state == true
+        end
+        return evidence[normalized(label)] or evidence[normalized(token)]
+    end
+    local number = R.Call(GetNumClasses)
+    number = number and R.Number(number[1])
+    if not number and type(allowedAPI) == "function" and C_CreatureInfo and type(C_CreatureInfo.GetClassInfo) == "function" then number = 32 end
+    if number and number == math.floor(number) and number >= 1 and number <= 32 then
+        for i = 1, number do
+            local info = R.Call(GetClassInfo, i)
+            if info and supported(info[1], info[2], info[3] or i) then add(info[1], info[2], info[3] or i) end
+            if C_CreatureInfo and C_CreatureInfo.GetClassInfo then
+                local result = R.Call(C_CreatureInfo.GetClassInfo, i)
+                local data = result and R.Field(result, 1)
+                if type(data) == "table" and supported(R.Field(data, "className"), R.Field(data, "classFile"), R.Field(data, "classID")) then
+                    add(R.Field(data, "className"), R.Field(data, "classFile"), R.Field(data, "classID"))
+                end
+            end
+        end
+    end
+    if current and (type(allowedAPI) ~= "function" or supported(current[1], current[2], current[3])) then
+        add(current[1], current[2], current[3])
+    end
+    local references = {}
+    for _, section in ipairs(ns.FOREVER_ACH or {}) do
+        if normalized(section.title) == "classes" then
+            for _, achievement in ipairs(section.list or {}) do
+                local group = R.Text(achievement.group)
+                if #definitions == 0 and not runtimeKnown and group then references[group] = true end
+            end
+        end
+    end
+    -- This ordered list determines display order only. Presence in the actual
+    -- Forever reference above is required; extra captured classes are retained.
+    for _, group in ipairs({"Warrior", "Paladin", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock", "Druid"}) do
+        if references[group] then add(group, group); references[group] = nil end
+    end
+    local extra = {}; for group in pairs(references) do extra[#extra + 1] = group end
+    table.sort(extra); for _, group in ipairs(extra) do add(group, group) end
+    local nativeIDs = {}
+    for _, section in ipairs(ns.FOREVER_ACH or {}) do
+        if normalized(section.title) == "classes" then
+            for _, achievement in ipairs(section.list or {}) do
+                local subject = names[normalized(achievement.group)]
+                if subject then
+                    for _, id in ipairs(achievement.ids or {}) do
+                        nativeIDs[id] = { subject = subject, name = normalized(achievement.name) }
+                    end
+                end
+            end
+        end
+    end
+    local result = { definitions = definitions, names = names, byID = byID, byToken = byToken, nativeIDs = nativeIDs }
+    -- Empty early-login results can become available later; do not cache them.
+    if #definitions > 0 and runtimeKnown then classCache = result end
+    return result
+end
+-- Relation proof caches contain objective definitions only, never completion,
+-- quantities, dates, account scope, or points. Reads are bounded across all
+-- candidate zones in a Build; missing/changed/partial proofs remain separate.
+local relationProofs, relationProofOrder = {}, {}
+local relationSnapshots = setmetatable({}, { __mode = "k" })
+local EXTRA_ZONE_IDS = { exploreRiverglades = 62354, exploreHyjal = 62356, exploreShendralas = 63684 }
+P.MAX_RELATION_READS = 256
+local function zoneRelationship(custom, native, budget)
+    local zone = custom.exploration
+    if not zone or zone.kind ~= "zone" then return false, "No authored zone definition" end
+    local id = R.ID(zone.zoneID) or EXTRA_ZONE_IDS[custom.savedKey]
+    if not id or native.id ~= id then return false, "No explicit native zone identity" end
+    local expectedName = "Explore " .. (zone.zoneName or custom.zoneName or "")
+    local expectedDescription = expectedName .. ", revealing the covered areas of the world map."
+    if normalized(native.name) ~= normalized(expectedName) or normalized(custom.name) ~= normalized(expectedName) then
+        return false, "Stable ID has a different zone identity"
+    end
+    if normalized(native.description) ~= normalized(expectedDescription) or
+        normalized(custom.description) ~= normalized(expectedDescription) then
+        return false, "Zone requirement description differs or is unavailable"
+    end
+    local required, signature = {}, {}
+    for _, area in ipairs(zone.areas or {}) do
+        local name = R.Text(area[1])
+        if not name or required[name] then return false, "Authored zone objectives are ambiguous" end
+        required[name] = true; signature[#signature + 1] = name
+    end
+    if #signature == 0 or #signature > 256 then return false, "Authored zone objective set is unavailable" end
+    table.sort(signature)
+    signature = table.concat(signature, "\031")
+    local client = R.Call(GetBuildInfo)
+    local build = client and (tostring(R.Text(client[1]) or "") .. ":" .. tostring(R.Text(client[2]) or "") .. ":" .. tostring(R.Number(client[4]) or "")) or "session"
+    local identity = build .. "\031" .. normalized(native.name) .. "\031" .. normalized(native.description) .. "\031" .. signature
+    local known = relationProofs[id]
+    if known and known.identity == identity then return known.matches, known.reason end
+    local prior = budget.results[id]
+    if prior and prior.identity == identity then return prior.matches, prior.reason end
+    local function outcome(matches, reason)
+        budget.results[id] = { identity = identity, matches = matches, reason = reason }
+        return matches, reason
+    end
+    local loaded = native.criteriaCache or native.criteria
+    if not (type(loaded) == "table" and loaded.available == true and loaded.complete == true and type(loaded.items) == "table") then loaded = nil end
+    local number
+    if loaded then number = R.Number(loaded.count) or #loaded.items
+    else
+        if budget.remaining <= 0 then return outcome(false, "Objective verification deferred by bounded read budget") end
+        budget.remaining = budget.remaining - 1; count("relationship.criteria_reads", 1)
+        local result = R.Call(GetAchievementNumCriteria, id)
+        number = result and R.Number(result[1])
+    end
+    if not number or number ~= math.floor(number) or number < 1 or number > 256 then
+        return outcome(false, "Native zone objective count is unavailable")
+    end
+    local matches, reason = false, "Native zone objective count differs"
+    if number == #zone.areas then
+        if not loaded and budget.remaining < number then return outcome(false, "Objective verification deferred by bounded read budget") end
+        local seen = {}
+        matches, reason = true, "Exact zone ID, requirement description, and revealed-area objective set"
+        for i = 1, number do
+            local name, kind, amount
+            if loaded then
+                local item = loaded.items[i]
+                name, kind, amount = R.Text(R.Field(item, "name")), R.Number(R.Field(item, "type")), R.Number(R.Field(item, "required"))
+            else
+                budget.remaining = budget.remaining - 1; count("relationship.criteria_reads", 1)
+                local info = R.Call(GetAchievementCriteriaInfo, id, i)
+                name, kind, amount = info and R.Text(info[1]), info and R.Number(info[2]), info and R.Number(info[5])
+            end
+            if not name or kind == nil or amount == nil then return outcome(false, "Native zone objectives are unavailable") end
+            -- Native type 43 is a map-area revelation. A quest, account wrapper,
+            -- visited zone, or differently scaled criterion cannot prove parity.
+            if kind ~= 43 or amount ~= 1 or not required[name] or seen[name] then
+                matches, reason = false, "Native zone revealed-area requirements differ"
+            end
+            seen[name] = true
+        end
+    end
+    if not matches then return outcome(matches, reason) end
+    if #relationProofOrder >= 128 and not relationProofs[id] then
+        relationProofs[table.remove(relationProofOrder, 1)] = nil
+    end
+    if not relationProofs[id] then relationProofOrder[#relationProofOrder + 1] = id end
+    relationProofs[id] = { identity = identity, matches = matches, reason = reason }
+    return matches, reason
+end
+local META_RELATIONS = {
+    exploreEK = { id = 62353, names = { exploreeasternkingdoms = true, easternkingdoms = true }, kind = "continent" },
+    exploreKal = { id = 62355, names = { explorekalimdor = true, kalimdor = true }, kind = "continent" },
+    worldexplorer = { id = 62053, names = { exploreazeroth = true }, kind = "world" },
+}
+local function metaRelationship(custom, native, customByKey, combinedByKey, budget)
+    local relation, definition = META_RELATIONS[custom.savedKey], custom.exploration
+    if not relation or not definition or definition.kind ~= relation.kind or native.id ~= relation.id or
+        not relation.names[normalized(native.name)] then return false, "Meta identity is not explicitly mapped" end
+    local expected, dependencies, number = {}, {}, 0
+    for _, childKey in ipairs(definition.children or {}) do
+        local child = customByKey[childKey]
+        if not child or not child.exploration then return false, "A custom meta child definition is unavailable" end
+        local childID, proof
+        if relation.kind == "continent" then
+            childID = R.ID(child.exploration.zoneID) or EXTRA_ZONE_IDS[child.savedKey]
+            if not childID then return false, "A zone lacks an explicit native identity" end
+            -- A previously verified objective signature is sufficient even when
+            -- this partial catalog does not include the corresponding zone row.
+            -- No synthetic achievement is inserted or its progress inferred.
+            proof = zoneRelationship(child, { id = childID, name = child.name, description = child.description },
+                { remaining = 0, results = {} })
+            local known = relationProofs[childID]
+            if not proof or not known then return false, "All underlying zone requirements are not yet verified" end
+            dependencies[#dependencies + 1] = known.identity
+        else
+            local combined = combinedByKey[child.key]
+            childID = combined and combined.native.id
+            if not childID then return false, "All underlying continent requirements are not yet verified" end
+            dependencies[#dependencies + 1] = relationProofs[childID] and relationProofs[childID].identity or child.key
+        end
+        if expected[childID] then return false, "Custom meta children contain duplicate native identities" end
+        expected[childID], number = true, number + 1
+    end
+    if number == 0 or number > 256 then return false, "Custom meta child set is unavailable" end
+    table.sort(dependencies)
+    local client = R.Call(GetBuildInfo)
+    local build = client and (tostring(R.Text(client[1]) or "") .. ":" .. tostring(R.Text(client[2]) or "") .. ":" .. tostring(R.Number(client[4]) or "")) or "session"
+    local identity = build .. "\031" .. normalized(native.name) .. "\031" .. normalized(native.description)
+        .. "\031" .. table.concat(dependencies, "\030")
+    local known = relationProofs[native.id]
+    if known and known.identity == identity then return known.matches, known.reason end
+    local prior = budget.results[native.id]
+    if prior and prior.identity == identity then return prior.matches, prior.reason end
+    local function outcome(matches, reason)
+        budget.results[native.id] = { identity = identity, matches = matches, reason = reason }
+        return matches, reason
+    end
+    local loaded = native.criteriaCache or native.criteria
+    if not (type(loaded) == "table" and loaded.available == true and loaded.complete == true and type(loaded.items) == "table") then loaded = nil end
+    local nativeCount
+    if loaded then nativeCount = R.Number(loaded.count) or #loaded.items
+    else
+        if budget.remaining <= 0 then return outcome(false, "Meta verification deferred by bounded read budget") end
+        budget.remaining = budget.remaining - 1; count("relationship.criteria_reads", 1)
+        local result = R.Call(GetAchievementNumCriteria, native.id)
+        nativeCount = result and R.Number(result[1])
+    end
+    if not nativeCount then return outcome(false, "Native meta objective count is unavailable") end
+    if nativeCount ~= number then return outcome(false, "Native meta child set differs") end
+    if not loaded and budget.remaining < number then return outcome(false, "Meta verification deferred by bounded read budget") end
+    local seen = {}
+    for i = 1, number do
+        local kind, asset, amount
+        if loaded then
+            local item = loaded.items[i]
+            kind, asset, amount = R.Number(R.Field(item, "type")), R.ID(R.Field(item, "assetID")), R.Number(R.Field(item, "required"))
+        else
+            budget.remaining = budget.remaining - 1; count("relationship.criteria_reads", 1)
+            local info = R.Call(GetAchievementCriteriaInfo, native.id, i)
+            kind, asset, amount = info and R.Number(info[2]), info and R.ID(info[8]), info and R.Number(info[5])
+        end
+        if kind == nil or asset == nil or amount == nil then return outcome(false, "Native meta objectives are unavailable") end
+        if kind ~= 8 or amount ~= 1 or not expected[asset] or seen[asset] then return outcome(false, "Native meta child requirements differ") end
+        seen[asset] = true
+    end
+    local reason = "Explicit meta ID, exact native child identities, and verified underlying zone requirements"
+    if #relationProofOrder >= 128 and not relationProofs[native.id] then relationProofs[table.remove(relationProofOrder, 1)] = nil end
+    if not relationProofs[native.id] then relationProofOrder[#relationProofOrder + 1] = native.id end
+    relationProofs[native.id] = { identity = identity, matches = true, reason = reason }
+    return true, reason
+end
 function P.Build(page, nativeCatalog)
     local token = begin("presentation.build")
     local native, custom = nativeCatalog or ns.LegacyAdapter.Catalog(page), ns.CustomAchievementAdapter.Catalog()
     local model = { records = {}, byKey = {}, categories = {}, roots = {}, byCategory = {}, native = native, custom = custom,
         unmapped = {}, unmappedIDs = {}, duplicateKeys = {}, criteriaSearchScope = "Loaded criteria only", criteriaVersion = 0,
-        _membership = {}, _counts = {}, _queries = {}, _queryOrder = {}, _queryVersion = 0 }
+        _membership = {}, _counts = {}, _queries = {}, _queryOrder = {}, _queryVersion = 0,
+        relationshipAudit = {}, relationships = {}, sourceRecords = { custom = {}, legacy = {} }, originalByKey = {} }
     model.unmappedRecords = model.unmapped
-    local subjects, nativeCategories = {}, {}
+    local subjects, nativeCategories, classes = {}, {}, classDefinitions(native)
     for root, definitions in pairs(SUBJECTS) do
         for index, definition in ipairs(definitions) do
             subjects[root .. ":" .. definition[1]] = { name = definition[2], order = index }
         end
+    end
+    for i, definition in ipairs(classes.definitions) do
+        subjects["classes:" .. definition[1]] = { name = definition[2], order = i }
     end
     local function category(key, name, parent, order)
         local cat = { key = key, name = name, parent = parent and parent.key, records = {}, children = {}, order = order }
@@ -235,6 +510,9 @@ function P.Build(page, nativeCatalog)
     end
     category("summary", "Summary")
     for _, root in ipairs(ROOTS) do category(root[1], root[2]) end
+    for i, definition in ipairs(classes.definitions) do
+        category("classes:" .. definition[1], definition[2], model.byCategory.classes, i)
+    end
     -- These source selectors support summaries without creating navigation
     -- groups or combining native and character points.
     for _, source in ipairs({ "legacy", "custom" }) do
@@ -249,15 +527,27 @@ function P.Build(page, nativeCatalog)
     -- Ancestry and category semantics are stable for this snapshot. Compute
     -- them once per category instead of walking the same path per record.
     local categoryToken = begin("category.generate")
-    local context = { paths = {}, roots = {}, subjects = {}, names = {} }
+    local context = { paths = {}, roots = {}, subjects = {}, names = {}, classes = classes }
     for _, cat in ipairs(native.categories or {}) do
         local path, names = ancestors(cat, nativeCategories), {}
         for _, ancestor in ipairs(path) do names[#names + 1] = ancestor.name end
         local root = categoryRoot(cat, nativeCategories, path)
+        for _, name in ipairs(names) do
+            if classes.names[normalized(name)] then root = "classes"; break end
+        end
         context.paths[cat.key], context.names[cat.key], context.roots[cat.key] = path, names, root
-        context.subjects[cat.key] = subjectFromNames(root, names) or defaultSubject(root) or false
+        context.subjects[cat.key] = subjectFromNames(root, names, classes.names) or defaultSubject(root) or false
+        if root == "professions" and not context.subjects[cat.key] and cat.parent and nativeCategories[cat.parent] then
+            local name = normalized(cat.name)
+            if name ~= "primaryprofessions" and name ~= "primary" and name ~= "general" and
+                name ~= "tradeskills" and name ~= "professions" and name ~= "secondaryprofessions" then
+                local subject = "skill-" .. name
+                subjects["professions:" .. subject] = { name = cat.name, order = 100 }
+                context.subjects[cat.key] = subject
+            end
+        end
     end
-    local function index(row, key, seen)
+    local function index(row, key, seen, totalsOnly)
         if not key or seen[key] then return end
         seen[key] = true
         local rows, totals = model._membership[key], model._counts[key]
@@ -265,7 +555,8 @@ function P.Build(page, nativeCatalog)
             rows, totals = {}, { completed = 0, total = 0, unknown = 0 }
             model._membership[key], model._counts[key] = rows, totals
         end
-        rows[#rows + 1], totals.total = row, totals.total + 1
+        if not totalsOnly then rows[#rows + 1] = row end
+        totals.total = totals.total + 1
         if row.completed == true then totals.completed = totals.completed + 1
         elseif row.completed == nil then totals.unknown = totals.unknown + 1 end
     end
@@ -274,7 +565,67 @@ function P.Build(page, nativeCatalog)
         if not key or not subjects[key] then return model.byCategory[root] end
         return model.byCategory[key] or category(key, subjects[key].name, model.byCategory[root], subjects[key].order)
     end
-    local function append(original)
+    local nativeByID, combinedByKey, combinedSeen, originalsSeen = {}, {}, {}, {}
+    for _, row in ipairs(native.records or {}) do
+        if not nativeByID[row.id] then nativeByID[row.id] = row end
+    end
+    local function combine(original, candidate, reason)
+        local row = copy(original)
+        row.source, row.sourceType, row.sources = "combined", "unified_exploration", { custom = true, legacy = true }
+        row.character, row.native = copy(original), copy(candidate)
+        row.relationship = { characterKey = original.key, nativeKey = candidate.key, nativeID = candidate.id, evidence = reason }
+        combinedByKey[original.key], combinedByKey[candidate.key] = row, row
+        model.relationships[#model.relationships + 1] = row.relationship
+    end
+    local function audit(original, candidate, reason)
+        model.relationshipAudit[#model.relationshipAudit + 1] = { characterKey = original.key,
+            nativeKey = candidate.key, nativeID = candidate.id, reason = reason }
+    end
+    local relationToken, budget = begin("relationship.verify"), relationSnapshots[native]
+    if not budget then
+        budget = { remaining = math.min(256, P.MAX_RELATION_READS), results = {} }
+        relationSnapshots[native] = budget
+    end
+    local candidates = arrayCopy(custom.records or {})
+    local priority = { [802] = 1, [776] = 2, [855] = 3 }
+    table.sort(candidates, function(a, b)
+        local az, bz = a.exploration, b.exploration
+        local av, bv = priority[az and az.zoneID] or 4, priority[bz and bz.zoneID] or 4
+        if av == bv then return a.key < b.key end
+        return av < bv
+    end)
+    for _, original in ipairs(candidates) do
+        local zone = original.exploration
+        local nativeID = zone and zone.kind == "zone" and (R.ID(zone.zoneID) or EXTRA_ZONE_IDS[original.savedKey])
+        local candidate = nativeID and nativeByID[nativeID]
+        if candidate and not combinedByKey[candidate.key] then
+            local matches, reason = zoneRelationship(original, candidate, budget)
+            if matches then
+                combine(original, candidate, reason)
+            else
+                audit(original, candidate, reason)
+            end
+        end
+    end
+    local customByKey = {}
+    for _, original in ipairs(custom.records or {}) do customByKey[original.key] = original end
+    for _, savedKey in ipairs({"exploreEK", "exploreKal", "worldexplorer"}) do
+        local original = customByKey["custom:" .. savedKey]
+        local candidate = nativeByID[META_RELATIONS[savedKey].id]
+        if original and candidate then
+            local matches, reason = metaRelationship(original, candidate, customByKey, combinedByKey, budget)
+            if matches then combine(original, candidate, reason) else audit(original, candidate, reason) end
+        end
+    end
+    finish(relationToken)
+    local function append(input)
+        if originalsSeen[input.key] then model.duplicateKeys[#model.duplicateKeys + 1] = input.key; return end
+        originalsSeen[input.key] = true
+        local original = combinedByKey[input.key] or input
+        if original.source == "combined" then
+            if combinedSeen[original.key] then return end
+            combinedSeen[original.key] = true
+        end
         if model.byKey[original.key] then
             model.duplicateKeys[#model.duplicateKeys + 1] = original.key
             return
@@ -292,12 +643,28 @@ function P.Build(page, nativeCatalog)
                 model.unmapped[#model.unmapped + 1] = { id = row.id, key = row.key, name = row.name,
                     nativeCategory = original.category, reason = "Native subject metadata is unavailable or not classified" }
                 model.unmappedIDs[#model.unmappedIDs + 1] = row.id
-            else subject = nativeSubject(row, root, nativeCategories, subject, context) end
+            else
+                subject = nativeSubject(row, root, nativeCategories, subject, context)
+                local class = classes.nativeIDs[row.id]
+                if class and normalized(row.name) == class.name then root, subject = "classes", class.subject end
+            end
         else
             root = row.customCategory or (row.category or ""):match("^custom%-category:(.+)$")
             row.customCategory = root
             if not model.byCategory[root] or model.byCategory[root].virtual then root = "general" end
             subject = customSubject(row, root)
+            if root == "professions" and not subject then
+                local skill = R.Text(row.skill) or R.Text((row.achievement or {}).skill)
+                if skill and not PROFESSION_NAMES[normalized(skill)] then
+                    subject = "skill-" .. normalized(skill)
+                    subjects["professions:" .. subject] = { name = skill, order = 100 }
+                end
+            end
+            if root == "classes" then
+                local a = row.achievement or {}
+                subject = classes.byID[row.classID or a.classID] or classes.byToken[(row.classToken or a.classToken or ""):upper()]
+                    or classes.names[normalized(row.class or a.class or row.customSection or a.section)] or subject
+            end
             originalCategories[#originalCategories + 1] = row.customSection or ""
             originalCategories[#originalCategories + 1] = row.customGeography or ""
         end
@@ -307,20 +674,44 @@ function P.Build(page, nativeCatalog)
         row.categoryMetadata = { model.byCategory[root].name, target.name }
         for _, name in ipairs(originalCategories) do row.categoryMetadata[#row.categoryMetadata + 1] = name end
         row.searchText = ((row.name or "") .. " " .. (row.description or "") .. " " .. table.concat(row.categoryMetadata, " ")):lower()
+        if row.source == "combined" then
+            row.searchText = row.searchText .. " " .. (row.native.name or ""):lower() .. " " .. (row.native.description or ""):lower()
+            for _, name in ipairs(context.names[row.native.category] or {}) do row.searchText = row.searchText .. " " .. name:lower() end
+        end
         target.records[#target.records + 1] = row
         model.records[#model.records + 1] = row; model.byKey[row.key] = row
         row._presentationModel = model
+        if row.source == "combined" then
+            model.byKey[row.native.key], model.byKey[row.character.key] = row, row
+            row.character._presentationModel, row.native._presentationModel = model, model
+            row.nativeCategory = row.native.category
+        end
+        for _, component in ipairs(row.source == "combined" and {row.character, row.native} or {row}) do
+            model.originalByKey[component.key] = component
+            model.sourceRecords[component.source][#model.sourceRecords[component.source] + 1] = component
+        end
         local indexed, ancestor = {}, target
-        index(row, "summary", indexed); index(row, row.source, indexed)
+        index(row, "summary", indexed)
+        if row.source == "combined" then
+            index(row.character, "custom", {}, true)
+            model._membership.custom[#model._membership.custom + 1] = row
+            index(row.native, "legacy", {}, true)
+            model._membership.legacy[#model._membership.legacy + 1] = row
+        else index(row, row.source, indexed) end
         while ancestor and not indexed[ancestor.key] do
-            index(row, ancestor.key, indexed)
+            index(row, ancestor.key, indexed, ancestor ~= target)
             ancestor = model.byCategory[ancestor.parent]
         end
         if row.navigationFallback then index(row, "unmapped", indexed) end
         local source = model.byCategory[row.source]
         if source then source.records[#source.records + 1] = row end
-        if row.source == "legacy" then
-            for _, cat in ipairs(context.paths[original.category] or {}) do
+        if row.source == "combined" then
+            for _, key in ipairs({"custom", "legacy"}) do
+                model.byCategory[key].records[#model.byCategory[key].records + 1] = row
+            end
+        end
+        if row.source == "legacy" or row.source == "combined" then
+            for _, cat in ipairs(context.paths[row.nativeCategory] or {}) do
                 local alias = model.byCategory[cat.key]
                 alias.aliasRows[row.key] = true; alias.aliasSubjects[target.key] = true; alias.aliasRoots[root] = true
                 alias.records[#alias.records + 1] = row
@@ -348,7 +739,10 @@ function P.Build(page, nativeCatalog)
         for _, record in ipairs(model.unmapped) do model.byCategory.unmapped.aliasRows[record.key] = true end
     end
     for _, root in ipairs(model.roots) do
-        table.sort(root.children, function(a, b) return a.order < b.order end)
+        table.sort(root.children, function(a, b)
+            if a.order == b.order then return a.name < b.name end
+            return a.order < b.order
+        end)
     end
     model._indexedRecords = model.records
     count("category.records", #model.records)
@@ -377,21 +771,22 @@ local function rows(model, key, search, selectedFilter)
     local function visit(cat)
         if not cat or allowed[cat.key] then return end
         allowed[cat.key] = true
-        for _, child in ipairs(cat.children or {}) do visit(child) end
+        -- Lists use direct assignment. Descendant totals are a separate index.
     end
     local candidates
     if indexed(model) then candidates = model._membership[key] or {}
     else visit(model.byCategory[key]); candidates = model.records end
     count("search.rows", #candidates)
     for _, row in ipairs(candidates) do
+        local component = row.source == "combined" and (key == "legacy" and row.native or row.character) or row
         local sourceMatches = selectedFilter == "all" or
-            (selectedFilter == "complete" or selectedFilter == "completed") and row.completed == true or
-            selectedFilter == "incomplete" and row.completed == false or
-            (selectedFilter == "character" or selectedFilter == "characterachievements") and row.source == "custom" or
-            (selectedFilter == "legacy" or selectedFilter == "legacychallenges") and row.source == "legacy"
+            (selectedFilter == "complete" or selectedFilter == "completed") and component.completed == true or
+            selectedFilter == "incomplete" and component.completed == false or
+            (selectedFilter == "character" or selectedFilter == "characterachievements") and (row.source == "custom" or row.source == "combined") or
+            (selectedFilter == "legacy" or selectedFilter == "legacychallenges") and (row.source == "legacy" or row.source == "combined")
         local searchMatches = search == "" or (row.searchText or ((row.name or "") .. " " .. (row.description or "")):lower()):find(search, 1, true) or
             row.criteriaSearchText and row.criteriaSearchText:find(search, 1, true)
-        if (indexed(model) or key == "summary" or key == row.source or allowed[row.category] or selected and selected.aliasRows and selected.aliasRows[row.key]) and
+        if (indexed(model) or key == "summary" or key == row.source or row.source == "combined" and (key == "custom" or key == "legacy") or allowed[row.category] or selected and selected.aliasRows and selected.aliasRows[row.key]) and
             sourceMatches and searchMatches then out[#out + 1] = row end
     end
     return out
@@ -431,19 +826,30 @@ function P.Count(model, key)
         local totals = model._counts[key]
         return totals and totals.completed or 0, totals and totals.total or 0, totals and totals.unknown or 0
     end
-    local rows = P.Rows(model, key)
+    local selected, countRows = model.byCategory[key], {}
+    for _, original in ipairs(model.records) do
+        local row = original.source == "combined" and (key == "legacy" and original.native or key == "custom" and original.character or original) or original
+        local matches = key == "summary" or key == row.source
+        local cat, seen = model.byCategory[original.category], {}
+        while cat and not seen[cat.key] do
+            if cat.key == key then matches = true; break end
+            seen[cat.key] = true; cat = model.byCategory[cat.parent]
+        end
+        if matches or selected and selected.aliasRows and selected.aliasRows[original.key] then countRows[#countRows + 1] = row end
+    end
     local done, unknown = 0, 0
-    for _, row in ipairs(rows) do
+    for _, row in ipairs(countRows) do
         if row.completed == true then done = done + 1 elseif row.completed == nil then unknown = unknown + 1 end
     end
-    return done, #rows, unknown
+    return done, #countRows, unknown
 end
 function P.Recent(model, source, limit)
     if indexed(model) and model._recent and model._recent[source] then
         return arrayCopy(model._recent[source], limit and math.max(0, math.floor(limit)))
     end
     local rows = {}
-    for _, row in ipairs(P.Rows(model, source)) do
+    for _, record in ipairs(indexed(model) and model.sourceRecords and model.sourceRecords[source] or P.Rows(model, source)) do
+        local row = record.source == "combined" and (source == "legacy" and record.native or record.character) or record
         local reliable = source == "custom" and R.Number(row.timestamp) and row.timestamp > 0 or
             source == "legacy" and R.Number(row.dateSort) and row.date ~= nil
         if row.completed == true and reliable then rows[#rows + 1] = row end
@@ -496,8 +902,21 @@ function P.Summary(model)
     finish(token)
     return summaryCopy(summary)
 end
+function P.SourceRecord(model, key)
+    return model.originalByKey and model.originalByKey[key] or model.byKey[key]
+end
 function P.Criteria(row)
     if row.criteriaCache then return row.criteriaCache end
+    if row.source == "combined" then
+        local character, native = P.Criteria(row.character), P.Criteria(row.native)
+        local data = { items = character.items, available = character.available, complete = character.complete,
+            count = character.count, nativeCriteria = native,
+            sections = { { source = "custom", record = row.character, data = character },
+                { source = "legacy", record = row.native, data = native } } }
+        row.criteriaCache = data
+        row.criteriaSearchText = ((row.character.criteriaSearchText or "") .. " " .. (row.native.criteriaSearchText or ""))
+        return data
+    end
     local adapter = row.source == "legacy" and ns.LegacyAdapter or ns.CustomAchievementAdapter
     local result = R.Call(adapter.Criteria, row)
     local data = result and result[1]

@@ -248,6 +248,7 @@ class ProgressEvaluationTests(unittest.TestCase):
 
     def test_overlay_bucket_candidates_preserve_exact_two_unit_match_boundaries(self):
         self.check('''
+            testZone="Moonglade"; testSubzone="Moonglade"
             local dx,dy=0,0
             C_MapExplorationInfo={GetExploredMapTextures=function(id)
                 assert(id==1450)

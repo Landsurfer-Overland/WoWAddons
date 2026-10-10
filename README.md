@@ -1,6 +1,6 @@
 # WoWAddons
 
-ForeverAchievements iteration 3 refines the visible native Forever Legacy
+ForeverAchievements iteration 4 refines the visible native Forever Legacy
 System window with an experimental original-Wrath interface, disabled by default.
 Native Legacy Challenges and custom achievements share one subject hierarchy;
 their points, completion authority, and character/account scopes stay separate.
@@ -18,6 +18,13 @@ The four bottom tabs are **Achievements | Legacy Rewards | Legacy Trees | Statis
 Rewards and Trees use the existing native pages, original backgrounds, and interactions.
 Character Achievement Points and Legacy Points stay separate. Gamepad mode
 uses the original native interface; unsafe combat changes wait until combat ends.
+
+Iteration 4 adds character-attributed exploration and collection observations,
+known other-character names, restrained blue native completion accents, verified
+native/custom exploration card relationships, direct parent-category lists,
+individual class navigation, and configurable copper-normalized money tracking.
+Historical completion records remain saved. Unverifiable progress stays unavailable.
+See the [Iteration 4 audit and manual checks](docs/iteration4-regression-plan.md).
 
 The default Standard layout provides more vertical room. Header dragging and
 size selection persist; Statistics has its own category navigation. Unsupported

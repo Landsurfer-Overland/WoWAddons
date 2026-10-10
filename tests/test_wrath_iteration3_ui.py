@@ -79,7 +79,11 @@ class Iteration3UITests(unittest.TestCase):
             assert(view.category=='professions' and view.expanded.professions)
             assert(categoryButton('professions').selection:IsShown())
             assert(not categoryButton('professions:alchemy').selection:IsShown())
-            assert(#ns.LegacyPresentation.Rows(view.model,'professions')>=#ns.LegacyPresentation.Rows(view.model,'professions:alchemy'))
+            assert(#ns.LegacyPresentation.Rows(view.model,'professions')==0)
+            assert(#ns.LegacyPresentation.Rows(view.model,'professions:alchemy')>0)
+            local parentDone,parentTotal=ns.LegacyPresentation.Count(view.model,'professions')
+            local childDone,childTotal=ns.LegacyPresentation.Count(view.model,'professions:alchemy')
+            assert(parentTotal>=childTotal and parentDone>=childDone)
         """)
 
     def test_standard_zero_unknown_and_actual_fos_use_independent_badges(self):

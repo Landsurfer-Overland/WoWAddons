@@ -22,7 +22,7 @@ class CoreHarness(Harness):
             function UnitFactionGroup() return "Alliance" end
             function UnitClass() return "Warrior","WARRIOR" end
             function wipe(t) for k in pairs(t) do t[k]=nil end; return t end
-            function issecretvalue(value) return value==SecretTestValue end
+            function issecretvalue(value) return SecretTestValue~=nil and value==SecretTestValue end
             function GetRealZoneText() return testZone end
             function GetZoneText() return testZone end
             function GetSubZoneText() return testSubzone end
@@ -43,7 +43,8 @@ class CoreHarness(Harness):
                 return id,"Collection Item",nil,nil,nil,info[1],info[2]
             end}
             GetItemInfoInstant=C_Item.GetItemInfoInstant
-            C_Map={GetMapInfo=function(mapID)
+            C_Map={GetBestMapForUnit=function() return testZone=="Moonglade" and 1450 or nil end,
+              GetMapInfo=function(mapID)
                 return mapID==1450 and {mapID=1450,name="Moonglade"} or nil
             end}
             C_Timer.NewTicker=function() return {} end
@@ -51,7 +52,7 @@ class CoreHarness(Harness):
             ForeverAchievementsDB={chars={},settings={toasts=false,sound=false}}
         ''')
         for path in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
-                     "DataExtra.lua", "ForeverAchievements.lua"):
+                     "DataExtra.lua", "MoneyTracking.lua", "ForeverAchievements.lua"):
             self.load(path)
         self.execute('''
             -- Keep the exact production definitions/closure-held ALL table;
@@ -608,7 +609,9 @@ class CorrectionTests(unittest.TestCase):
 
     def test_correction_hold_preserves_source_evidence_until_separately_confirmed_resume(self):
         self.h.execute('''
-            saved.characterPetItems={[12345]=true}
+            bagItems[0]={12345}
+            ns.FA.BY_KEY.pet1.progress() -- observe actual current-character acquisition
+            bagItems={}
             local evidence=saved.characterPetItems
             local token=PreviewCorrection("pet1")
             local copy=ns.FA.ProgressionDiagnostics.PendingCorrection()

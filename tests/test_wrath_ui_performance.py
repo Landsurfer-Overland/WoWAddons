@@ -185,7 +185,7 @@ class WrathUIPerformanceTests(unittest.TestCase):
 
     def test_genuine_reentrant_model_replacement_redraws_completion_truth(self):
         self.check("""
-            view.category='general'; view:Render()
+            view.category=view.model.byKey['custom:second'].category; view:Render()
             local original=view.RenderCard; local changed=false
             view.RenderCard=function(self,...)
                 if not changed then

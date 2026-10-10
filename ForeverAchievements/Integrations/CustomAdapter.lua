@@ -16,16 +16,22 @@ local function achievementType(a, category)
     -- A zero-point record elsewhere remains a standard achievement.
     return category == "feats" and "feat_of_strength" or "standard"
 end
+local explorationSource, explorationZones, explorationContinents
 local function explorationMetadata()
+    if explorationSource == ns.EXPLORE and explorationZones then return explorationZones, explorationContinents end
     local byKey, continents = {}, { ek = {}, kal = {} }
     for _, zone in ipairs(ns.EXPLORE or {}) do
         local key = R.Text(zone.key) or (R.ID(zone.id) and ("explore" .. zone.id))
         if key then
             byKey[key] = { zone = R.Text(zone.zone), geography = zone.cont == "ek" and "Eastern Kingdoms"
-                or zone.cont == "kal" and "Kalimdor" or R.Text(zone.zone), continent = R.Text(zone.cont) }
+                or zone.cont == "kal" and "Kalimdor" or R.Text(zone.zone), continent = R.Text(zone.cont),
+                relationship = { kind = "zone", zoneID = R.ID(zone.id), mapID = R.ID(zone.map),
+                    zoneName = R.Text(zone.zone), continent = R.Text(zone.cont), areas = zone.areas,
+                    areaCount = type(zone.areas) == "table" and #zone.areas or nil } }
             if continents[zone.cont] then continents[zone.cont][#continents[zone.cont] + 1] = "custom:" .. key end
         end
     end
+    explorationSource, explorationZones, explorationContinents = ns.EXPLORE, byKey, continents
     return byKey, continents
 end
 local function completionTime(value)
@@ -66,21 +72,35 @@ local function otherCharacterCompletions()
             local done = R.Field(snapshot, "done")
             if type(done) == "table" and R.Safe(done) then
                 for savedKey, timestamp in pairs(done) do
-                    if R.Text(savedKey) and completionTime(timestamp) then other[savedKey] = true end
+                    if R.Text(savedKey) and completionTime(timestamp) then
+                        local names = other[savedKey]
+                        if not names then names = {}; other[savedKey] = names end
+                        local display = identity.name .. (identity.surname and identity.surname ~= "" and (" " .. identity.surname) or "")
+                        if identity.realm ~= current.realm then display = display .. " @ " .. identity.realm end
+                        names[display] = true
+                    end
                 end
             end
         end
     end
+    for key, names in pairs(other) do
+        local sorted = {}
+        for name in pairs(names) do sorted[#sorted + 1] = name end
+        table.sort(sorted)
+        other[key] = sorted
+    end
     return other
 end
 local function completionProvenance(row, completedElsewhere)
+    row.completedByNames = completedElsewhere
+    row.completedByName = completedElsewhere and completedElsewhere[1]
     row.completedOnCurrentCharacter = row.completed
     row.nativeAccountCompleted = false
     if row.completed == true then
         row.completionScope, row.completionDetail = "current_character", "Completed on this character"
         row.completedByOtherCharacter = false
     elseif row.completed == false and completedElsewhere then
-        row.completionScope, row.completionDetail = "other_character", "Completed by another character"
+        row.completionScope, row.completionDetail = "other_character", "Completed by " .. row.completedByName
         row.completedByOtherCharacter = true
     elseif row.completed == false then
         row.completionScope, row.completionDetail = "incomplete", "Not completed on this character"
@@ -91,6 +111,7 @@ local function completionProvenance(row, completedElsewhere)
 end
 local function catalog()
     local d = FA.DB()
+    local characterScope = type(FA.CharacterScope) ~= "function" or first(FA.CharacterScope) == true
     local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
         pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false }
     local labels, seen = {}, {}
@@ -105,21 +126,25 @@ local function catalog()
                 if not a.native and not seen[a.key] and first(FA.Available, a) == true then
                     seen[a.key] = true
                     local savedCompletion = rawget(d.done, a.key)
-                    local timestamp = completionTime(savedCompletion)
+                    local timestamp = characterScope and completionTime(savedCompletion) or nil
                     local completed
-                    if R.Safe(savedCompletion) then
+                    if characterScope and R.Safe(savedCompletion) then
                         if savedCompletion == nil then completed = false elseif timestamp then completed = true end
                     end
-                    local progress = R.Call(a.progress)
+                    -- A copied/mismatched per-character database remains intact,
+                    -- but cannot supply current-character completion or progress.
+                    local progress = characterScope and R.Call(a.progress) or nil
                     local uniqueID = "custom:" .. a.key
                     local points, kind = R.Number(a.pts), achievementType(a, key)
                     local zone = zones[a.key]
                     local row = { key = uniqueID, uniqueID = uniqueID, source = "custom", sourceType = "custom_character", id = a.id,
                         savedKey = a.key, category = cat.key, customCategory = key, customSection = R.Text(section.title),
-                        series = R.Text(a.series), skill = R.Text(a.skill), faction = R.Text(a.faction),
+                        series = R.Text(a.series), skill = R.Text(a.skill), faction = R.Text(a.faction), classToken = R.Text(a.class),
                         customGeography = R.Text(a.geography) or zone and zone.geography,
                         zoneName = zone and zone.zone, customContinent = zone and zone.continent,
+                        exploration = zone and zone.relationship,
                         achievement = a, name = a.name, description = a.desc or "",
+                        money = a.money == true, moneyMetric = R.Text(a.moneyMetric),
                         completed = completed, completionState = R.CompletionState(completed), timestamp = timestamp,
                         scope = "Character", scopeType = "character", achievementType = kind,
                         achievementTypeEvidence = R.Text(a.achievementType) and "Explicit custom definition" or "Authored custom category",
@@ -139,6 +164,8 @@ local function catalog()
                         elseif a.key == "worldexplorer" then
                             row.customGeography, row.metaChildren = "World Exploration", { "custom:exploreEK", "custom:exploreKal" }
                         end
+                        if row.metaChildren then row.exploration = { kind = a.key == "worldexplorer" and "world" or "continent",
+                            children = row.metaChildren, continent = a.key == "exploreEK" and "ek" or a.key == "exploreKal" and "kal" or nil } end
                     end
                     if timestamp and type(date) == "function" then
                         row.date = first(date, "%m/%d/%y", timestamp)
@@ -176,6 +203,9 @@ end
 local function criteria(row)
     local a = row.achievement
     local data = { items = {}, available = true, complete = true }
+    if type(FA.CharacterScope) == "function" and first(FA.CharacterScope) ~= true then
+        data.available = false; data.count = 0; row.criteria = data; return data
+    end
     if a.list then
         for i, name in ipairs(a.list) do
             if i > 256 then data.complete = false; break end
@@ -202,6 +232,9 @@ local function criteria(row)
     if #data.items == 0 and row.required and row.required > 0 and row.current then
         data.items[1] = { name = row.name, current = row.current, required = row.required,
             quantityText = row.quantityText, completed = row.completed }
+    elseif #data.items == 0 and row.money and row.quantityText then
+        data.items[1] = { name = row.name, required = row.required, quantityText = row.quantityText, completed = row.completed }
+        data.available = false
     elseif #data.items == 0 and not row.completed and not row.current then data.available = false end
     -- Earned series retain access to earlier tiers without changing their keys.
     if row.completed and a.series then

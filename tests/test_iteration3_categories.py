@@ -47,7 +47,8 @@ class Iteration3CategoryTests(unittest.TestCase):
             assert(#m.byCategory.professions.children==1)
             assert(m.byCategory.professions.children[1].key=="professions:fishing")
             assert(#ns.LegacyPresentation.Rows(m,"professions:fishing")==2)
-            assert(#ns.LegacyPresentation.Rows(m,"professions")==2)
+            assert(#ns.LegacyPresentation.Rows(m,"professions")==0)
+            local _,total=ns.LegacyPresentation.Count(m,"professions"); assert(total==2)
             assert(m.byKey["custom:fished25"].pointType=="character" and m.byKey["legacy:100"].pointType=="legacy")
             assert(not m.byCategory["professions:cooking"] and not m.byCategory["professions:first-aid"])
         ''')
@@ -63,7 +64,8 @@ class Iteration3CategoryTests(unittest.TestCase):
             assert(m.byKey[fish.key].category=="professions:fishing")
             assert(m.byKey[cook.key].category=="professions:cooking")
             assert(m.byKey[aid.key].category=="professions:first-aid")
-            assert(#m.byCategory.professions.children==3 and #ns.LegacyPresentation.Rows(m,"professions")==3)
+            assert(#m.byCategory.professions.children==3 and #ns.LegacyPresentation.Rows(m,"professions")==0)
+            local _,total=ns.LegacyPresentation.Count(m,"professions"); assert(total==3)
         ''')
 
     def test_explicit_skill_is_stronger_than_section_series_and_title(self):
@@ -99,7 +101,8 @@ class Iteration3CategoryTests(unittest.TestCase):
             assert(#ns.LegacyPresentation.Rows(m,"exploration:eastern-kingdoms")==2)
             assert(#ns.LegacyPresentation.Rows(m,"exploration:kalimdor")==2)
             assert(#ns.LegacyPresentation.Rows(m,"exploration:world")==2)
-            assert(#ns.LegacyPresentation.Rows(m,"exploration")==6)
+            assert(#ns.LegacyPresentation.Rows(m,"exploration")==0)
+            local _,total=ns.LegacyPresentation.Count(m,"exploration"); assert(total==6)
             assert(#m.unmappedIDs==0)
         ''')
 
@@ -127,17 +130,20 @@ class Iteration3CategoryTests(unittest.TestCase):
             assert(row.category=="legacy-category:1" and row.navigationFallback==nil)
             assert(m.unmappedIDs[1]==79999 and m.unmappedRecords[1].id==79999 and m.unmapped==m.unmappedRecords)
             for _,root in ipairs(m.roots) do assert(root.key~="unmapped" and root.name~="Unmapped Challenges") end
-            assert(#ns.LegacyPresentation.Rows(m,"feats")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"feats")==0 and #ns.LegacyPresentation.Rows(m,"feats:other-legacy")==1)
+            local _,total=ns.LegacyPresentation.Count(m,"feats"); assert(total==1)
         ''')
 
-    def test_parent_aggregation_and_refresh_do_not_duplicate_stable_namespaced_keys(self):
+    def test_direct_parent_and_refresh_do_not_duplicate_stable_namespaced_keys(self):
         self.check('''
             local custom=CustomRow("same_activity","professions","ALCHEMY",nil)
             SetCustomRows({custom,custom})
             local nativeRow=NativeRow(100,"Same activity",1)
             local catalog=NativeCatalog({NativeCategory(1,"Alchemy",2),NativeCategory(2,"Tradeskills")},{nativeRow,nativeRow})
             local m=ns.LegacyPresentation.Build(nil,catalog)
-            assert(#m.records==2 and #ns.LegacyPresentation.Rows(m,"professions")==2)
+            assert(#m.records==2 and #ns.LegacyPresentation.Rows(m,"professions")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy")==2)
+            local _,total=ns.LegacyPresentation.Count(m,"professions"); assert(total==2)
             assert(#m.duplicateKeys==2)
             local refreshed=ns.LegacyPresentation.Build(nil,catalog)
             assert(#refreshed.records==2 and refreshed.byKey[nativeRow.key]~=m.byKey[nativeRow.key])
@@ -181,12 +187,15 @@ class Iteration3CategoryTests(unittest.TestCase):
             local custom=CustomRow("cook75","professions","COOKING","cook")
             SetCustomRows({custom})
             local m=ns.LegacyPresentation.Build(nil,NativeCatalog({NativeCategory(1,"Alchemy")},{NativeRow(100,"Native title",1)}))
-            assert(#ns.LegacyPresentation.Rows(m,"professions","alchemy","Legacy Challenges")==1)
-            assert(#ns.LegacyPresentation.Rows(m,"professions","cooking","Character Achievements")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy","alchemy","Legacy Challenges")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:cooking","cooking","Character Achievements")==1)
             assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy","","Character")==0)
-            assert(#ns.LegacyPresentation.Rows(m,"professions","","Legacy")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"professions","","Legacy")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy","","Legacy")==1)
             assert(#ns.LegacyPresentation.Rows(m,"professions","","Completed")==0)
-            assert(#ns.LegacyPresentation.Rows(m,"professions","","Incomplete")==2)
+            assert(#ns.LegacyPresentation.Rows(m,"professions","","Incomplete")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy","","Incomplete")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:cooking","","Incomplete")==1)
         ''')
 
     def test_search_loaded_criteria_is_bounded_and_performs_no_native_query_on_keypress(self):
@@ -200,11 +209,11 @@ class Iteration3CategoryTests(unittest.TestCase):
                 for i=3,65 do items[i]={name="Objective "..i} end
                 return {items=items,available=true,complete=true}
             end
-            assert(#ns.LegacyPresentation.Rows(m,"general","hidden objective")==0 and reads==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","hidden objective")==0 and reads==0)
             ns.LegacyPresentation.Criteria(m.byKey["legacy:100"])
-            assert(#ns.LegacyPresentation.Rows(m,"general","hidden objective")==1 and reads==1)
-            assert(#ns.LegacyPresentation.Rows(m,"general","objective 65")==0)
-            assert(#ns.LegacyPresentation.Rows(m,"general","unavailable placeholder")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","hidden objective")==1 and reads==1)
+            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","objective 65")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"general:miscellaneous","unavailable placeholder")==0)
             ns.LegacyPresentation.Criteria(m.byKey["legacy:100"])
             assert(reads==1 and m.criteriaSearchScope=="Loaded criteria only")
         ''')

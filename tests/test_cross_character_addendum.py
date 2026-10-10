@@ -38,7 +38,7 @@ class CrossCharacterAdapterTests(unittest.TestCase):
             assert(row.completed==false and row.completionState=="incomplete")
             assert(row.completionScope=="other_character" and row.completedByOtherCharacter==true)
             assert(row.completedOnCurrentCharacter==false and row.nativeAccountCompleted==false)
-            assert(row.completionDetail=="Completed by another character")
+            assert(row.completionDetail=="Completed by Same Main")
             assert(row.timestamp==nil and row.date==nil and row.completionDate==nil)
             assert(row.points==20 and row.current==7 and row.required==10 and catalog.points==10)
             assert(saved.done==done and saved.history==history and saved.done.second==nil)

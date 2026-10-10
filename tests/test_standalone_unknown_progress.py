@@ -18,8 +18,11 @@ class ConsumerHarness(Harness):
             function GetTime() return testClock end
             function UnitLevel() return 1 end
             function UnitFactionGroup() return "Alliance" end
+            function UnitName() return "Test","Character" end
+            function GetRealmName() return "Fixture Realm" end
+            function UnitGUID() return "Player-TEST" end
             function IsShiftKeyDown() return false end
-            function issecretvalue(value) return value==SecretTestProgress end
+            function issecretvalue(value) return SecretTestProgress~=nil and value==SecretTestProgress end
             C_Timer.NewTicker=function() return {} end
             ForeverAchievementsCharDB=saved
             local originalUIObject=UIObject
@@ -48,7 +51,7 @@ class ConsumerHarness(Harness):
             end
         ''')
         for path in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
-                     "DataExtra.lua", "ForeverAchievements.lua"):
+                     "DataExtra.lua", "MoneyTracking.lua", "ForeverAchievements.lua"):
             self.load(path)
         self.execute('''
             local Kit=ns.FA.Kit

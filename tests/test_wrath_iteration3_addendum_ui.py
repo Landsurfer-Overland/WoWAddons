@@ -12,7 +12,7 @@ class AddendumUITests(unittest.TestCase):
     check = iteration3.Iteration3UITests.check
     def test_card_toggle_collapses_and_moves_following_entries_back(self):
         self.check("""
-            view.category='general'; view:Render()
+            view.category=view.model.byKey['custom:first'].category; view:Render()
             local first,second=cardFor('custom:first'),cardFor('custom:second')
             local initialSecondY=second.points[1][5]
             assert(first:GetHeight()==84 and second:GetHeight()==84)
@@ -32,7 +32,7 @@ class AddendumUITests(unittest.TestCase):
 
     def test_linked_card_collapse_keeps_its_navigation_route(self):
         self.check("""
-            view.category='exploration'; view.selected='legacy:62053'; view:Render()
+            view.category=view.model.byKey['legacy:62053'].category; view.selected='legacy:62053'; view:Render()
             ns.WrathAchievementUI.MetaClick(cardFor('legacy:62053').metaPool[1])
             local target=view.focus.key
             local card=cardFor(target)
@@ -137,7 +137,7 @@ class AddendumUITests(unittest.TestCase):
             local custom=view.model.byKey['custom:second']
             assert(custom.completed==false and custom.completionScope=='other_character')
             view.selected=custom.key; view:RenderCard(custom,1,0)
-            assert(not view.cards[1].saturated and view.cards[1].completionText:GetText()=='Completed by another character')
+            assert(not view.cards[1].saturated and view.cards[1].completionText:GetText()=='Completed by Main One')
             local native=view.model.byKey['legacy:62013']
             assert(native.completed==true and native.completionScope=='native_account')
             view.selected=native.key; view:RenderCard(native,1,0)

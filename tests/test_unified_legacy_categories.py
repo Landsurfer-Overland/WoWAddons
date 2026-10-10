@@ -24,7 +24,9 @@ class UnifiedCategoryTests(unittest.TestCase):
             assert(#m.roots==#expected)
             for i,key in ipairs(expected) do assert(m.roots[i].key==key) end
             local rows=ns.LegacyPresentation.Rows(m,"professions")
-            assert(#rows==2 and rows[1].source=="legacy" and rows[2].source=="custom")
+            assert(#rows==1 and rows[1].source=="custom")
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy")==1)
+            local _,total=ns.LegacyPresentation.Count(m,"professions"); assert(total==2)
             assert(m.byKey["legacy:62013"].nativeCategory=="legacy-category:15587")
             assert(m.byKey["custom:second"].unifiedRoot=="professions")
             assert(#ns.LegacyPresentation.Rows(m,"legacy")==3)
@@ -46,8 +48,10 @@ class UnifiedCategoryTests(unittest.TestCase):
             assert(m.byKey["legacy:62382"].unifiedRoot=="exploration")
             assert(m.byKey["legacy:79999"].unifiedRoot=="feats")
             assert(m.byKey["legacy:79999"].category=="feats:other-legacy")
-            assert(#ns.LegacyPresentation.Rows(m,"quests")==1)
-            assert(#ns.LegacyPresentation.Rows(m,"exploration")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"quests")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"quests:storylines")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"exploration")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"exploration:world")==1)
             assert(#ns.LegacyPresentation.Rows(m,"feats:other-legacy")==1)
             assert(m.byCategory["feats:other-legacy"].parent=="feats")
             for _,root in ipairs(m.roots) do assert(root.key~="unmapped" and root.name~="Unmapped Challenges") end

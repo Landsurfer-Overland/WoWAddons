@@ -72,6 +72,13 @@ function U.CardOnLoad(self)
     self.scopeText:SetPoint("TOPLEFT", 0, 0); self.scopeText:SetHeight(18); self.scopeText:Hide()
     self.completionText = font(self.objectives, "GameFontNormalSmall")
     self.completionText:SetPoint("TOPLEFT", 0, -22); self.completionText:SetHeight(18); self.completionText:Hide()
+    self.otherCompletion = font(self, "GameFontNormalSmall")
+    self.otherCompletion:SetPoint("BOTTOMRIGHT", -9, 6); self.otherCompletion:SetHeight(16)
+    self.otherCompletion:SetJustifyH("RIGHT"); self.otherCompletion:Hide()
+    -- A text accent shares the existing card; it is not another point shield.
+    self.nativeStatus = font(self, "GameFontNormalSmall")
+    self.nativeStatus:SetPoint("BOTTOMRIGHT", -9, 6); self.nativeStatus:SetHeight(16)
+    self.nativeStatus:SetJustifyH("RIGHT"); self.nativeStatus:Hide()
 end
 -- Original AchievementButton_Saturate / Desaturate colors and texture slices.
 local function saturate(card, completed)
@@ -135,10 +142,82 @@ local function completionDetail(row)
     if type(row.completionDetail) == "string" and row.completionDetail ~= "" then return row.completionDetail end
     if row.completed == nil then return "Completion unavailable" end
 end
+local function completionState(row)
+    if row.completed == true then return "Complete" end
+    if row.completed == false then return "Incomplete" end
+    return "Unavailable"
+end
+local function pointValue(row)
+    if row.pointValue ~= nil then return row.pointValue end
+    if row.pointType == nil then return row.points end
+end
+local function pointLabel(points)
+    return points == nil and "points unavailable" or points .. (points == 1 and " point" or " points")
+end
+local function scopeLabel(row)
+    local scopes = { character = "Character", account = "Account", unknown = "Unknown" }
+    return scopes[row.scopeType] or row.scope or "Unknown"
+end
+local function criteriaSections(row, data)
+    -- Relationships are established by the presentation adapter. The view
+    -- never matches titles, copies completion or combines underlying criteria.
+    if row.source == "combined" and type(data.sections) == "table" then
+        local sections = {}
+        for index, section in ipairs(data.sections) do
+            if index > 2 then break end
+            sections[index] = section
+        end
+        return sections
+    end
+    return { { source = row.source, record = row, data = data } }
+end
+local function sectionHeading(section)
+    local row = section.record
+    local name = section.source == "legacy" and "Native Legacy" or "Character Achievement"
+    local points = pointValue(row)
+    return name .. ": " .. completionState(row) .. " — " .. pointLabel(points)
+end
+local function sectionDetail(section, combined)
+    if combined and section.source == "legacy" then
+        local detail = completionDetail(section.record)
+        return "Scope: " .. scopeLabel(section.record) .. (detail and " · " .. detail or "")
+    end
+end
+local function quantityText(item, row)
+    if type(item.quantityText) == "string" and item.quantityText ~= "" then return item.quantityText end
+    -- Copper is the internal unit. Convert only custom money display, using
+    -- the authored definition instead of guessing from a title or large value.
+    if row.source == "custom" and row.achievement and row.achievement.money == true
+        and item.current ~= nil and item.required ~= nil then
+        if ns.FA and type(ns.FA.Money) == "function" then
+            local okCurrent, current = pcall(ns.FA.Money, item.current)
+            local okRequired, required = pcall(ns.FA.Money, item.required)
+            if okCurrent and okRequired and type(current) == "string" and type(required) == "string" then
+                return current .. " / " .. required
+            end
+        end
+        return item.current .. " copper / " .. item.required .. " copper"
+    end
+    if item.current ~= nil and item.required ~= nil then return item.current .. " / " .. item.required end
+end
 function U.ShieldEnter(self)
     local row, tooltip = self:GetParent().record, GameTooltip
     if not row or not tooltip then return end
     tooltip:SetOwner(self, "ANCHOR_RIGHT")
+    if row.source == "combined" and row.character and row.native then
+        tooltip:SetText("Character Achievement + Native Legacy")
+        for _, component in ipairs({ row.character, row.native }) do
+            local native = component == row.native
+            local points = pointValue(component)
+            tooltip:AddLine((native and "Legacy Points: " or "Character Achievement Points: ")
+                .. (points == nil and "Unavailable" or tostring(points)), native and .63 or 1, native and .79 or .82, native and 1 or 0)
+            tooltip:AddLine((native and "Native Legacy: " or "Character achievement: ") .. completionState(component), 1, 1, 1)
+            tooltip:AddLine("Scope: " .. scopeLabel(component), .7, .7, .7)
+            local detail = completionDetail(component)
+            if detail then tooltip:AddLine(detail, .7, .7, .7, true) end
+        end
+        tooltip:Show(); return
+    end
     local titles = { legacy = "Legacy Points", character = "Character Achievement Points", none = "No point reward", unknown = "Point system unavailable" }
     tooltip:SetText(titles[row.pointType] or (row.source == "legacy" and "Legacy Points" or "Character Achievement Points"))
     local points = row.pointValue
@@ -172,7 +251,8 @@ function U.CategoryExpand(self)
 end
 function U.TrackClick(self)
     action(self, function(owner)
-        ns.CustomAchievementAdapter.Track(self:GetParent().record)
+        local row = self:GetParent().record
+        ns.CustomAchievementAdapter.Track(row.source == "combined" and row.character or row)
         owner.onRefresh()
     end)
 end
@@ -410,6 +490,10 @@ function U.SetModel(self, model)
     if P.CategoryKey then self.category = P.CategoryKey(model, self.category) or "summary" end
     if not model.byCategory[self.category] then self.category = "summary" end
     if self.focus then self.focus = P.Resolve(model, self.focus.key) end
+    if self.selected then
+        local selected = P.Resolve(model, self.selected)
+        if selected then self.selected = selected.key end
+    end
     region(self.root, "HeaderPoints"):SetText(model.custom.points ~= nil and tostring(model.custom.points) or "Unavailable")
     self.nativePoints:SetText(model.native.points ~= nil and tostring(model.native.points) or "Unavailable")
     self.statisticsCatalog = nil
@@ -517,12 +601,11 @@ function U.RenderCard(self, row, index, y)
     c.description:SetWidth(textWidth); c.hiddenDescription:SetWidth(textWidth)
     c.objectives:SetWidth(textWidth)
     c.icon.texture:SetTexture(row.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-    local pointValue = row.pointValue
-    if pointValue == nil and row.pointType == nil then pointValue = row.points end
+    local points = pointValue(row)
     local feat = row.achievementType == "feat_of_strength"
-    c.shield.points:SetText(feat and row.pointType == "none" and "" or pointValue == nil and "?" or tostring(pointValue))
+    c.shield.points:SetText(feat and row.pointType == "none" and "" or points == nil and "?" or tostring(points))
     if type(c.shield.points.SetFontObject) == "function" then
-        c.shield.points:SetFontObject(pointValue and pointValue > 100 and GameFontHighlight or FAWrathAchievementPointsFont)
+        c.shield.points:SetFontObject(points and points > 100 and GameFontHighlight or FAWrathAchievementPointsFont)
     end
     c.shield.icon:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
     c.description:SetText(row.description); c.hiddenDescription:SetText(row.description)
@@ -535,15 +618,37 @@ function U.RenderCard(self, row, index, y)
     c.reward:SetWidth(textWidth); c.reward:SetHeight(20)
     show(c.reward, reward ~= ""); show(c.rewardBackground, reward ~= "")
     saturate(c, row.completed == true)
-    -- A restrained blue bronze tint and gold number identify native Legacy
-    -- awards while preserving the original Wrath shield and laurel artwork.
+    local native = row.source == "combined" and row.native or row.source == "legacy" and row or nil
+    local nativeDone = native and native.completed == true
+    c.nativeCompleted, c.characterCompleted = nativeDone == true, row.source ~= "legacy" and row.completed == true
+    if nativeDone then
+        c:SetBackdropBorderColor(.28, .57, .85)
+        if row.source == "legacy" then c.glow:SetVertexColor(.55, .75, 1) end
+    end
+    -- Blue accents identify native completion while retaining the original
+    -- Wrath shield. A combined card's shield remains character-specific.
     if row.pointType == "legacy" or row.pointType == nil and row.source == "legacy" then
         c.shield.icon:SetVertexColor(row.completed == true and .63 or .45, row.completed == true and .79 or .56, row.completed == true and 1 or .75)
-        c.shield.points:SetTextColor(1, .82, .2)
+        if nativeDone then c.shield.points:SetTextColor(.63, .79, 1)
+        else c.shield.points:SetTextColor(1, .82, .2) end
+    elseif row.source == "legacy" and nativeDone then
+        c.shield.icon:SetVertexColor(.63, .79, 1); c.shield.points:SetTextColor(.63, .79, 1)
     else c.shield.icon:SetVertexColor(1, 1, 1) end
+    c.nativeStatus:Hide(); c.otherCompletion:Hide()
+    if row.source == "combined" and native then
+        local nativePoints = pointValue(native)
+        c.nativeStatus:SetWidth(width - 90)
+        c.nativeStatus:SetText("Legacy: " .. pointLabel(nativePoints) .. " · " .. completionState(native))
+        c.nativeStatus:SetTextColor(nativeDone and .35 or .45, nativeDone and .65 or .56, nativeDone and .95 or .75)
+        c.nativeStatus:Show()
+    elseif row.source == "custom" and row.completed ~= true and row.completedByOtherCharacter == true
+        and type(row.completionDetail) == "string" and row.completionDetail ~= "" and reward == "" then
+        c.otherCompletion:SetWidth(width - 90); c.otherCompletion:SetText(row.completionDetail)
+        c.otherCompletion:SetTextColor(.65, .65, .65); c.otherCompletion:Show()
+    end
     show(c.highlight, c.selected)
     show(c.check, row.tracked)
-    show(c.tracked, row.source == "custom" and not row.completed and (c.selected or row.tracked))
+    show(c.tracked, (row.source == "custom" or row.source == "combined") and not row.completed and (c.selected or row.tracked))
     c.tracked:SetChecked(row.tracked == true)
     -- Every card can expand a long description or report unavailable criteria.
     c.plusMinus:Show()
@@ -567,43 +672,62 @@ function U.RenderCard(self, row, index, y)
             c.completionText:Show(); cy = cy + 22
         end
         local texts, bars, metas = 0, 0, 0
-        local omitted = false
-        for criterionIndex, item in ipairs(data.items) do
-            if criterionIndex > 256 then omitted = true; break end
-            local f
-            if item.link then
-                metas = metas + 1
-                f = pool(c, "metaPool", metas, "Button", c.objectives, "FAWrathMetaTemplate")
-                local target = P.Resolve(self.model, item.link)
-                f.owner, f.link = self, item.link
-                f.icon:SetTexture(target and target.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-                f.label:SetText(item.name); f.label:SetWidth(textWidth - 54)
-                show(f.check, item.completed); colors(f.label, item.completed, row.completed)
-                f:SetSize(textWidth, 30)
-            elseif item.current and item.required and item.required > 1 and item.current >= 0 then
-                bars = bars + 1
-                f = pool(c, "progressPool", bars, "StatusBar", c.objectives, "FAWrathProgressTemplate")
-                f:SetSize(textWidth - 2, 14); f:SetMinMaxValues(0, item.required); f:SetValue(item.current)
-                f.text:SetText(item.name .. ": " .. (item.quantityText or (item.current .. " / " .. item.required)))
-                f.text:SetWidth(textWidth - 7)
-            else
-                texts = texts + 1
-                f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
-                f:SetSize(textWidth, 18); f.label:SetWidth(textWidth - 32)
-                local unavailable = item.completed == nil and " (completion unavailable)"
-                    or item.required and item.required > 1 and item.current == nil and " (progress unavailable)" or ""
-                f.label:SetText(item.name .. unavailable)
-                show(f.check, item.completed); colors(f.label, item.completed, row.completed)
-            end
-            f:SetPoint("TOPLEFT", 0, -cy); f:Show()
-            cy = cy + math.max(23, f:GetHeight() + 4)
-        end
-        if not data.available or not data.complete or omitted then
+        local function textLine(text, color, lineHeight)
             texts = texts + 1
             local f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
-            f:SetPoint("TOPLEFT", 0, -cy); f:SetSize(textWidth, 20)
-            f.label:SetWidth(textWidth - 12); f.label:SetText(data.available and "Some criteria unavailable or omitted." or "Criteria / progress unavailable.")
-            f.label:SetTextColor(.65, .65, .65); f.check:Hide(); f:Show(); cy = cy + 24
+            f:SetPoint("TOPLEFT", 0, -cy); f:SetSize(textWidth, lineHeight or 20)
+            f.label:SetWidth(textWidth - 12); f.label:SetText(text)
+            f.label:SetTextColor(unpack(color)); f.check:Hide(); f:Show(); cy = cy + (lineHeight or 20) + 4
+        end
+        local combined, renderedCriteria = row.source == "combined", 0
+        for _, section in ipairs(criteriaSections(row, data)) do
+            local sectionRow, sectionData = section.record, section.data
+            local nativeSection = section.source == "legacy"
+            if combined then
+                textLine(sectionHeading(section), nativeSection and { .35, .65, .95 }
+                    or sectionRow.completed and { 1, .82, 0 } or { .65, .65, .65 })
+                local nativeDetail = sectionDetail(section, true)
+                if nativeDetail then textLine(nativeDetail, { .65, .65, .65 }) end
+            end
+            local omitted = false
+            for _, item in ipairs(sectionData.items or {}) do
+                -- Keep the existing per-card objective budget even when a
+                -- relationship introduces a second independent criteria set.
+                if renderedCriteria >= 256 then omitted = true; break end
+                renderedCriteria = renderedCriteria + 1
+                local f
+                if item.link then
+                    metas = metas + 1
+                    f = pool(c, "metaPool", metas, "Button", c.objectives, "FAWrathMetaTemplate")
+                    local target = P.Resolve(self.model, item.link)
+                    f.owner, f.link = self, item.link
+                    f.icon:SetTexture(target and target.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+                    f.label:SetText(item.name); f.label:SetWidth(textWidth - 54)
+                    show(f.check, item.completed); colors(f.label, item.completed, sectionRow.completed)
+                    f:SetSize(textWidth, 30)
+                elseif item.current and item.required and item.required > 1 and item.current >= 0 then
+                    bars = bars + 1
+                    f = pool(c, "progressPool", bars, "StatusBar", c.objectives, "FAWrathProgressTemplate")
+                    f:SetSize(textWidth - 2, 14); f:SetMinMaxValues(0, item.required); f:SetValue(item.current)
+                    f:SetStatusBarColor(nativeSection and .25 or 0, nativeSection and .5 or .6, nativeSection and .85 or 0, 1)
+                    f.text:SetText(item.name .. ": " .. (quantityText(item, sectionRow) or "Progress unavailable"))
+                    f.text:SetWidth(textWidth - 7)
+                else
+                    texts = texts + 1
+                    f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
+                    f:SetSize(textWidth, 18); f.label:SetWidth(textWidth - 32)
+                    local unavailable = item.completed == nil and " (completion unavailable)"
+                        or item.required and item.required > 1 and item.current == nil and " (progress unavailable)" or ""
+                    local quantity = quantityText(item, sectionRow)
+                    f.label:SetText(item.name .. (quantity and ": " .. quantity or unavailable))
+                    show(f.check, item.completed); colors(f.label, item.completed, sectionRow.completed)
+                end
+                f:SetPoint("TOPLEFT", 0, -cy); f:Show()
+                cy = cy + math.max(23, f:GetHeight() + 4)
+            end
+            if not sectionData.available or not sectionData.complete or omitted then
+                textLine(sectionData.available and "Some criteria unavailable or omitted." or "Criteria / progress unavailable.", { .65, .65, .65 })
+            end
         end
         height = math.max(110, 36 + descHeight + cy + 32)
     end
@@ -623,12 +747,20 @@ function U.MeasureCard(self, row)
     local data = P.Criteria(row)
     self.measureFont:SetWidth(self.contentWidth - 166); self.measureFont:SetText(row.description or "")
     local descHeight = math.max(36, self.measureFont:GetStringHeight())
-    local cy, omitted = completionDetail(row) and 44 or 22, false
-    for index, item in ipairs(data.items or {}) do
-        if index > 256 then omitted = true; break end
-        cy = cy + (item.link and 34 or 23)
+    local cy, measuredCriteria = completionDetail(row) and 44 or 22, 0
+    for _, section in ipairs(criteriaSections(row, data)) do
+        local sectionData, omitted = section.data, false
+        if row.source == "combined" then
+            cy = cy + 24
+            if sectionDetail(section, true) then cy = cy + 24 end
+        end
+        for _, item in ipairs(sectionData.items or {}) do
+            if measuredCriteria >= 256 then omitted = true; break end
+            measuredCriteria = measuredCriteria + 1
+            cy = cy + (item.link and 34 or 23)
+        end
+        if not sectionData.available or not sectionData.complete or omitted then cy = cy + 24 end
     end
-    if not data.available or not data.complete or omitted then cy = cy + 24 end
     local advance = math.max(110, 36 + descHeight + cy + 32) + 4
     self.measureCache = { row = row, generation = self.modelGeneration, width = self.contentWidth,
         description = row.description, detail = completionDetail(row), criteriaVersion = self.model.criteriaVersion, advance = advance }
@@ -767,21 +899,31 @@ local function recentDay(row)
         return year * 10000 + month * 100 + day
     end
 end
-local function mergedRecent(summary)
-    local rows, seen = {}, {}
+local function recentBefore(a, b)
+    local da, db = recentDay(a), recentDay(b)
+    if da and db and da ~= db then return da > db end
+    if da ~= nil and db == nil then return true end
+    if db ~= nil and da == nil then return false end
+    if a.timestamp and b.timestamp and a.timestamp ~= b.timestamp then return a.timestamp > b.timestamp end
+    return a.key < b.key
+end
+local function mergedRecent(summary, model)
+    local events, seen = {}, {}
     for _, source in ipairs({ summary.custom, summary.native }) do
-        for _, row in ipairs(source.recent or {}) do
-            if not seen[row.key] then rows[#rows + 1], seen[row.key] = row, true end
+        for _, component in ipairs(source.recent or {}) do
+            local row = model.byKey[component.key] or component
+            local entry = seen[row.key]
+            if not entry then
+                entry = { record = row, event = component }
+                events[#events + 1], seen[row.key] = entry, entry
+            elseif recentBefore(component, entry.event) then entry.event = component end
         end
     end
-    table.sort(rows, function(a, b)
-        local da, db = recentDay(a), recentDay(b)
-        if da and db and da ~= db then return da > db end
-        if da ~= nil and db == nil then return true end
-        if db ~= nil and da == nil then return false end
-        if a.timestamp and b.timestamp and a.timestamp ~= b.timestamp then return a.timestamp > b.timestamp end
-        return a.key < b.key
-    end)
+    -- The most recent source event orders the unified card. Its character
+    -- completion/date remain authoritative, even for a newer native event.
+    table.sort(events, function(a, b) return recentBefore(a.event, b.event) end)
+    local rows = {}
+    for index, entry in ipairs(events) do rows[index] = entry.record end
     return rows
 end
 local stateFields = { "model", "generation", "tab", "category", "statisticsCategory", "selected", "focus", "search", "filter", "width", "height", "criteriaVersion", "navigationVersion" }
@@ -917,7 +1059,7 @@ function U.RenderPass(self, reason)
         y = self:SummaryBar("custom", "Custom Achievements Earned", y, nil, summary.custom)
         y = self:SummaryBar("legacy", "Native Legacy Challenges Earned", y, nil, summary.native)
         y = self:Heading("Recent Achievements", y + 8)
-        local recent = mergedRecent(summary)
+        local recent = mergedRecent(summary, self.model)
         local selectedRecent
         for i = 1, math.min(6, #recent) do if recent[i].key == self.selected then selectedRecent = true; break end end
         -- Summary shares the same expanded-card slot as category lists.

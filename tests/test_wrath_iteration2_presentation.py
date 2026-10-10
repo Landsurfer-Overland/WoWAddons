@@ -160,7 +160,7 @@ class Iteration2PresentationTests(unittest.TestCase):
 
     def test_scrolling_expansion_and_custom_tracking_survive_mixed_categories(self):
         self.check("""
-            view.category = "general"
+            view.category = "general:miscellaneous"
             view.selected = "custom:second"
             view:Render()
             local card
@@ -170,7 +170,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             card.tracked:Fire("OnClick")
             assert(saved.tracked.second and saved.done.first == 1730000000 and #calls == 0)
             view.searchBox:SetText("alchemist"); view.searchBox:Fire("OnTextChanged")
-            view.category = "professions"; view:Render()
+            view.category = "professions:alchemy"; view:Render()
             assert(view.cards[1].record.key == "legacy:62013")
         """)
 

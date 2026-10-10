@@ -323,6 +323,10 @@ local function SnapshotIdentity()
         guid = guid, verified = true }
 end
 local function SaveCharacter()
+    if type(FA.CharacterScope) == "function" then
+        local ok, scope = pcall(FA.CharacterScope)
+        if not ok or scope ~= true then return false, "Character progress attribution unavailable" end
+    end
     local identity = SnapshotIdentity()
     if not identity then return false, "Character identity unavailable" end
     local db, account = FA.DB(), FA.Account()

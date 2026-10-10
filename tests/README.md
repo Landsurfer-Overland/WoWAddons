@@ -86,6 +86,34 @@ updates, close/disable lifecycle invalidation, frame reuse, navigation, and live
 invalidation. These checks establish operation bounds and behavior, not live CPU timing.
 See [stability findings and client verification](../docs/legacy-ui-performance.md).
 
+## Iteration 4 checks
+
+Iteration 4 replaces parent list aggregation with direct assignments while retaining
+cached descendant totals. Fixtures check general professions/reputation milestones,
+eligible class navigation, preserved fallback classification, unique card identities,
+and exact native/custom zone and meta relationships. Native requirement verification
+shares one 256-read budget per native snapshot and never schedules another build to
+finish its work. Missing, changed or partially verified requirements remain separate.
+
+Character fixtures exercise two identities, copied databases, GUID readiness and
+later mismatch, unknown historical proofs, actual local geography/current maps plus
+revealed overlays, optional discovery-area API failures, positive bag ownership,
+preserved historical records, named cross-character indicators, guarded account
+snapshots, and confirmed correction archives. The existing measured-fall/fence and
+renderer lifecycle regressions remain active. Exact unavailable custom ID 614 stays
+defined and saved while absent from the active catalog.
+
+Money checks execute actual core events as well as the copper-normalized tracker:
+verified statistic identity/scope/units, unverified plain numeric values, configured
+increasing thresholds, copied-ledger ownership, bounded event deduplication, reload
+without added earnings, unsupported quest totals, and preservation of old counters.
+UI fixtures check independent blue native/gold custom completion, one point shield,
+dual criteria within the existing objective cap, named history without character
+points, unit formatting, merged recents and canonical linked-card navigation.
+
+Follow the [Iteration 4 client plan](../docs/iteration4-regression-plan.md) for actual
+login, disk persistence, progression, source formats, visual and stability verification.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

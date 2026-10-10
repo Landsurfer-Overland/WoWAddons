@@ -185,7 +185,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            c.ui.category="general"; c.ui:Render()
+            c.ui.category="general:miscellaneous"; c.ui:Render()
             local renders=renderCalls
             c.ui.searchBox:SetText("Second")
             c.ui.searchBox:Fire("OnTextChanged",true)

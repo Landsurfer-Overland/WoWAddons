@@ -49,7 +49,12 @@ function Proof.WithEvaluation(fn, ...)
     if not previous or previous.db ~= ForeverAchievementsCharDB then
         Proof.evaluation = { db = ForeverAchievementsCharDB, reads = {}, api = {} }
     end
-    local ok, result = pcall(function(...) return Proof.Pack(fn(...)) end, ...)
+    local ok, result = pcall(function(...)
+        if ns.MoneyTracking and type(ns.MoneyTracking.WithSnapshot) == "function" then
+            return Proof.Pack(ns.MoneyTracking.WithSnapshot(DB(), fn, ...))
+        end
+        return Proof.Pack(fn(...))
+    end, ...)
     Proof.evaluation = previous
     if not ok then error(result, 0) end
     return unpack(result, 1, result.n)
@@ -102,6 +107,7 @@ function Proof.ValidCompletionTime(value)
     return n and n > 0 and n or nil
 end
 function Proof.Completed(key)
+    if Proof.CharacterScope and Proof.CharacterScope() ~= true then return nil end
     local value = DB().done[key]
     if value == nil then return false end
     if Proof.ValidCompletionTime(value) then return true end
@@ -115,9 +121,14 @@ function Proof.CountCompleted(keys)
     return not unknown and count or nil, #keys
 end
 function Proof.CharacterIdentity()
-    local names = Proof.ReadAPI(UnitFullName, "player") or Proof.ReadAPI(UnitName, "player")
+    local names = Proof.EvaluationAPI("character-full-name", UnitFullName, "player")
+    if not names or not Proof.PlainText(names[1]) or not Proof.PlainText(names[2]) then
+        local fallback = Proof.EvaluationAPI("character-name", UnitName, "player")
+        if fallback and Proof.PlainText(fallback[1]) then names = fallback end
+    end
     local name, surname = names and Proof.PlainText(names[1]), names and Proof.PlainText(names[2])
-    local realmResult, guidResult = Proof.ReadAPI(GetRealmName), Proof.ReadAPI(UnitGUID, "player")
+    local realmResult = Proof.EvaluationAPI("character-realm", GetRealmName)
+    local guidResult = Proof.EvaluationAPI("character-guid", UnitGUID, "player")
     local realm, guid = realmResult and Proof.PlainText(realmResult[1]), guidResult and Proof.PlainText(guidResult[1])
     if not name or not realm then return nil end
     if guid and not guid:match("^Player%-%w[%w%-]*$") then guid = nil end
@@ -129,6 +140,87 @@ function Proof.CharacterIdentity()
         key = "character-name:" .. part(realm) .. ":" .. part(name) .. ":" .. part(surname)
     else return nil end -- an incomplete Forever name cannot identify a namesake
     return { key = key, name = name, surname = surname, realm = realm, guid = guid, verified = true }
+end
+function Proof.CharacterScope(d)
+    d = d or DB()
+    local identity = Proof.CharacterIdentity()
+    if not identity then return nil, "Character identity unavailable" end
+    local owner = d.trackingIdentity
+    -- WoW already separates this SavedVariables file by character. Older
+    -- records have no attribution; adopt no completion history here.
+    if owner == nil then return true, identity end
+    if secret(owner) or type(owner) ~= "table" or secret(owner.verified) or owner.verified ~= true
+        or not Proof.PlainText(owner.key) or not Proof.PlainText(owner.realm) then
+        return nil, "Saved character tracking identity unavailable"
+    end
+    if owner.realm ~= identity.realm then
+        return nil, "Saved tracking belongs to a different character"
+    end
+    if secret(owner.guid) or secret(owner.observedGUID)
+        or owner.guid ~= nil and not Proof.PlainText(owner.guid)
+        or owner.observedGUID ~= nil and not Proof.PlainText(owner.observedGUID) then
+        return nil, "Saved character tracking identity unavailable"
+    end
+    local ownerGUID, currentGUID = Proof.PlainText(owner.guid) or Proof.PlainText(owner.observedGUID), identity.guid
+    if ownerGUID and not ownerGUID:match("^Player%-%w[%w%-]*$") then
+        return nil, "Saved character tracking identity unavailable"
+    end
+    if ownerGUID and currentGUID then
+        if ownerGUID ~= currentGUID then return nil, "Saved tracking belongs to a different character" end
+    elseif owner.key ~= identity.key then
+        -- GUID readiness can vary during login. A complete exact Forever name
+        -- and realm can connect those two observed identities; two differing
+        -- known GUIDs must never be connected by a name match.
+        if not Proof.PlainText(owner.name) or not Proof.PlainText(owner.surname)
+            or not identity.surname or owner.name ~= identity.name or owner.surname ~= identity.surname then
+            return nil, "Saved tracking belongs to a different character"
+        end
+    end
+    return true, identity
+end
+function Proof.BindCharacter(d)
+    local matches, identity = Proof.CharacterScope(d)
+    if matches ~= true then return nil end
+    if d.trackingIdentity == nil then
+        -- This describes the owner of observations made from now on, rather
+        -- than assigning an owner to historical done entries.
+        d.trackingIdentity = { key = identity.key, name = identity.name, surname = identity.surname,
+            realm = identity.realm, guid = identity.guid, verified = true, observationsVersion = 2 }
+    elseif not Proof.PlainText(d.trackingIdentity.guid) and not Proof.PlainText(d.trackingIdentity.observedGUID)
+        and identity.guid then
+        -- Preserve the original name-key binding while pinning the first GUID
+        -- actually observed for that exact identity. A recreated namesake with
+        -- another known GUID must not inherit the observations later.
+        d.trackingIdentity.observedGUID = identity.guid
+    end
+    return identity
+end
+function Proof.CharacterEvidenceMatches(characterKey, identity, d)
+    return Proof.PlainText(characterKey) and (characterKey == identity.key
+        or type(d.trackingIdentity) == "table" and characterKey == d.trackingIdentity.key) or false
+end
+function Proof.RecordCompletion(d, a, completedAt)
+    d.done[a.key] = completedAt
+    if a.native then return end
+    local identity = Proof.BindCharacter(d)
+    if not identity then return end
+    if d.completionAttribution == nil then d.completionAttribution = {} end
+    if type(d.completionAttribution) == "table" then
+        d.completionAttribution[a.key] = { completedAt = completedAt, characterKey = identity.key,
+            identity = identity, version = 1 }
+    end
+end
+function Proof.CompletionAttribution(key)
+    local d = DB()
+    local entries = type(d.completionAttribution) == "table" and d.completionAttribution
+    local entry = entries and entries[key]
+    local identity = type(entry) == "table" and entry.identity
+    if type(identity) ~= "table" or identity.verified ~= true
+        or not Proof.PlainText(identity.key) or entry.characterKey ~= identity.key
+        or not Proof.PlainText(identity.name) or not Proof.PlainText(identity.realm)
+        or entry.completedAt ~= Proof.ValidCompletionTime(d.done[key]) then return nil end
+    return { key = identity.key, name = identity.name, surname = identity.surname,
+        realm = identity.realm, guid = identity.guid, verified = true }
 end
 function Proof.SetProgressEvidence(key, source, observations)
     Proof.evidence[key] = { source = source, observations = observations or {} }
@@ -166,6 +258,12 @@ local GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfo
 -- petsBest/mountsBest values remain untouched, but are not proof of acquisition.
 function Proof.CharacterCollection(field, subclass, keys)
     local d, observed, allKnown = DB(), {}, true
+    local identity = Proof.BindCharacter(d)
+    if not identity then
+        for _, key in ipairs(keys) do Proof.SetProgressEvidence(key, "character collection unavailable",
+            { identityVerified = false, journalExcluded = true, legacyBestExcluded = true }) end
+        return nil
+    end
     local slotsAPI = C_Container and C_Container.GetContainerNumSlots
     local itemAPI = C_Container and C_Container.GetContainerItemID
     for bag = 0, 4 do
@@ -187,22 +285,46 @@ function Proof.CharacterCollection(field, subclass, keys)
             end
         end
     end
-    local seen = d[field]
-    if type(seen) ~= "table" then seen = {} end
+    local legacy = d[field]
+    local seen = type(legacy) == "table" and legacy or {}
     if next(observed) then
         if d[field] == nil then d[field] = seen end
-        for id in pairs(observed) do seen[id] = true end
+        for id in pairs(observed) do if seen[id] == nil then seen[id] = true end end
+    end
+    if d.characterCollectionEvidence == nil then d.characterCollectionEvidence = {} end
+    local proofs = type(d.characterCollectionEvidence) == "table" and d.characterCollectionEvidence
+    local proof = proofs and proofs[field]
+    local valid = type(proof) == "table" and proof.version == 2
+        and Proof.CharacterEvidenceMatches(proof.characterKey, identity, d) and type(proof.items) == "table"
+    local verified = valid and proof.items or {}
+    if proof == nil and proofs then
+        proof = { version = 2, characterKey = identity.key, items = verified }
+        proofs[field] = proof
+    end
+    -- The old per-character booleans are retained. Only a versioned record
+    -- bound to this character, or an item in this bag observation, is proof.
+    local acquired = {}
+    for id, value in pairs(verified) do acquired[id] = value end
+    for id in pairs(observed) do
+        acquired[id] = true
+        if proof and (valid or proofs and proofs[field] == proof and proof.characterKey == identity.key)
+            and type(proof.items) == "table" then proof.items[id] = true end
     end
     local count = 0
-    for id, verified in pairs(seen) do
+    for id, value in pairs(acquired) do
         local n = Proof.PlainNumber(id)
-        if n and n > 0 and n == math.floor(n) and not secret(verified) and verified == true then count = count + 1 end
+        if n and n > 0 and n == math.floor(n) and not secret(value) and value == true then count = count + 1 end
+    end
+    local unattributed = false
+    for id, value in pairs(seen) do
+        if not secret(value) and value == true and acquired[id] ~= true then unattributed = true; break end
     end
     -- A verified lower bound can prove an acquisition despite an unrelated
     -- unavailable bag slot; no observations plus unavailable APIs stays unknown.
-    local value = (allKnown or count > 0) and count or nil
+    local value = ((allKnown and not unattributed) or count > 0) and count or nil
     for _, key in ipairs(keys) do Proof.SetProgressEvidence(key, "current-character companion items",
-        { observedItems = count, bagsComplete = allKnown, journalExcluded = true, legacyBestExcluded = true }) end
+        { observedItems = count, bagsComplete = allKnown, journalExcluded = true, legacyBestExcluded = true,
+          characterKey = identity.key, evidenceVersion = 2, unattributedHistory = unattributed }) end
     return value
 end
 local function MountCount() return Proof.CharacterCollection("characterMountItems", 5, { "mount10" }) end
@@ -244,12 +366,18 @@ local SECTIONS = {
           progress = function() return math.min(RidingRank(), 150), 150 end },
     } },
     { title = "MONEY", list = {
-        { key = "gold100", series = "gold", id = 1176, name = "Got My Mind On My Money", desc = "Loot 100 gold.", pts = 10, money = true,
-          progress = function() return math.min(DB().money, 1000000), 1000000 end },
-        { key = "gold1000", series = "gold", id = 1177, name = "Got My Mind On My Money", desc = "Loot 1,000 gold.", pts = 10, money = true,
-          progress = function() return math.min(DB().money, 10000000), 10000000 end },
-        { key = "gold5000", series = "gold", id = 1178, name = "Got My Mind On My Money", desc = "Loot 5,000 gold.", pts = 10, money = true,
-          progress = function() return math.min(DB().money, 50000000), 50000000 end },
+        { key = "gold100", series = "gold", id = 1176, name = "Got My Mind On My Money",
+          desc = ns.MoneyTracking and ns.MoneyTracking.Description("gold100") or "Loot 5 gold.",
+          pts = 10, money = true, moneyMetric = "loot",
+          progress = function() if ns.MoneyTracking then return ns.MoneyTracking.Progress(DB(), "gold100") end; return nil, 50000 end },
+        { key = "gold1000", series = "gold", id = 1177, name = "Got My Mind On My Money",
+          desc = ns.MoneyTracking and ns.MoneyTracking.Description("gold1000") or "Loot 25 gold.",
+          pts = 10, money = true, moneyMetric = "loot",
+          progress = function() if ns.MoneyTracking then return ns.MoneyTracking.Progress(DB(), "gold1000") end; return nil, 250000 end },
+        { key = "gold5000", series = "gold", id = 1178, name = "Got My Mind On My Money",
+          desc = ns.MoneyTracking and ns.MoneyTracking.Description("gold5000") or "Loot 100 gold.",
+          pts = 10, money = true, moneyMetric = "loot",
+          progress = function() if ns.MoneyTracking then return ns.MoneyTracking.Progress(DB(), "gold5000") end; return nil, 1000000 end },
     } },
     { title = "COLLECTIONS", list = {
         { key = "pet1", id = 1017, series = "pets", name = "Can I Keep Him?", desc = "Obtain a companion pet.", pts = 10,
@@ -316,23 +444,7 @@ local function StatNumber(id)
     return tonumber((text:gsub("%D", "")))
 end
 
-local function StatCopper(id)
-    local text = StatText(id)
-    if not text then return nil end
-    local total, found = 0, false
-    for n, coin in text:gmatch("(%d+)%s*|T[^|]-UI%-(%a+)Icon") do
-        local v = tonumber(n) or 0
-        coin = coin:lower()
-        if coin == "gold" then total = total + v * 10000
-        elseif coin == "silver" then total = total + v * 100
-        else total = total + v end
-        found = true
-    end
-    if found then return total end
-    return tonumber((text:gsub("%D", "")))
-end
-
-local STAT_QUESTS, STAT_DAILIES, STAT_QUEST_GOLD = 98, 97, 326
+local STAT_QUESTS, STAT_DAILIES = 98, 97
 
 local function CompletedIDs()
     if C_QuestLog and type(C_QuestLog.GetAllCompletedQuestIDs) == "function" then
@@ -421,7 +533,16 @@ local function NormZone(s)
 end
 Proof.mapCache = { offsets = {}, maps = {} }
 function Proof.ClearExplorationCache()
-    Proof.mapCache = { offsets = {}, maps = {}, characterDB = ForeverAchievementsCharDB }
+    local identity = Proof.CharacterIdentity()
+    Proof.mapCache = { offsets = {}, maps = {}, characterDB = ForeverAchievementsCharDB,
+        characterKey = identity and identity.key }
+end
+function Proof.ExplorationContext()
+    local matches, identity = Proof.CharacterScope()
+    if matches ~= true then return nil end
+    if Proof.mapCache.characterDB ~= ForeverAchievementsCharDB
+        or Proof.mapCache.characterKey ~= identity.key then Proof.ClearExplorationCache() end
+    return identity
 end
 function Proof.MapInfo(mapID, name)
     mapID = Proof.PlainNumber(mapID)
@@ -434,6 +555,7 @@ function Proof.MapInfo(mapID, name)
     return mapID
 end
 function Proof.ZoneMap(zone)
+    if not Proof.ExplorationContext() then return nil end
     local authored = Proof.MapInfo(zone.map, zone.zone)
     if authored then return authored end
     local cache = Proof.mapCache
@@ -474,7 +596,7 @@ function Proof.ZoneMap(zone)
     return match
 end
 function Proof.ExploredOffsets(mapID)
-    if Proof.mapCache.characterDB ~= ForeverAchievementsCharDB then Proof.ClearExplorationCache() end
+    if not Proof.ExplorationContext() then return nil end
     local clock = Proof.ReadAPI(GetTime)
     local now = clock and Proof.PlainNumber(clock[1])
     local cache = Proof.mapCache
@@ -511,20 +633,95 @@ end
 
 local function ZoneKey(z) return z.key or ("explore" .. z.id) end
 
+function Proof.AreaLocation(zone, area, mapID)
+    local r = Proof.EvaluationAPI("player-real-zone", GetRealZoneText)
+    local zoneName = r and Proof.PlainText(r[1])
+    if not zoneName then
+        r = Proof.EvaluationAPI("player-zone", GetZoneText)
+        zoneName = r and Proof.PlainText(r[1])
+    end
+    local expectedZone, expectedArea = NormZone(zone.zone), NormZone(area[1])
+    local currentZone = NormZone(zoneName)
+    -- Some authored criteria name a separately mapped city in its surrounding
+    -- zone (for example Stormwind in Elwynn). Its own exact unit-zone name is
+    -- positive location evidence, without inventing a parent map relationship.
+    if currentZone ~= expectedZone and currentZone ~= expectedArea then return nil end
+    r = Proof.EvaluationAPI("player-subzone", GetSubZoneText)
+    local subzoneName = r and Proof.PlainText(r[1])
+    if currentZone ~= expectedArea and expectedArea ~= expectedZone and NormZone(subzoneName) ~= expectedArea then return nil end
+    -- The player map is read for the unit, rather than whichever map is being
+    -- hovered or displayed. Allow a bounded child->zone walk for micro maps.
+    r = Proof.EvaluationAPI("best-map", C_Map and C_Map.GetBestMapForUnit, "player")
+    local current, visited, located, observationMap = r and Proof.PlainNumber(r[1]), {}, false, nil
+    for _ = 1, 32 do
+        if not current or current <= 0 or current ~= math.floor(current) or visited[current] then break end
+        visited[current] = true
+        local info = Proof.EvaluationAPI("map-info", C_Map and C_Map.GetMapInfo, current)
+        info = info and info[1]
+        if secret(info) or type(info) ~= "table" or Proof.PlainNumber(info.mapID) ~= current then break end
+        if current == mapID and NormZone(info.name) == expectedZone
+            or currentZone == expectedArea and NormZone(info.name) == expectedArea then
+            located, observationMap = true, current; break
+        end
+        current = Proof.PlainNumber(info.parentMapID)
+    end
+    if not located then return nil end
+    local discoveryVerified = false
+    local areaIDs = C_MapExplorationInfo and C_MapExplorationInfo.GetExploredAreaIDsAtPosition
+    local positionAPI = C_Map and C_Map.GetPlayerMapPosition
+    local areaNameAPI = C_Map and C_Map.GetAreaInfo
+    if type(areaIDs) == "function" and type(positionAPI) == "function" and type(areaNameAPI) == "function" then
+        local position = Proof.EvaluationAPI("player-map-position", positionAPI, observationMap, "player")
+        position = position and position[1]
+        if position == nil or secret(position) then return nil end
+        local discovered = Proof.EvaluationAPI("explored-areas-at-player", areaIDs, observationMap, position)
+        discovered = discovered and discovered[1]
+        if secret(discovered) or type(discovered) ~= "table" then return nil end
+        for index, id in ipairs(discovered) do
+            if index > 256 then break end
+            id = Proof.PlainNumber(id)
+            if id and id > 0 and id == math.floor(id) then
+                local name = Proof.EvaluationAPI("explored-area-name", areaNameAPI, id)
+                name = name and NormZone(name[1])
+                if name and (currentZone == expectedArea or expectedArea == expectedZone or name == expectedArea) then
+                    discoveryVerified = true; break
+                end
+            end
+        end
+        if not discoveryVerified then return nil end
+    end
+    return { zoneName = zoneName, subzoneName = subzoneName, mapID = observationMap, discoveryVerified = discoveryVerified }
+end
+
 local function AreaExplored(zone, area)
     local d, key = DB(), ZoneKey(zone)
+    local identity = Proof.BindCharacter(d)
+    if not identity then return nil end
     local ex = type(d.explorationEvidence) == "table" and d.explorationEvidence[key]
     local saved = type(ex) == "table" and ex[area[1]]
     local savedMap = type(saved) == "table" and Proof.PlainNumber(saved.mapID)
     local savedWidth = type(saved) == "table" and Proof.PlainNumber(saved.textureWidth)
     local savedHeight = type(saved) == "table" and Proof.PlainNumber(saved.textureHeight)
+    local observedX = type(saved) == "table" and Proof.PlainNumber(saved.observedOffsetX)
+    local observedY = type(saved) == "table" and Proof.PlainNumber(saved.observedOffsetY)
+    local observedMap = type(saved) == "table" and Proof.PlainNumber(saved.observedPlayerMapID)
     if type(saved) == "table" and saved.kind == "revealed-map-overlay" and saved.verified == true
+        and saved.evidenceVersion == 2 and Proof.CharacterEvidenceMatches(saved.characterKey, identity, d)
+        and saved.characterLocationVerified == true
+        and observedMap and observedMap > 0 and observedMap == math.floor(observedMap)
+        and (NormZone(saved.observedZoneName) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1]))
+        and (NormZone(area[1]) == NormZone(zone.zone) or NormZone(saved.observedZoneName) == NormZone(area[1])
+            or NormZone(saved.observedSubzoneName) == NormZone(area[1]))
         and savedMap and savedMap > 0 and savedMap == math.floor(savedMap)
         and savedWidth and savedWidth > 0 and savedHeight and savedHeight > 0
         and NormZone(saved.zoneName) == NormZone(zone.zone)
-        and saved.offsetX == area[2] and saved.offsetY == area[3] then return true end
+        and saved.offsetX == area[2] and saved.offsetY == area[3]
+        and observedX and observedY and math.abs(observedX - area[2]) <= 2
+        and math.abs(observedY - area[3]) <= 2 then return true end
     local mapID, x, y = Proof.ZoneMap(zone), Proof.PlainNumber(area[2]), Proof.PlainNumber(area[3])
     if not mapID or not x or not y then return nil end
+    local location = Proof.AreaLocation(zone, area, mapID)
+    if not location then return nil end
     local overlays = Proof.ExploredOffsets(mapID)
     if not overlays then return nil end
     for bx = math.floor(x - 2), math.floor(x + 2) do
@@ -535,12 +732,26 @@ local function AreaExplored(zone, area)
                 for _, o in ipairs(bucket) do
                     if math.abs(o[1] - x) <= 2 and math.abs(o[2] - y) <= 2 then
                         local evidence = { kind = "revealed-map-overlay", verified = true, mapID = mapID,
+                            evidenceVersion = 2, characterKey = identity.key,
+                            characterLocationVerified = true, observedZoneName = location.zoneName,
+                            observedSubzoneName = location.subzoneName, observedPlayerMapID = location.mapID,
+                            exploredAreaAPIConfirmed = location.discoveryVerified,
                             zoneName = zone.zone, offsetX = x, offsetY = y, observedOffsetX = o[1], observedOffsetY = o[2],
                             textureWidth = o[3], textureHeight = o[4] }
                         if d.explorationEvidence == nil then d.explorationEvidence = {} end
                         if type(d.explorationEvidence) == "table" then
                             if d.explorationEvidence[key] == nil then d.explorationEvidence[key] = {} end
-                            if type(d.explorationEvidence[key]) == "table" then d.explorationEvidence[key][area[1]] = evidence end
+                            if type(d.explorationEvidence[key]) == "table" then
+                                -- Keep an earlier sample verbatim when it could
+                                -- not be attributed to this character.
+                                local previous = d.explorationEvidence[key][area[1]]
+                                if previous ~= nil and type(previous) == "table"
+                                    and (previous.evidenceVersion ~= 2 or previous.characterKey ~= identity.key
+                                        or previous.characterLocationVerified ~= true) then
+                                    evidence.previousEvidence = previous
+                                end
+                                d.explorationEvidence[key][area[1]] = evidence
+                            end
                         end
                         return true
                     end
@@ -585,9 +796,9 @@ loreKal.desc = "Complete quests in Kalimdor (counted with QuestieDB)."
 for _, sec in ipairs(SECTIONS) do
     if sec.title == "MONEY" then
         table.insert(sec.list, {
-            key = "breadwinner", id = 1182, name = "The Bread Winner", pts = 10, money = true,
-            desc = "Make 10,000 gold from quest rewards.",
-            progress = function() return math.min(StatCopper(STAT_QUEST_GOLD) or 0, 100000000), 100000000 end,
+            key = "breadwinner", id = 1182, name = "The Bread Winner", pts = 10, money = true, moneyMetric = "quest",
+            desc = ns.MoneyTracking and ns.MoneyTracking.Description("breadwinner") or "Earn 100 gold from quest rewards.",
+            progress = function() if ns.MoneyTracking then return ns.MoneyTracking.Progress(DB(), "breadwinner") end; return nil, 1000000 end,
         })
     end
 end
@@ -652,8 +863,18 @@ local function ZoneAch(z)
                  end
                  local mapID = Proof.ZoneMap(z)
                  local overlays = mapID and Proof.mapCache.offsets[mapID]
-                 Proof.SetProgressEvidence(ZoneKey(z), "verified revealed map overlays",
+                 local identity = Proof.CharacterIdentity()
+                 local location = Proof.EvaluationAPI("player-real-zone", GetRealZoneText)
+                 local subzone = Proof.EvaluationAPI("player-subzone", GetSubZoneText)
+                 local playerMap = Proof.EvaluationAPI("best-map", C_Map and C_Map.GetBestMapForUnit, "player")
+                 Proof.SetProgressEvidence(ZoneKey(z), "current-character location and verified revealed map overlays",
                      { mapID = mapID, mapName = z.zone, confirmedAreas = n, requiredAreas = #z.areas, unknownAreas = unknown,
+                       characterKey = identity and identity.key,
+                       evidenceVersion = 2, historicalCompletionPreserved = Proof.ValidCompletionTime(DB().done[ZoneKey(z)]) ~= nil,
+                       currentLocationRequired = true, remoteAccountMapExcluded = true,
+                       currentPlayerZone = location and Proof.PlainText(location[1]),
+                       currentPlayerSubzone = subzone and Proof.PlainText(subzone[1]),
+                       currentPlayerMapID = playerMap and Proof.PlainNumber(playerMap[1]),
                        previewTextureCount = overlays and overlays.previewCount,
                        genuineTextureCount = overlays and #overlays,
                        zonePresenceExcluded = true, previewTexturesExcluded = true })
@@ -1227,6 +1448,10 @@ local LEADERS_A = { { "Highlord Bolvar Fordragon", 1748 }, { "King Magni Bronzeb
 local forAlliance = DungeonAch({ key = "forAlliance", id = 614, name = "For The Alliance!", all = true,
     desc = "Slay the leaders of the Horde.", bosses = LEADERS_H })
 forAlliance.faction, forAlliance.pts = "Alliance", 20
+-- Exact authored custom ID 614: its leader-kill mechanics are unavailable on
+-- Forever. Preserve the definition and historical done key for reversibility.
+forAlliance.unsupported = true
+forAlliance.unsupportedReason = "For the Alliance! (custom ID 614) is unobtainable with the available Forever mechanics."
 local forHorde = DungeonAch({ key = "forHorde", id = 619, name = "For The Horde!", all = true,
     desc = "Slay the leaders of the Alliance.", bosses = LEADERS_A })
 forHorde.faction, forHorde.pts = "Horde", 20
@@ -1286,30 +1511,56 @@ PVP_SECTIONS = {
 --  Feats of Strength (no points, as in WotLK)
 -------------------------------------------------------------------------------
 -- Owned once counts for good: selling or banking the item later keeps it.
-local function Owns(items, spells)
-    local d = DB()
+local function Owns(items, spells, key)
+    local d, unknown = DB(), false
+    local identity = Proof.BindCharacter(d)
+    if not identity then return nil end
+    local proof = d.featOwnershipEvidence
+    local valid = type(proof) == "table" and proof.version == 2
+        and Proof.CharacterEvidenceMatches(proof.characterKey, identity, d) and type(proof.items) == "table"
+    local acquired = valid and proof.items or {}
+    if proof == nil then
+        proof = { version = 2, characterKey = identity.key, items = acquired }
+        d.featOwnershipEvidence = proof
+    end
     local count = (C_Item and C_Item.GetItemCount) or GetItemCount
     for _, id in ipairs(items or {}) do
-        if d.owned[id] then return true end
-        if (count and (count(id, true) or 0) > 0) or (IsEquippedItem and IsEquippedItem(id)) then
-            d.owned[id] = true
+        if acquired[id] == true then return true end
+        local amount = Proof.EvaluationAPI("owned-item-count", count, id, true)
+        amount = amount and Proof.PlainNumber(amount[1])
+        local equipped = Proof.EvaluationAPI("equipped-item", IsEquippedItem, id)
+        equipped = equipped and equipped[1]
+        if secret(equipped) or type(equipped) ~= "boolean" then equipped = nil end
+        if amount and amount >= 0 and amount == math.floor(amount) and amount > 0 or equipped == true then
+            if d.owned[id] == nil then d.owned[id] = true end
+            if valid or d.featOwnershipEvidence == proof and proof.characterKey == identity.key then acquired[id] = true end
+            Proof.SetProgressEvidence(key, "current-character item ownership", { characterKey = identity.key,
+                itemID = id, evidenceVersion = 2, accountMountJournalExcluded = true })
             return true
         end
+        if not amount or amount < 0 or amount ~= math.floor(amount) or d.owned[id] ~= nil then unknown = true end
     end
     for _, id in ipairs(spells or {}) do
-        if IsPlayerSpell and IsPlayerSpell(id) then return true end
-        -- Mounts live in the mount journal on this client.
-        if C_MountJournal and C_MountJournal.GetMountFromSpell then
-            local mountID = C_MountJournal.GetMountFromSpell(id)
-            if mountID and select(11, C_MountJournal.GetMountInfoByID(mountID)) then return true end
+        local known = Proof.EvaluationAPI("known-player-spell", IsPlayerSpell, id)
+        known = known and known[1]
+        if not secret(known) and known == true then
+            Proof.SetProgressEvidence(key, "current-character known spell", { characterKey = identity.key,
+                spellID = id, accountMountJournalExcluded = true })
+            return true
         end
+        if secret(known) or type(known) ~= "boolean" then unknown = true end
     end
-    return false
+    Proof.SetProgressEvidence(key, "character ownership unavailable or incomplete", { characterKey = identity.key,
+        unavailable = unknown, accountMountJournalExcluded = true, legacyOwnedExcluded = true })
+    if not unknown then return false end
 end
 
 local function Feat(key, id, name, desc, items, spells, extra)
     local a = { key = key, id = id, name = name, desc = desc, pts = 0,
-                progress = function() return Owns(items, spells) and 1 or 0, 1 end }
+                progress = function()
+                    local state = Owns(items, spells, key)
+                    return state == true and 1 or state == false and 0 or nil, 1
+                end }
     for k, v in pairs(extra or {}) do a[k] = v end
     return a
 end
@@ -1330,8 +1581,10 @@ FEAT_SECTIONS = {
         Feat("razzashi", 881, "Swift Razzashi Raptor", "Obtain the Swift Razzashi Raptor from Bloodlord Mandokir in Zul'Gurub.",
             { 19872 }, { 24242 }),
         Feat("frostsaber", 3356, "Winterspring Frostsaber", "Obtain a Winterspring Frostsaber.", { 13086 }, { 17229 }),
-        Feat("dreadsteed", 2357, "Dreadsteed of Xoroth", "Completed the Dreadsteed of Xoroth warlock quest.", nil, { 23161 }),
-        Feat("charger", 2358, "Charger", "Completed the paladin quest to obtain a Charger.", nil, { 23214 }),
+        Feat("dreadsteed", 2357, "Dreadsteed of Xoroth", "Completed the Dreadsteed of Xoroth warlock quest.", nil, { 23161 },
+            { class = "WARLOCK" }),
+        Feat("charger", 2358, "Charger", "Completed the paladin quest to obtain a Charger.", nil, { 23214 },
+            { class = "PALADIN" }),
         Feat("redQiraji", 424, "Why? Because It's Red", "Obtain a Red Qiraji Resonating Crystal.", { 21321 }, { 26054 }),
     } },
     { title = "TITLES & RARE FINDS", list = {
@@ -1494,12 +1747,18 @@ local function Settings() return AccountDB().settings end
 local function Available(a)
     if a.unsupported then return false end -- preserve definitions and old saved keys
     if a.requires and not a.requires() then return false end
+    if a.class then
+        local class = Proof.EvaluationAPI("player-class", UnitClass, "player")
+        if not class or Proof.PlainText(class[2]) ~= a.class then return false end
+    end
     return not a.faction or a.faction == UnitFactionGroup("player")
 end
 
 -- Completion and point totals always describe this character. Account snapshots
 -- are evidence for an elsewhere indicator, never a substitute completion.
 local function Earned(key)
+    local definition = ns.FA and ns.FA.BY_KEY and ns.FA.BY_KEY[key]
+    if not (definition and definition.native) and Proof.CharacterScope() ~= true then return nil end
     return Proof.ValidCompletionTime(DB().done[key])
 end
 
@@ -1652,7 +1911,8 @@ end
 local function Complete(a)
     local d = DB()
     if d.done[a.key] then return end
-    d.done[a.key] = time()
+    if not a.native and Proof.CharacterScope(d) ~= true then return end
+    Proof.RecordCompletion(d, a, time())
     d.tracked[a.key] = nil
     print(TAG .. " earned: " .. LINK.fn(a))
     if Settings().toasts ~= false then
@@ -1671,16 +1931,17 @@ local historyReady = false
 local function CheckAll(quiet, event)
     if not historyReady then quiet = true end
     Proof.WithEvaluation(function()
+        local characterKnown = Proof.CharacterScope() == true
         for _, a in ipairs(ALL) do
             local d = DB()
             local held = type(d.completionCorrections) == "table" and d.completionCorrections[a.key] ~= nil
-            if not d.done[a.key] and Available(a) and not held then
+            if not d.done[a.key] and Available(a) and not held and (a.native or characterKnown) then
                 local progress = Proof.ReadAPI(a.progress)
                 local cur, need = progress and progress[1], progress and progress[2]
                 local satisfied = ProgressKnown(cur, need) and need > 0 and cur >= need
                 Proof.RecordDecision(a, cur, need, event, satisfied, quiet, not progress and "Progress getter unavailable" or nil)
                 if satisfied then
-                    if quiet then DB().done[a.key] = time() else Complete(a) end
+                    if quiet then Proof.RecordCompletion(DB(), a, time()) else Complete(a) end
                 end
             end
         end
@@ -1749,7 +2010,6 @@ On("MAP_EXPLORATION_UPDATED", function()
     Proof.ClearExplorationCache()
     CheckAll(nil, "MAP_EXPLORATION_UPDATED")
 end)
-On("PLAYER_ENTERING_WORLD", function() Proof.ClearExplorationCache() end)
 On("PLAYER_EQUIPMENT_CHANGED", function() CheckAll() end)
 On("BAG_UPDATE_DELAYED", function() CheckAll() end)
 On("SKILL_LINES_CHANGED", function() CheckAll() end)
@@ -1759,58 +2019,20 @@ if C_MountJournal then On("NEW_MOUNT_ADDED", function() CheckAll() end) end
 if C_PetJournal then On("NEW_PET_ADDED", function() CheckAll() end) end
 On("COMPANION_LEARNED", function() CheckAll() end)
 
--- Money looted, from the loot money messages (solo loot and party shares).
-local function ParseMoney(msg)
-    local function amount(word)
-        local n = msg:match("(%d+)%s*" .. word)
-        return tonumber(n) or 0
-    end
-    local g = amount(_G.GOLD or "Gold")
-    local s = amount(_G.SILVER or "Silver")
-    local c = amount(_G.COPPER or "Copper")
-    return g * 10000 + s * 100 + c
-end
--- The client keeps a "Gold looted" statistic (ID 333) for the whole life of
--- the character, as a money string with coin icons. When it is there it is
--- the better number; our own count covers clients without it.
-local STAT_GOLD_LOOTED = 333
-local function StatMoney()
-    local text = GetStatistic and GetStatistic(STAT_GOLD_LOOTED)
-    if type(text) ~= "string" or secret(text) then return nil end
-    local total, found = 0, false
-    for n, coin in text:gmatch("(%d+)%s*|T[^|]-UI%-(%a+)Icon") do
-        local v = tonumber(n) or 0
-        coin = coin:lower()
-        if coin == "gold" then total = total + v * 10000
-        elseif coin == "silver" then total = total + v * 100
-        else total = total + v end
-        found = true
-    end
-    if not found then
-        local plain = tonumber((text:gsub("%D", "")))
-        if plain then return plain end
-        return nil
-    end
-    return total
-end
-
-local function SyncMoney()
-    local stat = StatMoney()
-    if stat and stat > DB().money then DB().money = stat end
-end
-
-On("CHAT_MSG_MONEY", function(msg)
-    if not msg or secret(msg) then return end
-    local copper = ParseMoney(msg)
-    if copper > 0 then
-        DB().money = DB().money + copper
-        SyncMoney()
-        CheckAll()
+-- Monetary observations use one copper-normalized tracker. Historical DB.money
+-- remains saved verbatim; refreshing sources never increments the event ledger.
+On("CHAT_MSG_MONEY", function(msg, ...)
+    if ns.MoneyTracking and ns.MoneyTracking.ObserveLoot(DB(), msg, select(10, ...)) then
+        CheckAll(nil, "CHAT_MSG_MONEY")
     end
 end)
 On("PLAYER_ENTERING_WORLD", function()
+    Proof.ClearExplorationCache()
     bgSeen = false
-    C_Timer.After(2, function() SyncMoney(); CheckAll() end)
+    C_Timer.After(2, function()
+        if ns.MoneyTracking then ns.MoneyTracking.Sync(DB()) end
+        CheckAll(nil, "PLAYER_ENTERING_WORLD money")
+    end)
 end)
 
 -- /love on critters: the emote echo names the target.
@@ -2348,20 +2570,23 @@ local win
 local expanded = {}
 
 local function Money(c)
-    return (GetCoinTextureString and GetCoinTextureString(c)) or (math.floor(c / 10000) .. "g")
+    return (GetCoinTextureString and GetCoinTextureString(c))
+        or (ns.MoneyTracking and ns.MoneyTracking.Format(c)) or (math.floor(c / 10000) .. "g")
 end
 
 local function TotalPoints()
-    local done, all = 0, 0
-    local n, avail = 0, 0
-    for _, a in ipairs(ALL) do
-        if Available(a) then
-            avail = avail + 1
-            all = all + a.pts
-            if Earned(a.key) then done, n = done + a.pts, n + 1 end
+    return Proof.WithEvaluation(function()
+        local done, all = 0, 0
+        local n, avail = 0, 0
+        for _, a in ipairs(ALL) do
+            if Available(a) then
+                avail = avail + 1
+                all = all + a.pts
+                if Earned(a.key) then done, n = done + a.pts, n + 1 end
+            end
         end
-    end
-    return done, all, n, avail
+        return done, all, n, avail
+    end)
 end
 
 -- Search across every tab: achievement name, description, and the entries
@@ -3037,6 +3262,18 @@ end
 SLASH_FOREVERACHIEVEMENTS1 = "/fach"
 SLASH_FOREVERACHIEVEMENTS2 = "/qa" -- short alias, same commands
 SLASH_FOREVERACHIEVEMENTS3 = "/fa" -- also used by the experimental native Legacy UI
+SLASH.money = function(input)
+    if not ns.MoneyTracking then print(TAG .. " money tracking unavailable."); return end
+    local lines, changed = ns.MoneyTracking.Command(DB(), input or "")
+    for _, line in ipairs(lines or {}) do print(TAG .. " " .. line) end
+    if changed then
+        for _, key in ipairs({ "gold100", "gold1000", "gold5000", "breadwinner" }) do
+            local a = ns.FA and ns.FA.BY_KEY[key]
+            if a then a.desc = ns.MoneyTracking.Description(key) end
+        end
+        CheckAll(nil, "money threshold configuration")
+    end
+end
 SLASH.progressdebug = function(input)
     local mode = (input or ""):lower():match("^%s*(.-)%s*$")
     if mode == "on" or mode == "off" then
@@ -3093,6 +3330,9 @@ SLASH.correctachievement = function(input)
     local now = clock and Proof.PlainNumber(clock[1])
     if not identity or not now or now < 0 then print(TAG .. " correction unavailable until character identity and clock are verifiable."); return end
     local d = DB()
+    if Proof.CharacterScope(d) ~= true then
+        print(TAG .. " correction unavailable: saved tracking cannot be verified for this character. No progress changed."); return
+    end
     local original = rawget(d.done, key)
     local hold = type(d.completionCorrections) == "table" and rawget(d.completionCorrections, key)
     if not token then
@@ -3124,7 +3364,8 @@ SLASH.correctachievement = function(input)
     end
     d.completionCorrections = d.completionCorrections or {}
     d.correctionHistory[#d.correctionHistory + 1] = { key = key, action = action, characterKey = identity.key,
-        identity = identity, completion = original, previousHold = hold, correctedAt = time() }
+        identity = identity, completion = original, previousHold = hold, correctedAt = time(),
+        attribution = type(d.completionAttribution) == "table" and d.completionAttribution[key] }
     if action == "clear" then
         d.done[key] = nil
         d.completionCorrections[key] = { reason = "Explicitly confirmed correction", characterKey = identity.key }
@@ -3160,6 +3401,7 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
             { "/fa progressdebug on|off|status|dump", "optional award evidence diagnostics" },
             { "/fa inspectachievement <key>", "inspect an achievement condition without granting completion" },
             { "/fa correctachievement <key>", "preview a token-confirmed correction for this character only" },
+            { "/fa money report", "inspect exact monetary sources, units and configured copper thresholds" },
             { "/fach help", "this list" },
             { "/qa", "short for /fach (works with every command above)" },
         }) do
@@ -3204,6 +3446,7 @@ CompletedIDs = Proof.CacheRead("completed-quests", CompletedIDs)
 ns.FA = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
+    CharacterScope = Proof.CharacterScope, CompletionAttribution = Proof.CompletionAttribution,
     WithProgressSnapshot = Proof.WithEvaluation,
     ProgressionDiagnostics = Proof.trace,
     IsDebug = function() return debugOn end, -- /fach debug, for messages in the other files

@@ -449,7 +449,8 @@ class AdapterTests(unittest.TestCase):
             local m=ns.LegacyPresentation.Build()
             assert(m.byKey["legacy:62382"] and not m.byKey["legacy:64015"])
             assert(CategoryRoot(m,"legacy-category:15587")=="professions")
-            assert(#ns.LegacyPresentation.Rows(m,"professions")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"professions")==0)
+            assert(#ns.LegacyPresentation.Rows(m,"professions:alchemy")==1)
             assert(m.byKey["legacy:62382"].unifiedRoot=="exploration")
             assert(m.byKey["legacy:62053"].unifiedRoot=="exploration")
         ''')
@@ -1254,11 +1255,14 @@ class CoreIntegrationTests(unittest.TestCase):
             function GetTime() return 0 end
             function UnitLevel() return 1 end
             function UnitFactionGroup() return "Alliance" end
+            function UnitName() return "Test","Character" end
+            function GetRealmName() return "Fixture Realm" end
+            function UnitGUID() return "Player-TEST" end
             C_Timer.NewTicker=function() return {} end
             ForeverAchievementsCharDB=saved
         ''')
         for name in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
-                     "DataExtra.lua", "ForeverAchievements.lua", "Integrations/CustomAdapter.lua"):
+                     "DataExtra.lua", "MoneyTracking.lua", "ForeverAchievements.lua", "Integrations/CustomAdapter.lua"):
             h.load(name)
         return h
 
