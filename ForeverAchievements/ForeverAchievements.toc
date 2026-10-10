@@ -3,7 +3,7 @@
 ## Notes: WotLK-style achievements for WoW Forever: quests, exploration, professions, dungeons, reputation, PvP, feats, tracker, chat links and comparing.
 ## Author: Piotr
 ## IconTexture: Interface\AddOns\ForeverAchievements\Media\icon
-## Version: 0.4.6-alpha-legacyui
+## Version: 0.4.7-alpha-legacyui
 ## SavedVariables: ForeverAchievementsDB
 ## SavedVariablesPerCharacter: ForeverAchievementsCharDB
 ## OptionalDeps: QuestieDB, QuickFish
@@ -33,4 +33,5 @@ Integrations\CustomAdapter.lua
 Integrations\Presentation.lua
 UI\WrathAchievementUI.lua
 UI\WrathAchievementUI.xml
+Integrations\LegacyWindowBridge.lua
 Integrations\LegacyController.lua

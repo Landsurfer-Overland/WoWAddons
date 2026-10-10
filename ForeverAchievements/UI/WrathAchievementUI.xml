@@ -930,7 +930,7 @@
                   </Offset>
                 </Anchor>
               </Anchors>
-              <TexCoords left="0" right=".5" top="0" bottom="1" />
+              <TexCoords left="0" right=".5" top="0" bottom=".5" />
             </Texture>
           </Layer>
           <Layer level="OVERLAY">
@@ -1317,17 +1317,17 @@
           <Layer level="BORDER">
             <Texture name="$parentPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="133" y="39" />
+                <AbsDimension x="170" y="39" />
               </Size>
               <Anchors>
                 <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
-                  <Offset x="20" y="16" />
+                  <Offset x="-86" y="16" />
                 </Anchor>
               </Anchors>
               <TexCoords left="0.419921875" right="0.6796875" top="0.4140625" bottom="0.56640625" />
             </Texture>
-            <FontString name="$parentTitle" inherits="GameFontNormal" text="ACHIEVEMENT_TITLE">
-              <Size x="200" y="12" />
+            <FontString name="$parentTitle" inherits="GameFontNormal" text="Character Achievement Points">
+              <Size x="220" y="12" />
               <Anchors>
                 <Anchor point="TOP" relativeTo="FAWrathAchievementFrameHeaderPointBorder" relativePoint="TOP">
                   <Offset x="0" y="7" />
@@ -1342,6 +1342,25 @@
                 </Anchor>
               </Anchors>
             </Texture>
+            <Texture name="$parentLegacyPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="170" y="39" />
+              </Size>
+              <Anchors>
+                <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
+                  <Offset x="105" y="16" />
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0.419921875" right="0.6796875" top="0.4140625" bottom="0.56640625" />
+            </Texture>
+            <FontString name="$parentLegacyTitle" inherits="GameFontNormal" text="Legacy Points">
+              <Size x="160" y="12" />
+              <Anchors>
+                <Anchor point="TOP" relativeTo="FAWrathAchievementFrameHeaderLegacyPointBorder" relativePoint="TOP">
+                  <Offset x="0" y="7" />
+                </Anchor>
+              </Anchors>
+            </FontString>
           </Layer>
           <Layer level="ARTWORK">
             <FontString name="$parentPoints" inherits="GameFontHighlight">
@@ -1363,9 +1382,38 @@
               </Anchors>
               <TexCoords left="0" right="0.625" top="0" bottom="0.625" />
             </Texture>
+            <FontString name="$parentLegacyPoints" inherits="GameFontHighlight">
+              <Size x="0" y="12" />
+              <Anchors>
+                <Anchor point="TOP" relativeTo="FAWrathAchievementFrameHeaderLegacyPointBorder" relativePoint="TOP">
+                  <Offset x="0" y="-13" />
+                </Anchor>
+              </Anchors>
+            </FontString>
+            <Texture name="$parentLegacyShield" file="Interface\AchievementFrame\UI-Achievement-TinyShield">
+              <Size>
+                <AbsDimension x="20" y="20" />
+              </Size>
+              <Anchors>
+                <Anchor point="LEFT" relativeTo="$parentLegacyPoints" relativePoint="RIGHT">
+                  <Offset x="3" y="-1" />
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0" right="0.625" top="0" bottom="0.625" />
+            </Texture>
           </Layer>
         </Layers>
       </Frame>
+      <Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+        <Anchors>
+          <Anchor point="TOPRIGHT" relativeTo="FAWrathAchievementFrame" relativePoint="TOPRIGHT">
+            <Offset x="3" y="4" />
+          </Anchor>
+        </Anchors>
+        <Scripts>
+          <OnClick>ForeverAchievementsWrathUI.CloseClick(self);</OnClick>
+        </Scripts>
+      </Button>
     </Frames>
   </Frame>
 </Ui>

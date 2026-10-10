@@ -10,24 +10,25 @@ local function first(fn, ...)
 end
 function A.Catalog()
     local d = FA.DB()
-    local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0 }
-    local labels = {}
+    local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0, available = true, partial = false }
+    local labels, seen = {}, {}
     for _, c in ipairs(FA.CATEGORIES) do labels[c.key] = c.label end
     for _, key in ipairs(FA.CATEGORY_ORDER) do
-        local cat = { key = "custom-category:" .. key, parent = "custom", name = labels[key] or key, source = "custom", records = {} }
+        local cat = { key = "custom-category:" .. key, customKey = key, parent = "custom", name = labels[key] or key, source = "custom", records = {} }
         out.categories[#out.categories + 1] = cat
         for _, section in ipairs(FA.CATEGORY_SECTIONS[key]) do
             for _, a in ipairs(section.list) do
-                if not a.native and first(FA.Available, a) == true then
+                if not a.native and not seen[a.key] and first(FA.Available, a) == true then
+                    seen[a.key] = true
                     local timestamp = R.Number(d.done[a.key])
                     local progress = R.Call(a.progress)
                     local row = { key = "custom:" .. a.key, source = "custom", id = a.id,
-                        category = cat.key, achievement = a, name = a.name, description = a.desc or "",
+                        category = cat.key, customCategory = key, achievement = a, name = a.name, description = a.desc or "",
                         completed = timestamp ~= nil, timestamp = timestamp, scope = "Character",
                         icon = a.icon or ns.ICONS[a.id], points = R.Number(a.pts),
                         current = progress and R.Number(progress[1]), required = progress and R.Number(progress[2]),
                         quantityText = progress and R.Text(progress[3]), tracked = d.tracked[a.key] == true,
-                        reward = a.title and ("Title: " .. a.title) or nil }
+                        reward = R.Text(a.rewardDescription) or R.Text(a.reward) }
                     if timestamp and type(date) == "function" then row.date = first(date, "%m/%d/%y", timestamp) end
                     cat.records[#cat.records + 1] = row
                     out.records[#out.records + 1] = row

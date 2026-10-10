@@ -68,6 +68,10 @@ for original, renamed in mapping.items():
         handlers.update(OnClick='CardClick', OnEnter='CardEnter', OnLeave='CardLeave')
         shield = e.find("./" + tag('Frames') + '/' + tag('Frame') + "[@name='$parentShield']")
         scripts(shield, {'OnLoad': 'ShieldOnLoad'})
+        # Forever uses the current character/guild two-row shield sheet. The
+        # supplied Wrath XML predates the guild row; sampling the entire height
+        # stacks both shields. Keep the original single region and player row.
+        shield.find('.//' + tag('TexCoords')).set('bottom', '.5')
     elif renamed == 'FAWrathCategoryTemplate': handlers['OnClick'] = 'CategoryClick'
     elif renamed == 'FAWrathTrackTemplate': handlers['OnClick'] = 'TrackClick'
     elif renamed == 'FAWrathMetaTemplate': handlers['OnClick'] = 'MetaClick'
@@ -79,7 +83,8 @@ for original, renamed in mapping.items():
     out.append(e)
 
 # Port the actual original metal/wood/parchment body and roof. Backend-specific
-# scroll frames, comparison panel, global dropdown and close button are omitted.
+# scroll frames, comparison panel and global dropdown are omitted. The original
+# close button is rebound to the reversible controller below.
 original = next(n for n in source if n.get('name') == 'AchievementFrame')
 window = ET.SubElement(out, tag('Frame'), {'name': 'FAWrathWindowTemplate', 'virtual': 'true', 'enableMouse': 'true'})
 window.append(deepcopy(original.find(tag('Size'))))
@@ -90,6 +95,37 @@ for node in header.iter():
     if 'relativeTo' in node.attrib:
         node.set('relativeTo', node.get('relativeTo').replace('AchievementFrame', 'FAWrathAchievementFrame'))
 frames.append(header)
+
+# Two matching Wrath point counters fit within the existing roof. They use the
+# original point-border and tiny-shield artwork, not another outer frame.
+border = header.find('.//' + tag('Texture') + "[@name='$parentPointBorder']")
+border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '170')
+border.find('.//' + tag('Offset')).set('x', '-86')
+title = header.find('.//' + tag('FontString') + "[@name='$parentTitle']")
+title.find(tag('Size')).set('x', '220')
+title.set('text', 'Character Achievement Points')
+for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'LegacyTitle'),
+                          ('Points', 'LegacyPoints'), ('Shield', 'LegacyShield')]:
+    item = deepcopy(header.find('.//*[@name="$parent' + name + '"]'))
+    item.set('name', '$parent' + replacement)
+    for node in item.iter():
+        if 'relativeTo' in node.attrib:
+            value = node.get('relativeTo')
+            value = value.replace('HeaderPointBorder', 'HeaderLegacyPointBorder')
+            if value == '$parentPoints': value = '$parentLegacyPoints'
+            node.set('relativeTo', value)
+    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '105')
+    if name == 'Title':
+        item.set('text', 'Legacy Points'); item.find(tag('Size')).set('x', '160')
+    layer = next(layer for layer in header.find(tag('Layers')) if header.find('.//*[@name="$parent' + name + '"]') in list(layer))
+    layer.append(item)
+
+close = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Button') + "[@name='$parentCloseButton']"))
+adapt(close)
+for node in close.iter():
+    if node.get('relativeTo') == 'AchievementFrame': node.set('relativeTo', 'FAWrathAchievementFrame')
+scripts(close, {'OnClick': 'CloseClick'})
+frames.append(close)
 
 # Namespaced fonts use standard game font objects, and original Wrath heights.
 for name, height in [('AchievementCriteriaFont', 12), ('AchievementDateFont', 12),

@@ -63,14 +63,19 @@ ns.FA = { TAG = "FA", Settings = function() return settings end, DB = function()
 
 -- An explicit set of ordinary WoW UI methods: missing methods fail tests.
 function UIObject(kind, name, parent)
-    local f = { kind=kind, name=name, parent=parent, children={}, scripts={}, hooks={},
-        shown=true, width=100, height=24, level=1, scroll=0, textValue="" }
+    local f = { kind=kind, name=name, parent=parent, children={}, regions={}, scripts={}, hooks={},
+        shown=true, width=100, height=24, level=1, scroll=0, textValue="", scale=1, mouse=false }
     if name then _G[name] = f end
-    if parent and parent.children then table.insert(parent.children, f) end
+    if parent and parent.children then
+        table.insert((kind == "Texture" or kind == "FontString") and parent.regions or parent.children, f)
+    end
     frames[#frames+1] = f
     function f:GetName() return self.name end
     function f:GetParent() return self.parent end
     function f:GetChildren() return unpack(self.children) end
+    function f:GetRegions() return unpack(self.regions) end
+    function f:GetObjectType() return self.kind end
+    function f:IsObjectType(kind) return self.kind==kind end
     function f:GetFrameLevel() return self.level end
     function f:GetFrameStrata() return self.strata or (self.parent and self.parent:GetFrameStrata()) or "MEDIUM" end
     function f:IsForbidden() return self.forbidden == true end
@@ -88,24 +93,32 @@ function UIObject(kind, name, parent)
     end
     function f:Show() local old = self.shown; self.shown = true; if not old then self:Fire("OnShow") end end
     function f:Hide() local old = self.shown; self.shown = false; if old then self:Fire("OnHide") end end
+    function f:SetShown(v) if v then self:Show() else self:Hide() end end
     function f:SetSize(w,h) self.width=w; self.height=h end
     function f:SetWidth(w) self.width=w end
     function f:SetHeight(h) self.height=h end
     function f:GetWidth() return self.width end
     function f:GetHeight() return self.height end
+    function f:GetCenter() return self.centerX or 640, self.centerY or 450 end
     function f:SetText(t) self.textValue=tostring(t or ""); if type(self.text)=="table" then self.text:SetText(t) end end
     function f:GetText() return self.textValue end
     function f:GetStringHeight() return math.max(12, math.ceil(#self.textValue / math.max(1,self.width/6)) * 12) end
     function f:SetTextColor(...) self.color={...} end
+    function f:SetFontObject(object) self.fontObject=object end
     function f:SetVertexColor(...) self.color={...} end
     function f:SetTexCoord(...) self.coords={...} end
     function f:SetTexture(t) self.textureValue=t end
     function f:SetColorTexture(...) self.colorTexture={...} end
     function f:SetPoint(...) self.points=self.points or {}; table.insert(self.points,{...}) end
     function f:ClearAllPoints() self.points={} end
+    function f:GetNumPoints() return #(self.points or {}) end
+    function f:GetPoint(index) return unpack(self.points[index or 1]) end
     function f:SetAllPoints(relative) self.allPoints=relative or self.parent end
     function f:SetParent(p) self.parent=p end
     function f:SetScale(v) self.scale=v end
+    function f:GetScale() return self.scale end
+    function f:GetEffectiveScale() return self.scale * (self.parent and self.parent:GetEffectiveScale() or 1) end
+    function f:GetAlpha() return self.alpha or 1 end
     function f:SetFrameLevel(v) self.level=v end
     function f:SetFrameStrata(v) self.strata=v end
     function f:SetBackdrop(v) self.backdrop=v end
@@ -120,8 +133,15 @@ function UIObject(kind, name, parent)
     function f:GetVerticalScroll() return self.scroll end
     function f:UpdateScrollChildRect() end
     function f:EnableMouse(v) self.mouse=v end
+    function f:IsMouseEnabled() return self.mouse end
     function f:EnableMouseWheel(v) self.wheel=v end
     function f:SetClipsChildren(v) self.clips=v end
+    function f:SetMovable(v) self.movable=v end
+    function f:SetClampedToScreen(v) self.clamped=v end
+    function f:SetToplevel(v) self.toplevel=v end
+    function f:RegisterForDrag(button) self.dragButton=button end
+    function f:StartMoving() self.moving=true end
+    function f:StopMovingOrSizing() self.moving=false end
     function f:SetChecked(v) self.checked=v end
     function f:GetChecked() return self.checked end
     function f:RegisterEvent(v) self.events=self.events or {}; self.events[v]=true end
@@ -136,33 +156,119 @@ function UIObject(kind, name, parent)
     function f:CreateFontString(name) return UIObject("FontString",name,self) end
     return f
 end
+UIParent=UIObject("Frame","UIParent")
+UIParent:SetSize(1280,900)
+UISpecialFrames={}
+tinsert=table.insert
+function HideUIPanel(frame) frame:Hide() end
+function ShowUIPanel(frame) frame:Show() end
+
+-- Default fixture order is native selector first. A regression test reverses
+-- it because the actual owner-keyed CallbackRegistry has no ordering guarantee.
+EventRegistry={callbacks={}}
+function EventRegistry:RegisterCallback(event, fn, owner)
+    self.callbacks[event]=self.callbacks[event] or {}
+    self.callbacks[event][#self.callbacks[event]+1]={fn=fn,owner=owner}
+end
+function EventRegistry:UnregisterCallback(event, owner)
+    for i=#(self.callbacks[event] or {}),1,-1 do
+        if self.callbacks[event][i].owner==owner then table.remove(self.callbacks[event],i) end
+    end
+end
+function EventRegistry:TriggerEvent(event,...)
+    for _, entry in ipairs(self.callbacks[event] or {}) do entry.fn(entry.owner,...) end
+end
+InputUtil={high={},ordinary={}}
+function InputUtil.IsGamepadUIEnabled() return gamepad==true end
+function InputUtil.RegisterForHighPrioInterfaceTransitions(owner)
+    InputUtil.high[owner]=InputUtil.high[owner] or {}
+end
+function InputUtil.RegisterForInterfaceTransitions(owner)
+    InputUtil.ordinary[owner]=InputUtil.ordinary[owner] or {}
+end
+local function inputCallbacks(owner) return InputUtil.high[owner] or InputUtil.ordinary[owner] end
+function InputUtil.RegisterGamepadInit(owner,fn)
+    inputCallbacks(owner).gamepad=fn; if gamepad then fn() end
+end
+function InputUtil.RegisterMKBInit(owner,fn)
+    inputCallbacks(owner).mkb=fn; if not gamepad then fn() end
+end
+function ChangeInputMode(toGamepad)
+    gamepad=toGamepad
+    for _, group in ipairs({InputUtil.high,InputUtil.ordinary}) do
+        for _, callbacks in pairs(group) do
+            local fn=toGamepad and callbacks.gamepad or callbacks.mkb
+            if fn then fn() end
+        end
+    end
+end
 function NativeFrame(name, parent)
     local f = UIObject("Frame",name,parent)
     f.native=true
+    local mountable=name=="RewardTrackPage" or name=="TreePage"
+    local presentation={SetPoint=true,ClearAllPoints=true,SetAllPoints=true,SetScale=true,
+        SetSize=true,SetWidth=true,SetHeight=true,SetFrameLevel=true,SetFrameStrata=true}
     for _, method in ipairs({"SetScript","SetParent","SetPoint","ClearAllPoints","SetAllPoints","SetScale","SetFrameLevel",
-        "EnableMouse","EnableMouseWheel","SetAlpha","SetFrameStrata","SetDataProvider","SelectCategory","SelectChallenge","GenerateDataProvider","ClaimReward"}) do
-        f[method]=poison(name .. ":" .. method)
+        "SetSize","SetWidth","SetHeight","EnableMouse","EnableMouseWheel","SetAlpha","SetFrameStrata","SetDataProvider",
+        "SelectCategory","SelectChallenge","GenerateDataProvider","ClaimReward"}) do
+        if not (mountable and presentation[method]) and not (name=="LegacySystemFrame" and method=="EnableMouse") then
+            f[method]=poison(name .. ":" .. method)
+        end
     end
     return f
 end
 function SetupNative()
-    LegacySystemFrame = NativeFrame("LegacySystemFrame",nil)
+    LegacySystemFrame = NativeFrame("LegacySystemFrame",UIParent)
     LegacySystemFrame.strata="DIALOG"
+    LegacySystemFrame.width=920; LegacySystemFrame.height=575
+    LegacySystemFrame.mouse=true
+    LegacySystemFrame.points={{"CENTER",UIParent,"CENTER",24,10}}
     LegacySystemFrame.currentPage=2
+    LegacySystemFrame.Background=LegacySystemFrame:CreateTexture("LegacyRootBackground")
+    LegacySystemFrame.EdgeArt=LegacySystemFrame:CreateTexture("LegacyRootEdge")
+    for _, field in ipairs({"NineSlice","PortraitContainer","TitleContainer","CloseButton","NativeTabs"}) do
+        LegacySystemFrame[field]=NativeFrame(field,LegacySystemFrame)
+    end
     local page=NativeFrame("ChallengesPage",LegacySystemFrame)
-    page.width=900; page.height=560
+    page.width=920; page.height=575
+    page.points={{"TOPLEFT",LegacySystemFrame,"TOPLEFT",0,0}}
     LegacySystemFrame.ChallengesPage=page
     page.DetailPane=NativeFrame("DetailPane",page)
     page.DetailPane.ScrollBox=NativeFrame("ScrollBox",page.DetailPane)
     page.DetailPane.ScrollBox.level=40
     page.DetailPane.ScrollBox.dataProvider={collection={{achievementID=62013}}}
     local reward=NativeFrame("RewardTrackPage",LegacySystemFrame)
+    reward.width=910; reward.height=569; reward.level=100
+    reward.points={{"TOPLEFT",LegacySystemFrame,"TOPLEFT",7,-5}}
+    reward.Background=reward:CreateTexture("RewardBackground")
     reward.majorFactionData={factionID=2802,renownLevel=16}
     LegacySystemFrame.RewardTrackPage=reward
-    LegacySystemFrame.TreePage=NativeFrame("TreePage",LegacySystemFrame)
-    nativeShows=0
+    local tree=NativeFrame("TreePage",LegacySystemFrame)
+    tree.width=920; tree.height=575; tree.level=100
+    tree.points={{"TOPLEFT",LegacySystemFrame,"TOPLEFT",0,0}}
+    tree.Background=tree:CreateTexture("TreeBackground")
+    tree.VerticalDivider=tree:CreateTexture("TreeDivider")
+    LegacySystemFrame.TreePage=tree
+    LegacySystemFrame.Pages={reward,page,tree}
+    LegacySystemFrame.Tabs={LegacySystemFrame.NativeTabs}
+    reward.shown=false; tree.shown=false
+    nativeShows,rootShows,rootHides,rewardShows,treeShows=0,0,0,0,0
     page.scripts.OnShow=function() nativeShows=nativeShows+1 end
     originalShow=page.scripts.OnShow
+    reward.scripts.OnShow=function(self) assert(self:GetParent()==LegacySystemFrame); rewardShows=rewardShows+1 end
+    tree.scripts.OnShow=function(self) assert(self:GetParent()==LegacySystemFrame); treeShows=treeShows+1 end
+    LegacySystemFrame.scripts.OnShow=function() rootShows=rootShows+1 end
+    LegacySystemFrame.scripts.OnHide=function() rootHides=rootHides+1 end
+    originalRootShow,originalRootHide=LegacySystemFrame.scripts.OnShow,LegacySystemFrame.scripts.OnHide
+    EventRegistry:RegisterCallback("Legacy.SelectPage",function(_,id)
+        LegacySystemFrame.currentPage=id
+        for i,nativePage in ipairs(LegacySystemFrame.Pages) do nativePage:SetShown(i==id) end
+    end,LegacySystemFrame)
+    InputUtil.RegisterForInterfaceTransitions(LegacySystemFrame)
+    InputUtil.RegisterGamepadInit(LegacySystemFrame,function()
+        nativeGamepadSawNormal=LegacySystemFrame.Background:IsShown() and LegacySystemFrame:IsMouseEnabled()
+            and (not FAWrathLegacyCover or not FAWrathLegacyCover:IsShown())
+    end)
     return page
 end
 function GetCategoryList() return {15607,15587,15596} end
@@ -199,6 +305,7 @@ class Harness:
             self.load(path)
         if controller:
             self.g.SetupNative()
+            self.load("Integrations/LegacyWindowBridge.lua")
             self.load("Integrations/LegacyController.lua")
 
     def load(self, path):
@@ -209,7 +316,7 @@ class Harness:
         f = self.g.UIObject(kind, name, parent)
         if template in self.templates:
             self.build(f, self.templates[template])
-        elif template not in (None, "BackdropTemplate", "InputBoxTemplate", "UIPanelScrollFrameTemplate"):
+        elif template not in (None, "BackdropTemplate", "InputBoxTemplate", "UIPanelScrollFrameTemplate", "UIPanelCloseButton"):
             raise AssertionError("Unadapted dependency: " + template)
         return f
 
@@ -217,7 +324,7 @@ class Harness:
         inherit = element.get("inherits")
         if inherit in self.templates:
             self.build(f, self.templates[inherit])
-        elif inherit and inherit != "BackdropTemplate":
+        elif inherit and inherit not in ("BackdropTemplate", "UIPanelCloseButton"):
             raise AssertionError("Unexpected frame inheritance: " + inherit)
         size = element.find(URI + "Size")
         if size is not None:
@@ -269,6 +376,7 @@ class Harness:
 
     def enable(self):
         self.execute('ns.FA.SLASH.legacyui("on")')
+        self.execute('FlushTimers()')
 
 
 class AdapterTests(unittest.TestCase):
@@ -284,13 +392,14 @@ class AdapterTests(unittest.TestCase):
             assert(#calls==0)
         ''')
 
-    def test_runtime_catalog_avoids_mirrored_ids_and_handles_parent_after_child(self):
+    def test_runtime_catalog_avoids_mirrored_ids_and_maps_native_children(self):
         self.check('''
             local m=ns.LegacyPresentation.Build()
             assert(m.byKey["legacy:62382"] and not m.byKey["legacy:64015"])
-            assert(m.byCategory["legacy-category:15587"].parent=="legacy-category:15596")
-            assert(#m.byCategory["legacy-category:15596"].children==1)
-            assert(#ns.LegacyPresentation.Rows(m,"legacy-category:15596")==2)
+            assert(m.byCategory["legacy-category:15587"].parent=="professions")
+            assert(#ns.LegacyPresentation.Rows(m,"professions")==1)
+            assert(m.byKey["legacy:62382"].category=="exploration")
+            assert(m.byKey["legacy:62053"].category=="exploration")
         ''')
 
     def test_custom_native_ids_do_not_collide_or_import_synthetic_points(self):
@@ -426,14 +535,19 @@ class ControllerTests(unittest.TestCase):
             assert(#calls==0)
         ''')
 
-    def test_enable_attaches_fits_and_consumes_clicks_inside_challenges(self):
+    def test_enable_replaces_outer_window_with_original_wrath_proportions(self):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
             assert(c.state=="Enabled", c.state)
-            assert(c.cover.parent==LegacySystemFrame.ChallengesPage and c.cover.mouse and c.cover.wheel and c.cover.clips)
-            assert(c.cover.level>40 and c.cover:IsVisible() and c.cover:GetFrameStrata()=="DIALOG")
-            assert(c.ui.root.parent==c.cover and c.ui.root.scale==math.min(900/768,560/640))
+            assert(c.cover.parent==UIParent and c.cover.width==768 and c.cover.height==640)
+            assert(c.cover:IsVisible() and c.ui.root.parent==c.cover and c.ui.root.scale==1)
+            assert(c.ui.root.width==768 and c.ui.root.height==500)
+            assert(not LegacySystemFrame.Background:IsShown() and not LegacySystemFrame.NineSlice:IsShown())
+            assert(not LegacySystemFrame.NativeTabs:IsShown() and not LegacySystemFrame.ChallengesPage:IsShown())
+            assert(not LegacySystemFrame:IsMouseEnabled())
+            assert(LegacySystemFrame:GetScript("OnShow")==originalRootShow)
+            assert(LegacySystemFrame:GetScript("OnHide")==originalRootHide)
             assert(#calls==0)
         ''')
 
@@ -446,25 +560,242 @@ class ControllerTests(unittest.TestCase):
             ns.FA.SLASH.legacyui("off")
             assert(not ns.LegacyUIController.cover:IsShown() and settings.legacyUI==false)
             assert(page:GetScript("OnShow")==originalShow and page.DetailPane.ScrollBox.dataProvider==provider)
-            assert(page.parent==LegacySystemFrame and page.width==900 and reward.renownLevel==16)
+            assert(page.parent==LegacySystemFrame and page.width==920 and reward.renownLevel==16)
+            assert(LegacySystemFrame.Background:IsShown() and LegacySystemFrame.NineSlice:IsShown())
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            local previousShows=nativeShows
             page:Fire("OnShow")
-            assert(nativeShows==1 and not ns.LegacyUIController.cover:IsShown() and #calls==0)
+            assert(nativeShows==previousShows+1 and not ns.LegacyUIController.cover:IsShown() and #calls==0)
         ''')
 
-    def test_native_pages_and_reopening_hide_and_restore_cover(self):
+    def test_native_external_page_events_use_unified_tabs_and_keep_native_ancestry(self):
         self.h.enable()
         self.check('''
-            local page=LegacySystemFrame.ChallengesPage
-            LegacySystemFrame.currentPage=1; page:Hide()
-            assert(not ns.LegacyUIController.cover:IsShown())
-            LegacySystemFrame.currentPage=3; ns.LegacyUIController:Refresh()
-            assert(not ns.LegacyUIController.cover:IsShown())
-            LegacySystemFrame.currentPage=2; page:Show()
-            assert(ns.LegacyUIController.cover:IsVisible())
-            local level=ns.LegacyUIController.cover.level
+            local c=ns.LegacyUIController
+            EventRegistry:TriggerEvent("Legacy.SelectPage",1); FlushTimers()
+            assert(c.cover:IsVisible() and c.ui.tab=="rewards")
+            assert(LegacySystemFrame.RewardTrackPage:IsVisible())
+            assert(LegacySystemFrame.RewardTrackPage:GetParent()==LegacySystemFrame)
+            EventRegistry:TriggerEvent("Legacy.SelectPage",3); FlushTimers()
+            assert(c.ui.tab=="trees" and LegacySystemFrame.TreePage:IsVisible())
+            assert(LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
+            EventRegistry:TriggerEvent("Legacy.SelectPage",2); FlushTimers()
+            assert(c.ui.tab=="achievements" and not LegacySystemFrame.ChallengesPage:IsShown())
+            local level=c.cover.level
             LegacySystemFrame:Hide(); LegacySystemFrame:Show()
-            assert(ns.LegacyUIController.cover:IsVisible() and ns.LegacyUIController.cover.level==level)
-            assert(page:GetScript("OnShow")==originalShow and #calls==0)
+            assert(c.cover:IsVisible() and c.cover.level==level)
+            assert(LegacySystemFrame.ChallengesPage:GetScript("OnShow")==originalShow and #calls==0)
+        ''')
+
+    def test_unordered_native_event_callbacks_read_final_selection_after_dispatch(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            -- Client CallbackRegistry owners have no guaranteed dispatch order.
+            -- Deliberately run the addon observer before the native selector.
+            EventRegistry.TriggerEvent=function(self,event,...)
+                local entries=self.callbacks[event] or {}
+                for i=#entries,1,-1 do entries[i].fn(entries[i].owner,...) end
+            end
+            EventRegistry:TriggerEvent("Legacy.SelectPage",1)
+            assert(LegacySystemFrame.currentPage==1)
+            FlushTimers()
+            assert(c.ui.tab=="rewards" and LegacySystemFrame.currentPage==1)
+            assert(LegacySystemFrame.RewardTrackPage:IsVisible())
+            EventRegistry:TriggerEvent("Legacy.SelectPage",1)
+            EventRegistry:TriggerEvent("Legacy.SelectPage",3)
+            assert(LegacySystemFrame.currentPage==3)
+            FlushTimers()
+            assert(c.ui.tab=="trees" and LegacySystemFrame.currentPage==3)
+            assert(LegacySystemFrame.TreePage:IsVisible() and not LegacySystemFrame.RewardTrackPage:IsShown())
+            assert(c.cover:IsVisible() and #calls==0)
+        ''')
+
+    def test_four_tabs_mount_live_pages_and_restore_geometry_on_disable(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            local reward,tree=LegacySystemFrame.RewardTrackPage,LegacySystemFrame.TreePage
+            local function checkOriginalReward()
+                local point,relative,relativePoint,x,y=reward:GetPoint(1)
+                assert(point=="TOPLEFT" and relative==LegacySystemFrame and relativePoint=="TOPLEFT" and x==7 and y==-5)
+                assert(reward:GetScale()==1 and reward:GetFrameLevel()==100 and reward:GetFrameStrata()=="DIALOG")
+                assert(reward.width==910 and reward.height==569 and reward.Background:IsShown())
+            end
+            c.ui.tabs[2]:Fire("OnClick")
+            assert(c.ui.tab=="rewards" and LegacySystemFrame.currentPage==1 and reward:IsVisible())
+            assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>reward:GetFrameLevel())
+            local _,relative=reward:GetPoint(1)
+            assert(relative==c.ui.nativeHost and reward:GetParent()==LegacySystemFrame)
+            assert(not reward.Background:IsShown())
+            assert(reward:GetWidth()*reward:GetEffectiveScale()<=c.ui.nativeHost:GetWidth()*c.ui.nativeHost:GetEffectiveScale()+.01)
+            assert(reward:GetHeight()*reward:GetEffectiveScale()<=c.ui.nativeHost:GetHeight()*c.ui.nativeHost:GetEffectiveScale()+.01)
+            c.ui.tabs[3]:Fire("OnClick")
+            assert(c.ui.tab=="trees" and LegacySystemFrame.currentPage==3 and tree:IsVisible())
+            assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>tree:GetFrameLevel())
+            assert(tree:GetParent()==LegacySystemFrame and not tree.VerticalDivider:IsShown())
+            assert(not reward:IsShown() and reward:GetParent()==LegacySystemFrame)
+            c.ui.tabs[4]:Fire("OnClick")
+            assert(c.ui.tab=="statistics" and not reward:IsShown() and not tree:IsShown())
+            assert(tree:GetParent()==LegacySystemFrame)
+            c.ui.tabs[2]:Fire("OnClick")
+            ns.FA.SLASH.legacyui("off")
+            checkOriginalReward()
+            assert(tree:GetScale()==1 and tree.width==920 and tree.height==575 and tree.VerticalDivider:IsShown())
+            assert(reward:GetParent()==LegacySystemFrame and reward:IsVisible())
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(#calls==0)
+        ''')
+
+    def test_normal_close_restores_native_page_then_reopening_reapplies(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            FAWrathAchievementFrameCloseButton:Fire("OnClick")
+            assert(not LegacySystemFrame:IsShown() and not c.cover:IsShown() and rootHides==1)
+            assert(LegacySystemFrame.TreePage:GetScale()==1 and LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
+            LegacySystemFrame:Show()
+            assert(rootShows==1 and c.cover:IsVisible() and c.ui.tab=="trees")
+            assert(LegacySystemFrame:GetScript("OnHide")==originalRootHide)
+            assert(LegacySystemFrame:GetScript("OnShow")==originalRootShow and #calls==0)
+        ''')
+
+    def test_gamepad_restores_before_native_initialization_and_mkb_resumes(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            ChangeInputMode(true)
+            assert(nativeGamepadSawNormal)
+            assert(not c.cover:IsShown() and LegacySystemFrame.TreePage:GetScale()==1)
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(settings.legacyUI)
+            ChangeInputMode(false); FlushTimers()
+            assert(c.cover:IsVisible() and c.ui.tab=="trees" and #calls==0)
+            ns.FA.SLASH.legacyui("off")
+            ChangeInputMode(true); ChangeInputMode(false); FlushTimers()
+            assert(not c.cover:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
+        ''')
+
+    def test_initial_gamepad_enable_resumes_on_mkb_with_already_open_root(self):
+        self.check('''
+            gamepad=true
+            ns.FA.SLASH.legacyui("on")
+            assert(settings.legacyUI and LegacySystemFrame:IsShown())
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(not FAWrathLegacyCover or not FAWrathLegacyCover:IsShown())
+            ChangeInputMode(false); FlushTimers()
+            local c=ns.LegacyUIController
+            assert(c.root==LegacySystemFrame and c.cover:IsVisible())
+            assert(not LegacySystemFrame.NativeTabs:IsShown() and #calls==0)
+        ''')
+
+    def test_initial_gamepad_enable_attaches_to_closed_root_without_opening_it(self):
+        self.check('''
+            LegacySystemFrame:Hide()
+            gamepad=true
+            ns.FA.SLASH.legacyui("on")
+            assert(not LegacySystemFrame:IsShown())
+            ChangeInputMode(false); FlushTimers()
+            local c=ns.LegacyUIController
+            assert(c.root==LegacySystemFrame and not c.cover:IsVisible())
+            assert(not LegacySystemFrame:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
+            LegacySystemFrame:Show()
+            assert(c.cover:IsVisible() and not LegacySystemFrame.NativeTabs:IsShown() and #calls==0)
+        ''')
+
+    def test_custom_refresh_does_not_reinitialize_selected_native_page(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            local before=treeShows
+            c:Refresh(); c:Refresh()
+            assert(treeShows==before and LegacySystemFrame.TreePage:IsVisible())
+            assert(LegacySystemFrame.currentPage==3 and #calls==0)
+        ''')
+
+    def test_rejected_restoration_keeps_working_ui_until_protection_clears(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            LegacySystemFrame.TreePage.protected=true
+            inCombat=true
+            ns.FA.SLASH.legacyui("off")
+            assert(not settings.legacyUI and c.restorePending and c.cover:IsVisible())
+            assert(not LegacySystemFrame.NativeTabs:IsShown())
+            LegacySystemFrame.TreePage.protected=false
+            inCombat=false
+            for _, frame in ipairs(frames) do
+                if frame.events and frame.events.PLAYER_REGEN_ENABLED then frame:Fire("OnEvent","PLAYER_REGEN_ENABLED"); break end
+            end
+            assert(not c.restorePending and not c.cover:IsShown())
+            assert(LegacySystemFrame.TreePage:GetScale()==1 and LegacySystemFrame.NativeTabs:IsShown())
+            assert(LegacySystemFrame:IsMouseEnabled() and #calls==0)
+        ''')
+
+    def test_partial_mount_failure_restores_anchors_scale_and_native_access(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            local reward=LegacySystemFrame.RewardTrackPage
+            local original=reward.SetFrameStrata
+            local failures=0
+            reward.SetFrameStrata=function(self,value)
+                if failures==0 then failures=failures+1; error("Injected late mount failure") end
+                original(self,value)
+            end
+            c.ui.tabs[2]:Fire("OnClick")
+            local point,relative,relativePoint,x,y=reward:GetPoint(1)
+            assert(point=="TOPLEFT" and relative==LegacySystemFrame and x==7 and y==-5)
+            assert(reward:GetScale()==1 and reward:GetFrameLevel()==100 and reward:GetParent()==LegacySystemFrame)
+            assert(reward.Background:IsShown() and reward:IsVisible())
+            assert(not c.cover:IsShown() and c.state:find("Fallback"))
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(reward.majorFactionData.renownLevel==16 and saved.done.first==1730000000 and #calls==0)
+        ''')
+
+    def test_disabled_native_selection_and_input_callbacks_leave_original_ui(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            ns.FA.SLASH.legacyui("off")
+            EventRegistry:TriggerEvent("Legacy.SelectPage",3)
+            ChangeInputMode(true); ChangeInputMode(false); FlushTimers()
+            assert(not c.cover:IsShown() and LegacySystemFrame.TreePage:IsVisible())
+            assert(LegacySystemFrame.TreePage:GetScale()==1 and LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled() and #calls==0)
+        ''')
+
+    def test_smaller_screen_and_changed_ui_scale_fit_visible_native_content(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[2]:Fire("OnClick")
+            UIParent:SetSize(640,480); UIParent:SetScale(.75)
+            UIParent:Fire("OnSizeChanged"); FlushTimers()
+            assert(c.cover:GetScale()<1 and c.cover:IsVisible())
+            assert(c.cover:GetWidth()*c.cover:GetScale()<=UIParent:GetWidth()-20+.01)
+            assert(c.cover:GetHeight()*c.cover:GetScale()<=UIParent:GetHeight()-20+.01)
+            local page=LegacySystemFrame.RewardTrackPage
+            assert(page:GetWidth()*page:GetEffectiveScale()<=c.ui.nativeHost:GetWidth()*c.ui.nativeHost:GetEffectiveScale()+.01)
+            assert(page:GetHeight()*page:GetEffectiveScale()<=c.ui.nativeHost:GetHeight()*c.ui.nativeHost:GetEffectiveScale()+.01)
+            ns.FA.SLASH.legacyui("off")
+            assert(page:GetScale()==1 and page:GetParent()==LegacySystemFrame and #calls==0)
+        ''')
+
+    def test_preexisting_hidden_art_and_root_alpha_survive_restoration(self):
+        self.check('''
+            LegacySystemFrame.EdgeArt:Hide()
+            LegacySystemFrame.TitleContainer:Hide()
+            LegacySystemFrame.alpha=.73
+            ns.FA.SLASH.legacyui("on")
+            assert(LegacySystemFrame:GetAlpha()==.73)
+            ns.FA.SLASH.legacyui("off")
+            assert(not LegacySystemFrame.EdgeArt:IsShown() and not LegacySystemFrame.TitleContainer:IsShown())
+            assert(LegacySystemFrame.Background:IsShown() and LegacySystemFrame:GetAlpha()==.73 and #calls==0)
         ''')
 
     def test_missing_native_frame_waits_without_loading_or_toggling_blizzard(self):
@@ -487,7 +818,7 @@ class ControllerTests(unittest.TestCase):
 
     def test_protected_native_page_falls_back_without_hooks(self):
         self.check('''
-            LegacySystemFrame.ChallengesPage.protected=true
+            LegacySystemFrame.protected=true
             ns.FA.SLASH.legacyui("on")
             assert(FAWrathLegacyCover==nil and ns.LegacyUIController.state:find("Fallback"))
             assert(next(LegacySystemFrame.ChallengesPage.hooks)==nil and #calls==0)
@@ -532,12 +863,30 @@ class ControllerTests(unittest.TestCase):
     def test_persisted_setting_enables_on_login(self):
         h = Harness()
         h.execute("SetupNative(); settings.legacyUI=true")
+        h.load("Integrations/LegacyWindowBridge.lua")
         h.load("Integrations/LegacyController.lua")
         h.execute('''
             for _, frame in ipairs(frames) do
                 if frame.events and frame.events.PLAYER_LOGIN then frame:Fire("OnEvent","PLAYER_LOGIN"); break end
             end
             assert(ns.LegacyUIController.state=="Enabled" and ns.LegacyUIController.cover:IsVisible())
+        ''')
+
+    def test_native_currency_event_refreshes_authoritative_header_without_payload_writes(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            assert(c.ui.nativePoints:GetText()=="16")
+            C_MajorFactions.GetCurrentRenownLevel=function(id) assert(id==2802); return 21 end
+            local payload={renownCurrency=999,quantity=12,sentinel="keep"}
+            EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo",payload)
+            FlushTimers()
+            assert(c.ui.nativePoints:GetText()=="21")
+            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="10")
+            assert(payload.renownCurrency==999 and payload.quantity==12 and payload.sentinel=="keep")
+            ns.FA.SLASH.legacyui("off")
+            EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo",payload)
+            assert(#timers==0 and #calls==0)
         ''')
 
     def test_pending_refresh_is_coalesced_and_gated_when_disabled(self):
@@ -661,7 +1010,13 @@ class PackagingTests(unittest.TestCase):
         self.assertTrue(adapted_files <= original_files)
         slices = {tuple(sorted(e.attrib.items())) for e in original.iter(URI + "TexCoords")}
         for e in adapted.iter(URI + "TexCoords"):
-            self.assertIn(tuple(sorted(e.attrib.items())), slices)
+            # Forever's current shield sheet adds the guild row below the
+            # original player row. This one compatibility crop is deliberate.
+            if e.get("bottom") == ".5" and e.get("top") == "0" and e.get("right") == ".5":
+                adjusted = dict(e.attrib); adjusted["bottom"] = "1"
+                self.assertIn(tuple(sorted(adjusted.items())), slices)
+            else:
+                self.assertIn(tuple(sorted(e.attrib.items())), slices)
 
 
 if __name__ == "__main__":

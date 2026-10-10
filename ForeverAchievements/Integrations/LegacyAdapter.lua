@@ -56,7 +56,8 @@ end
 function A.TotalPoints()
     local r = R.Call(R.Field(C_MajorFactions, "GetCurrentRenownLevel"),
         constant("LEGACY_REWARD_TRACK_FACTION_ID", 2802))
-    return r and R.Number(r[1])
+    local value = r and R.Number(r[1])
+    if value and value >= 0 then return value end
 end
 local function scope(flags)
     local mask = R.ID(ACHIEVEMENT_FLAGS_ACCOUNT)
@@ -71,13 +72,22 @@ local function record(info, category)
     local flags = R.Number(info[9])
     local completed = R.Bool(info[4])
     local month, day, year = R.Number(info[5]), R.Number(info[6]), R.Number(info[7])
-    local completionDate
-    if completed and month and month >= 1 and month <= 12 and day and day >= 1 and day <= 31 and year and year >= 0 then
-        completionDate = ("%d/%d/%02d"):format(month, day, year % 100)
+    local completionDate, dateSort, completionDateParts
+    if completed and month and month == math.floor(month) and month >= 1 and month <= 12 and
+        day and day == math.floor(day) and day >= 1 and year and year == math.floor(year) and year >= 0 and year <= 9999 then
+        local fullYear = year < 100 and year + 2000 or year
+        local leap = fullYear % 4 == 0 and (fullYear % 100 ~= 0 or fullYear % 400 == 0)
+        local maxDays = ({ 31, leap and 29 or 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 })[month]
+        if day <= maxDays then
+            completionDate = ("%d/%d/%02d"):format(month, day, year % 100)
+            dateSort = fullYear * 10000 + month * 100 + day
+            completionDateParts = { year = fullYear, month = month, day = day }
+        end
     end
     return { key = "legacy:" .. id, source = "legacy", id = id, category = category,
         name = R.Text(info[2]) or ("Legacy Challenge " .. id), description = R.Text(info[8]) or "Description unavailable.",
-        completed = completed, date = completionDate, flags = flags, scope = scope(flags),
+        completed = completed, date = completionDate, dateSort = dateSort, completionDateParts = completionDateParts,
+        flags = flags, scope = scope(flags),
         icon = R.ID(info[10]) or R.Text(info[10]), points = A.Points(id), reward = R.Text(info[11]) }
 end
 function A.Resolve(id)
@@ -132,11 +142,12 @@ local function providerRecords(page)
     return ids
 end
 function A.Catalog(page)
-    local out = { categories = {}, records = {}, byKey = {}, partial = false, points = A.TotalPoints() }
+    local out = { categories = {}, records = {}, byKey = {}, partial = false, available = false, points = A.TotalPoints() }
     local listResult = R.Call(GetCategoryList)
     local list = listResult and listResult[1]
     local categories = {}
     if type(list) == "table" then
+        if next(list) == nil then out.available = true end
         for i = 1, A.MAX_CATEGORIES do
             local id = R.ID(rawget(list, i))
             if not id then break end
@@ -145,7 +156,8 @@ function A.Catalog(page)
                 local parent = info and R.Number(info[2])
                 local cat = { key = "legacy-category:" .. id, id = id, source = "legacy",
                     name = info and R.Text(info[1]) or ("Category " .. id),
-                    parent = parent and parent > 0 and ("legacy-category:" .. parent) or "legacy", records = {} }
+                    parent = parent and parent > 0 and ("legacy-category:" .. parent) or "legacy",
+                    parentID = parent, metadataAvailable = info ~= nil and R.Text(info[1]) ~= nil, records = {} }
                 categories[id] = cat
                 out.categories[#out.categories + 1] = cat
             end
@@ -162,8 +174,13 @@ function A.Catalog(page)
     end
     for _, cat in ipairs(out.categories) do
         local n = R.Call(GetCategoryNumAchievements, cat.id)
-        n = n and R.Number(n[1])
-        if not n or n < 0 or n ~= math.floor(n) then out.partial = true; n = 0 end
+        local count = n and R.Number(n[1])
+        cat.reportedTotal = count
+        cat.reportedCompleted = n and R.Number(n[2])
+        cat.reportedIncomplete = n and R.Number(n[3])
+        n = count
+        if not n or n < 0 or n ~= math.floor(n) then out.partial = true; n = 0 else out.available = true end
+        if not cat.metadataAvailable then out.partial = true end
         local remaining = A.MAX_RECORDS - #out.records
         if n > remaining then out.partial = true end
         for index = 1, math.min(n, remaining) do
@@ -172,16 +189,40 @@ function A.Catalog(page)
             append(a, cat)
         end
     end
-    if #out.records == 0 then
+    if #out.records == 0 and (not out.available or out.partial) then
         local cat = { key = "legacy-current", parent = "legacy", name = "Current native category", source = "legacy", records = {} }
+        -- The passive provider contains IDs only. Recover documented category
+        -- metadata where available so fallback records need not all be unmapped.
+        -- This reads ancestry without selecting a category or refreshing native UI.
+        local function fallbackCategory(id, visiting)
+            if categories[id] then return categories[id] end
+            if #out.categories >= A.MAX_CATEGORIES then return nil end
+            visiting = visiting or {}
+            if visiting[id] then return nil end
+            visiting[id] = true
+            local info = R.Call(GetCategoryInfo, id)
+            if not info or not R.Text(info[1]) then return nil end
+            local parent = R.Number(info[2])
+            local result = { key = "legacy-category:" .. id, id = id, source = "legacy", name = R.Text(info[1]),
+                parent = parent and parent > 0 and ("legacy-category:" .. parent) or "legacy",
+                parentID = parent, metadataAvailable = true, records = {} }
+            categories[id] = result; out.categories[#out.categories + 1] = result
+            if parent and parent > 0 then fallbackCategory(parent, visiting) end
+            return result
+        end
         for _, id in ipairs(providerRecords(page)) do
             local a = A.Resolve(id)
-            if a then a.category = cat.key end
-            append(a, cat)
+            local categoryResult = R.Call(GetAchievementCategory, id)
+            local categoryID = categoryResult and R.ID(categoryResult[1])
+            local target = categoryID and fallbackCategory(categoryID) or cat
+            target = target or cat
+            if a then a.category = target.key end
+            append(a, target)
         end
         if #cat.records > 0 then out.categories[#out.categories + 1] = cat end
         out.partial = true
     end
+    if #out.records > 0 then out.available = true end
     if out.partial then
         out.notice = #out.records == 0 and "Native challenges unavailable. Character achievements remain available."
             or "Native catalog is partial; unavailable records are not counted. Reopen after selecting a native category if needed."

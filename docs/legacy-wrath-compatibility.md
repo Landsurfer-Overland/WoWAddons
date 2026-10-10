@@ -1,8 +1,10 @@
-# Wrath UI inside Forever Legacy Challenges
+# Unified Wrath Legacy System — iteration 2
 
 Target: Forever Beta 1.60.1 / build 70338 / Interface 16001 / Lua 5.1 /
 project 18. Experimental, disabled by default. The actual game client
-has not been used to test this implementation.
+has not been used to test this implementation. Iteration 1 embedded the Wrath
+browser inside native Challenges; iteration 2 replaces the complete visible
+Legacy System presentation while retaining its registered native root and data.
 
 ## Existing project and persistence
 
@@ -33,9 +35,9 @@ Character achievement points and native Legacy Points remain separate.
 Old native imports keep their saved keys/behavior in the alpha UI; the new
 custom adapter excludes them to avoid duplicates and synthetic addon points.
 
-The TOC appends LegacyAdapter, CustomAdapter, Presentation, Wrath Lua
-callbacks, adapted virtual XML templates, and LegacyController. No new
-libraries or original Wrath backend are required.
+The integration loads LegacyAdapter, CustomAdapter, Presentation, Wrath Lua
+callbacks, adapted virtual XML templates, the native presentation bridge, and
+LegacyController. No new libraries or original Wrath backend are required.
 
 ## Original UI port
 
@@ -46,23 +48,58 @@ filtering, localization, scrolling and tracking implementation was reviewed.
 | Original component | Adaptation |
 | --- | --- |
 | AchievementFrame layers and Header | Actual original wood, metal, parchment, watermark, joints, roof, point border and tiny shield in FAWrathWindowTemplate |
-| AchievementCategoryTemplate | Original art/label anchors with local hierarchy and source navigation |
+| AchievementCategoryTemplate | Original art/label anchors with one native/custom category hierarchy |
 | AchievementTemplate | Original parchment/title/glow/reward textures, icon, shield, date, highlight and plus/minus; adapter records |
 | AchievementIconFrameTemplate / shield | Original borders, texture coordinates and saturation colors |
 | AchievementCriteriaTemplate | Original checkmark/label with native or character criteria |
 | MetaCriteriaTemplate | Original icon/check/border; read-only linked-record navigation |
 | AchievementProgressBarTemplate | Original green bar, border and quantity text |
 | AchievementFrameSummaryCategoryTemplate | Original overview ornamentation and two-column category bars |
-| AchievementFrameTabButtonTemplate / StatTemplate | Original wooden Achievements/Statistics tabs and statistics row art |
+| AchievementFrameTabButtonTemplate / StatTemplate | Original wooden tabs for Achievements, Legacy Rewards, Legacy Trees, Statistics; original statistics row art |
 | AchievementButton_Saturate / Desaturate | Original colored/gray parchment, title slices, icon/description colors and shield slices |
 | AchievementButton_Collapse / Expand / OnLoad | Original 84-pixel collapsed height, parchment/glow calculations, region bindings and date-under-shield placement |
 
 The 768 by 500 body retains its proportions. A 768 by 640 logical footprint
-reserves roof/body/tab artwork and scales uniformly inside ChallengesPage.
-The original global window and close button are omitted; Forever owns
-opening/closing and its native tabs. The Summary shows four recorded recent
-completions and overview bars. Cards expand descriptions/criteria and earned
-custom series link to previous tiers.
+reserves roof/body/tab artwork and scales uniformly as the complete visible
+replacement. The addon close button closes the native registered panel; its
+header supports dragging. The original Blizzard AchievementFrame global is
+not created or overwritten. Header totals are intentionally separated into
+Character Achievement Points and Legacy Points. Summary shows separate source
+counts, reliable recent custom/native completions, and unified overview bars.
+Cards expand descriptions/criteria and earned custom series link to previous
+tiers. Cards use one original point-shield region and hide both reward text and
+reward decoration when no genuine reward exists.
+
+## Unified category mapping
+
+Mapping changes only the view model. The native runtime catalog is still the
+source of native IDs, names, ancestry, completion and reward metadata. Custom
+definitions and both progression databases retain their original identifiers.
+
+| Unified category | Recognized runtime metadata / handling |
+| --- | --- |
+| General | General plus custom General |
+| Quests | Quest/questing metadata plus custom Quests; verified quest-specific Adventure exceptions |
+| Exploration | Exploration/Explorer metadata and Eastern Kingdoms/Kalimdor under exploration or Adventure ancestry; verified exploration-specific Adventure exceptions |
+| Professions | Tradeskills, named profession subcategories, plus custom Professions |
+| Dungeons & Raids | Dungeons/Raids ancestry plus custom Dungeons & Raids |
+| Reputation | Reputation metadata plus custom Reputation; PvP/class context takes precedence where appropriate |
+| PvP | Player vs. Player/PvP ancestry plus custom PvP |
+| Classes | Classes and recognized class-name metadata; applicable custom definitions if present |
+| Feats of Strength | Recognized Feats metadata plus custom Feats of Strength |
+| Unmapped Challenges | New, localized, or mixed metadata without a verified mapping; preserved and browsable |
+
+Native subcategory ancestry is retained where it helps navigation. A parent with
+its own challenges and its child categories both contributes its original records.
+Mappings never enumerate fabricated challenges or choose a substitute mirrored ID.
+The few record-level Adventure exceptions require both a verified ID and matching
+live title; they do not classify all Adventure content as Exploration. Current
+name recognition and interface labels use English, so unrecognized localized names
+can appear under Unmapped Challenges rather than receive a guessed category.
+
+Native and custom rows share the same card renderer but keep `legacy:<id>` and
+`custom:<original-key>` identifiers and distinct point-system tooltips. Unknown
+completion, partial catalogs, missing points, and missing dates remain explicit.
 
 Unsupported original dependencies are adapted:
 
@@ -135,8 +172,19 @@ C_AchievementInfo does not imply an API contract; C_Legacy is not required.
 
 GetMajorFactionData, GetRenownLevels and GetRenownRewardsForLevel were also
 investigated. Threshold arrays may be sparse and collection flags do not
-prove claims. No reward presentation/claim calculation is added. Forever's
-Rewards and Tree pages retain all claims and progression.
+prove claims. Iteration 2 displays the original Rewards and Tree pages and
+retains their original claim/progression behavior. No independently calculated
+reward-claim state or native talent-spending implementation is added.
+
+The latest public Blizzard source was checked directly at
+[943764493e6b16d63ded3ab304150d1f05e58b57](https://github.com/Gethe/wow-ui-source/tree/943764493e6b16d63ded3ab304150d1f05e58b57),
+whose version.txt reports build 1.60.1.70338. It verifies root.Pages as
+RewardTrackPage (1), ChallengesPage (2), TreePage (3), and
+`EventRegistry:TriggerEvent("Legacy.SelectPage", id)` as the native selection
+entry point. Page OnShow calls the original parent's SetTitle; tree gamepad
+logic additionally relies on that native ancestry. The integration therefore
+keeps the original parents and page handlers. Full citations and input-mode
+ordering are in [iteration2-native-research.md](iteration2-native-research.md).
 
 ## Community research and licensing
 
@@ -151,25 +199,50 @@ or vendored from GPL/proprietary projects.
 | [ClassicUI Forever](https://github.com/wowaddonmaker/classicuiforever) | d9f25cf9af939d418e763e70b50c02f576164269 / proprietary | Replacement lifecycle/native integration concerns; no source copied |
 | [Forever API docs](https://github.com/Atraeau/WoW-Addons) ([site](https://atraeau.github.io/WoW-Addons/)) | d8c9be3635e756fd90284e02b5a800c796b337a0 | Standard category/achievement contracts; docs/api/Spells-Auras-Talents/C_Traits.md and Achievements-Progression/C_MajorFactions.md |
 
-Community live/source evidence includes earlier 1.60.1 builds and does not
-prove every behavior on 70338. Supplied live evidence, documented contracts
-and guarded calls are used together.
+Community live/source evidence includes earlier 1.60.1 builds. The current
+root/page contracts were checked directly against the exact 70338 public
+source, but source review does not prove in-game rendering or interaction.
+Supplied live evidence, documented contracts and guarded calls are used together.
 
 ## Reversibility and limits
 
-The addon cover is parented only to ChallengesPage, with opaque background,
-mouse/wheel interception, descendant clipping when supported and a frame
-level above native page children. Native visibility, anchors, alpha, mouse
-settings, functions and providers are untouched. Append-only native page
-show/hide/size hooks preserve existing scripts and become inert on disable.
-WoW does not expose hook removal; a reload while disabled starts without hooks.
+Disabled by default, the account option is controlled by `/fa legacyui on`
+and `/fa legacyui off`. The native registered root remains intact and owns
+normal open/close and panel lifecycle. The addon temporarily hides its original
+regions and immediate presentation children, disables its invisible mouse
+rectangle, and displays the complete Wrath artwork at the replacement's own
+proportions. These presentation states are recorded for restoration. Native
+root alpha, functions, scripts, providers and progression collections remain
+unchanged; this supersedes iteration 1's narrower Challenges-only cover.
 
-Combat defers initialization and hides an existing cover; leaving combat
-retries. Missing frames wait for native addon loading or another enable
-command. Protected/forbidden roots/pages and failed initialization/rendering
-leave the native presentation exposed. No force-load, native selection,
-native search setter, function replacement, transmission, CVar write,
-completion grant, trait purchase or reward claim is added.
+Rewards and Trees mount their actual existing native page into the Wrath body
+using temporary cross-parent anchors, preserving each original parent and every
+descendant. Original native selection events drive those pages; their original
+callbacks own points, rewards, talent editing and progression. The bridge
+records/restores page anchors, dimensions, scale, strata, frame level and known
+decorative visibility. It does not recreate claim/spend controls or assign a new
+page parent. The native panel's original width reservation remains unchanged to
+preserve relationships with other panels, even though the visible artwork is
+smaller. Rewards/Trees selection must preserve native access if mounting fails.
+
+Append-only root hooks and native selection callbacks observe normal lifecycle
+and coordinate external selection with addon tabs without replacing original scripts. Hooks
+cannot be removed through a standard WoW API; their inactive paths remain gated
+when the feature is disabled. A reload while disabled starts without native hooks.
+
+Combat defers unsafe initialization and restoration. Disabling records the option
+immediately; necessary presentation restoration can remain pending until combat
+ends. Runtime protected/forbidden checks supplement source contracts. Missing
+frames wait for native loading; incompatible objects and rendering errors restore
+native access. No force-load, native search setter, global function replacement,
+transmission, CVar write, completion grant, trait purchase or reward claim is added.
+
+Gamepad mode uses the original native presentation. Its SmartNavigation maps the
+original three pages and original challenge controls, so the addon does not claim
+untested four-tab gamepad support. InputUtil's high-priority transition subscriber
+restores native geometry/presentation before ordinary native gamepad setup; return
+to mouse and keyboard schedules reattachment after normal transition handling.
+Settings and current mode gate those persistent callbacks.
 
 Native events invalidate metadata; visible updates are coalesced. Existing
 custom checking/earning hooks refresh character data. Complete native catalogs
@@ -177,12 +250,16 @@ are cached between native events/reopening; criteria are read on expansion.
 No polling ticker is added.
 
 Tests run actual adapter/controller Lua and template OnLoad callbacks with
-explicit UI doubles. They verify data separation, retained saves/scripts,
-commands/persistence, fallback, points/criteria, meta links, visible-card
-scrolling, XML contracts, asset coordinates and original hashes.
+explicit UI doubles. They verify data separation, unified mapping, retained
+saves/scripts/parents, commands/persistence, restoration and mode/combat fallback,
+points/criteria, reliable native summaries, meta links, visible-card scrolling,
+four-tab order, reward/shield rendering contracts, XML, original assets and hashes.
 They cannot establish texture availability, pixel fidelity, native timing,
 combat taint or SavedVariables disk writes. Own labels currently use English;
 native text follows client localization. Native tracking/comparison setters
 are excluded; the standalone alpha features remain.
 
-Use the twelve-step manual plan in ForeverAchievements/Integrations/README.md.
+Use the [manual plan](../ForeverAchievements/Integrations/README.md) for normal
+opening/closing/dragging, all four tabs, mixed categories, search/filtering,
+criteria, native reward/tree interactions, UI scale, input transitions, reloads,
+character saves and complete restoration after disabling.
