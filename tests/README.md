@@ -43,6 +43,21 @@ texture. Native lifecycle checks cover reversible root presentation suppression,
 parent-preserving Rewards/Tree mounting and geometry restoration, native handler
 preservation, input-mode fallback, combat deferral, and normal close/reopen behavior.
 
+Iteration 3 extends coverage to independent type/point/source/scope properties,
+zero-point standard versus genuine Feat rendering, shared populated subcategories,
+parent aggregation, fallback navigation without reclassification, loaded-criteria
+search, separate source filters, reliable dates, and retained overlapping progression.
+Statistics checks distinguish native zero from absent/error/secret/placeholder data,
+preserve money/name formatting, prune empty navigation, exclude unsupported daily IDs,
+and count saved observations without adding defaults or merging account history.
+Layout/controller checks exercise size presets, screen fitting, saved/clamped position,
+reset, original native inner backgrounds, Summary spacing, independent Statistics
+navigation, and source/card XML contracts.
+Standalone progress checks cover unavailable quest/Loremaster values in sorting,
+cards, the tracker, and social tooltips, confirmed zero, and hiding unsupported daily
+tracked keys without deleting saved history. Release checks include cleanup failures
+and retrying a failed native restoration.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

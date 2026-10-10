@@ -23,6 +23,21 @@ end
 function R.Bool(v)
     if R.Safe(v) and type(v) == "boolean" then return v end
 end
+-- Flags are an independent property: neither points nor source establish
+-- account scope or Feat of Strength classification. Reject malformed masks.
+function R.HasFlag(flags, mask)
+    flags, mask = R.Number(flags), R.ID(mask)
+    if not flags or flags < 0 or flags ~= math.floor(flags) or not mask then return nil end
+    local bitValue = mask
+    while bitValue > 1 and bitValue % 2 == 0 do bitValue = bitValue / 2 end
+    if bitValue ~= 1 then return nil end
+    return math.floor(flags / mask) % 2 == 1
+end
+function R.CompletionState(completed)
+    if completed == true then return "complete" end
+    if completed == false then return "incomplete" end
+    return "unknown"
+end
 function R.Call(fn, ...)
     if not R.Safe(fn) or type(fn) ~= "function" then return nil end
     local function pack(...) return { n = select("#", ...), ... } end
@@ -41,7 +56,7 @@ function R.Method(object, method, ...)
     return R.Call(R.Field(object, method), object, ...)
 end
 
-local A = { MAX_CATEGORIES = 256, MAX_RECORDS = 2500, MAX_CRITERIA = 256 }
+local A = { MAX_CATEGORIES = 256, MAX_RECORDS = 2500, MAX_CRITERIA = 256, MAX_CATEGORY_DEPTH = 32 }
 ns.LegacyAdapter = A
 local function constant(key, fallback)
     local constants = R.Field(Constants, "LegacyConsts")
@@ -60,13 +75,43 @@ function A.TotalPoints()
     if value and value >= 0 then return value end
 end
 local function scope(flags)
-    local mask = R.ID(ACHIEVEMENT_FLAGS_ACCOUNT)
-    if flags and mask then
-        return math.floor(flags / mask) % 2 == 1 and "Account" or "Character"
-    end
-    return "Scope unavailable"
+    local account = R.HasFlag(flags, ACHIEVEMENT_FLAGS_ACCOUNT)
+    if account == true then return "Account", "account" end
+    if account == false then return "Character", "character" end
+    return "Scope unavailable", "unknown"
 end
-local function record(info, category)
+-- Build 70338's AchievementUtil identifies Feats through native category 81
+-- or guild category 15093 and their ancestors. Read the same category contract
+-- with cycle/depth bounds; never classify from a zero point value, a Legacy
+-- source, account scope, or our navigation fallback under Feats of Strength.
+function A.AchievementType(id, categoryID, categories)
+    categoryID = R.ID(categoryID)
+    if not categoryID then
+        local result = R.Call(GetAchievementCategory, id)
+        categoryID = result and R.ID(result[1])
+    end
+    if not categoryID then return "unknown", "Native category unavailable" end
+    local visited = {}
+    for _ = 1, A.MAX_CATEGORY_DEPTH do
+        if categoryID == 81 or categoryID == 15093 then return "feat_of_strength", "Native Feats of Strength category" end
+        if visited[categoryID] then return "unknown", "Native category ancestry is cyclic" end
+        visited[categoryID] = true
+        local category = categories and categories[categoryID]
+        local parent
+        if category and category.metadataAvailable then
+            parent = R.Number(category.parentID)
+        else
+            local info = R.Call(GetCategoryInfo, categoryID)
+            if not info or not R.Text(info[1]) then return "unknown", "Native category metadata unavailable" end
+            parent = R.Number(info[2])
+        end
+        if parent == -1 or parent == 0 then return "standard", "Native category is outside Feats of Strength" end
+        categoryID = R.ID(parent)
+        if not categoryID then return "unknown", "Native category ancestry unavailable" end
+    end
+    return "unknown", "Native category ancestry exceeds inspection bound"
+end
+local function record(info, category, categoryID, categories)
     local id = info and R.ID(info[1])
     if not id then return nil end
     local flags = R.Number(info[9])
@@ -84,11 +129,19 @@ local function record(info, category)
             completionDateParts = { year = fullYear, month = month, day = day }
         end
     end
-    return { key = "legacy:" .. id, source = "legacy", id = id, category = category,
+    local key, points = "legacy:" .. id, A.Points(id)
+    local scopeLabel, scopeType = scope(flags)
+    local achievementType, typeEvidence = A.AchievementType(id, categoryID, categories)
+    return { key = key, uniqueID = key, source = "legacy", sourceType = "native_legacy", id = id, category = category,
         name = R.Text(info[2]) or ("Legacy Challenge " .. id), description = R.Text(info[8]) or "Description unavailable.",
-        completed = completed, date = completionDate, dateSort = dateSort, completionDateParts = completionDateParts,
-        flags = flags, scope = scope(flags),
-        icon = R.ID(info[10]) or R.Text(info[10]), points = A.Points(id), reward = R.Text(info[11]) }
+        completed = completed, completionState = R.CompletionState(completed),
+        date = completionDate, completionDate = completionDate, dateSort = dateSort, completionDateParts = completionDateParts,
+        flags = flags, scope = scopeLabel, scopeType = scopeType,
+        achievementType = achievementType, achievementTypeEvidence = typeEvidence,
+        pointType = points ~= nil and (points > 0 and "legacy" or "none") or "unknown",
+        pointValue = points, points = points, pts = points,
+        nativeAchievementPoints = R.Number(info[3]), progress = { available = false },
+        icon = R.ID(info[10]) or R.Text(info[10]), reward = R.Text(info[11]) }
 end
 function A.Resolve(id)
     id = R.ID(id)
@@ -98,7 +151,11 @@ function A.Criteria(achievement)
     local data = { items = {}, available = false, complete = false }
     local result = R.Call(GetAchievementNumCriteria, achievement.id)
     local count = result and R.Number(result[1])
-    if not count or count < 0 or count ~= math.floor(count) then return data end
+    if not count or count < 0 or count ~= math.floor(count) then
+        achievement.criteria = data
+        achievement.progress = { available = false }
+        return data
+    end
     data.available = true
     data.complete = count <= A.MAX_CRITERIA
     data.count = count
@@ -109,7 +166,7 @@ function A.Criteria(achievement)
             data.items[#data.items + 1] = { name = "Criterion " .. i .. " unavailable", unavailable = true }
         else
             local item = { name = R.Text(r[1]), type = R.Number(r[2]), completed = R.Bool(r[3]),
-                current = R.Number(r[4]), required = R.Number(r[5]), flags = R.Number(r[6]),
+                current = R.Number(r[4]), required = R.Number(r[5]), flags = R.Number(r[7]),
                 assetID = R.ID(r[8]), quantityText = R.Text(r[9]), criteriaID = R.ID(r[10]) }
             if item.type == 8 and item.assetID then item.link = "legacy:" .. item.assetID end
             data.items[#data.items + 1] = item
@@ -117,6 +174,8 @@ function A.Criteria(achievement)
     end
     -- Native completion always comes from GetAchievementInfo, never from these
     -- criteria, including zero-criteria challenges and account/character metas.
+    achievement.criteria = data
+    achievement.progress = { available = data.available, complete = data.complete, criteria = data.items, count = data.count }
     return data
 end
 local function providerRecords(page)
@@ -142,7 +201,8 @@ local function providerRecords(page)
     return ids
 end
 function A.Catalog(page)
-    local out = { categories = {}, records = {}, byKey = {}, partial = false, available = false, points = A.TotalPoints() }
+    local out = { categories = {}, records = {}, byKey = {}, duplicates = {}, duplicateIDs = {},
+        partial = false, available = false, points = A.TotalPoints() }
     local listResult = R.Call(GetCategoryList)
     local list = listResult and listResult[1]
     local categories = {}
@@ -157,7 +217,7 @@ function A.Catalog(page)
                 local cat = { key = "legacy-category:" .. id, id = id, source = "legacy",
                     name = info and R.Text(info[1]) or ("Category " .. id),
                     parent = parent and parent > 0 and ("legacy-category:" .. parent) or "legacy",
-                    parentID = parent, metadataAvailable = info ~= nil and R.Text(info[1]) ~= nil, records = {} }
+                    parentID = parent, flags = info and R.Number(info[3]), metadataAvailable = info ~= nil and R.Text(info[1]) ~= nil, records = {} }
                 categories[id] = cat
                 out.categories[#out.categories + 1] = cat
             end
@@ -166,7 +226,14 @@ function A.Catalog(page)
     end
     local seen = {}
     local function append(a, cat)
-        if not a or seen[a.key] then return end
+        if not a then return end
+        if seen[a.key] then
+            if #out.duplicates < A.MAX_RECORDS then
+                out.duplicates[#out.duplicates + 1] = { id = a.id, key = a.key, category = cat.key }
+                out.duplicateIDs[#out.duplicateIDs + 1] = a.id
+            end
+            return
+        end
         seen[a.key] = true
         out.records[#out.records + 1] = a
         out.byKey[a.key] = a
@@ -184,7 +251,7 @@ function A.Catalog(page)
         local remaining = A.MAX_RECORDS - #out.records
         if n > remaining then out.partial = true end
         for index = 1, math.min(n, remaining) do
-            local a = record(R.Call(GetAchievementInfo, cat.id, index), cat.key)
+            local a = record(R.Call(GetAchievementInfo, cat.id, index), cat.key, cat.id, categories)
             if not a then out.partial = true end
             append(a, cat)
         end

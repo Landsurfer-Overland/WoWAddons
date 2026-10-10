@@ -1,10 +1,17 @@
-# Unified Wrath Legacy System — iteration 2
+# Unified Wrath Legacy System — iteration 3
 
 Target: Forever Beta 1.60.1 / build 70338 / Interface 16001 / Lua 5.1 /
 project 18. Experimental, disabled by default. The actual game client
 has not been used to test this implementation. Iteration 1 embedded the Wrath
-browser inside native Challenges; iteration 2 replaces the complete visible
+browser inside native Challenges; iteration 2 replaced the complete visible
 Legacy System presentation while retaining its registered native root and data.
+Iteration 3 refines classification, subject subcategories, window layout and
+statistics while preserving that foundation.
+
+The original Wrath Lua/XML and earlier attached references remain the primary
+artwork sources. The iteration 3 brief refers to four newer screenshots and a
+generated mockup, but those images were not attached to this iteration's request.
+No review of those missing images or pixel-for-pixel match is claimed.
 
 ## Existing project and persistence
 
@@ -25,8 +32,10 @@ ForeverAchievementsDB stores account settings and character snapshots.
 ForeverAchievementsCharDB stores done[key] timestamps, tracked keys, history
 and existing counters/sets. The new interface reads their original keys,
 without migration, completion writes, deletion or native progress import.
-The only new setting is account settings.legacyUI. Explicit custom tracking
-clicks delegate to the existing ToggleTrack service.
+Account settings.legacyUI controls the optional replacement. `legacyUISize`
+and `legacyUIPosition` are additive, account-scoped presentation preferences; they do not
+migrate character progression. Explicit custom tracking clicks delegate to the
+existing ToggleTrack service.
 
 This view uses this character's completion timestamps even with standalone
 account view enabled; the existing tracking service still honors its own
@@ -34,10 +43,16 @@ account-view rules. Native scope uses the runtime account-flag constant.
 Character achievement points and native Legacy Points remain separate.
 Old native imports keep their saved keys/behavior in the alpha UI; the new
 custom adapter excludes them to avoid duplicates and synthetic addon points.
+Unsupported daily-quest definitions retain their saved keys and historical data
+but are inactive in this Forever project. No daily category or replacement
+daily achievement is added.
 
 The integration loads LegacyAdapter, CustomAdapter, Presentation, Wrath Lua
 callbacks, adapted virtual XML templates, the native presentation bridge, and
-LegacyController. No new libraries or original Wrath backend are required.
+LegacyController. StatisticsAdapter supplies the independent Statistics model.
+The existing LibStub, CallbackHandler, LibDataBroker and LibDBIcon load before
+core services and remain unchanged. No new libraries or original Wrath backend
+are required.
 
 ## Original UI port
 
@@ -59,16 +74,63 @@ filtering, localization, scrolling and tracking implementation was reviewed.
 | AchievementButton_Saturate / Desaturate | Original colored/gray parchment, title slices, icon/description colors and shield slices |
 | AchievementButton_Collapse / Expand / OnLoad | Original 84-pixel collapsed height, parchment/glow calculations, region bindings and date-under-shield placement |
 
-The 768 by 500 body retains its proportions. A 768 by 640 logical footprint
-reserves roof/body/tab artwork and scales uniformly as the complete visible
-replacement. The addon close button closes the native registered panel; its
-header supports dragging. The original Blizzard AchievementFrame global is
+The original 768 by 500 body remains the Compact preset. Standard is 900 by
+620, and Large is 1024 by 720; each adds 140 logical pixels for roof/footer
+space. The default Standard layout increases useful card/sidebar/native-pane
+space. Corners and the ornate roof remain fixed-size; center backgrounds and
+plain border strips resize with content. Continuous resizing is replaced by
+these saved presets. Whole-window scaling is used only to fit the available
+UIParent dimensions. The addon close button closes the native registered panel;
+its header supports dragging with saved, clamped position and a reset command.
+The original Blizzard AchievementFrame global is
 not created or overwritten. Header totals are intentionally separated into
 Character Achievement Points and Legacy Points. Summary shows separate source
-counts, reliable recent custom/native completions, and unified overview bars.
+completion bars, up to six reliable dated custom/native records in one Recent
+Achievements section, then unified overview bars without repeated point headings.
 Cards expand descriptions/criteria and earned custom series link to previous
 tiers. Cards use one original point-shield region and hide both reward text and
 reward decoration when no genuine reward exists.
+
+## Independent classification fields
+
+Presentation identity, source, scope, navigation, achievement type, points,
+completion and rewards are separate fields. Namespaced identity remains stable
+through refreshes and parent-category aggregation. Native completion/reward data
+stays native; custom completion follows original character saved keys. Neither
+account scope nor native source determines an achievement's type or point system.
+Zero points do not imply Feat of Strength. Missing authoritative point values
+remain unavailable rather than defaulting to one Legacy Point or ten custom points.
+
+| Presentation property | Authority / semantics |
+| --- | --- |
+| `uniqueID`, `key` | Stable `legacy:<nativeID>` or `custom:<savedKey>`; deduplicated by identity |
+| `sourceType` | `native_legacy` or `custom_character`; original `source` aliases retain existing adapter compatibility |
+| `scopeType`, `scope` | Native verified flags or the existing character-specific custom storage model; unavailable metadata stays unknown |
+| `category`, `subcategory` | Subject navigation; does not grant points or determine the native achievement's type |
+| `achievementType` | Independent standard/feat/special classification with evidence; unavailable native metadata stays unknown |
+| `pointType`, `pointValue` | Actual custom definition value or native trait-currency getter; native positive awards are Legacy, confirmed native zero awards are none with value 0, missing awards remain unknown |
+| `completionState`, `completionDate` | Original saved custom completion or authoritative native completion/date, not inferred from criteria |
+| `criteria`, `progress` | Read-only actual objectives/quantities; missing data is explicitly unavailable |
+| `reward` | Actual description only; no generic source label or invented reward |
+
+The point shield renderer uses actual achievement type independently of point
+value. Positive Legacy awards use the original shield with a distinct blue-bronze
+tint and gold number; ordinary confirmed zero awards use a neutral ordinary
+shield. Only actual Feats use the original NoPoints artwork. Character and
+Legacy points remain distinguishable; native Explore Azeroth
+does not acquire Feat artwork merely because its point award is zero or missing.
+Its displayed numeric award still requires the live trait-currency getter.
+Individual custom zone achievements
+retain their own valid character points; they do not inherit a native parent
+meta-achievement's Legacy reward. Similar custom/native descriptions are not
+grounds for merging independently earned records.
+
+Scope is shown subtly in details/tooltips from explicit custom metadata or
+verified native flags. Missing flags stay unknown. The Feats → Other Legacy
+Challenges navigation fallback does not change the record's real achievement
+type, scope, point value, reward or completion. Exact duplicate identities are
+removed from a displayed list; separate sources, native meta milestones and
+custom progression tiers remain distinct.
 
 ## Unified category mapping
 
@@ -87,15 +149,37 @@ definitions and both progression databases retain their original identifiers.
 | PvP | Player vs. Player/PvP ancestry plus custom PvP |
 | Classes | Classes and recognized class-name metadata; applicable custom definitions if present |
 | Feats of Strength | Recognized Feats metadata plus custom Feats of Strength |
-| Unmapped Challenges | New, localized, or mixed metadata without a verified mapping; preserved and browsable |
+| Feats of Strength → Other Legacy Challenges | New, localized, or mixed native metadata without a verified subject mapping; navigation fallback only |
 
 Native subcategory ancestry is retained where it helps navigation. A parent with
 its own challenges and its child categories both contributes its original records.
 Mappings never enumerate fabricated challenges or choose a substitute mirrored ID.
 The few record-level Adventure exceptions require both a verified ID and matching
-live title; they do not classify all Adventure content as Exploration. Current
-name recognition and interface labels use English, so unrecognized localized names
-can appear under Unmapped Challenges rather than receive a guessed category.
+live title; they do not classify all Adventure content as Exploration. Shared
+subcategories are created from available content rather than filling an empty
+proposed hierarchy. Main categories aggregate every relevant descendant without
+duplicating records. Fishing, Cooking and First Aid have separate profession
+subcategories, with primary professions organized independently. Geography and
+actual profession/class/category metadata take precedence over title guesses.
+Native achievement type follows the verified original `AchievementUtil`
+Feats-of-Strength categories 81 and 15093, with bounded ancestry inspection;
+unknown or cyclic ancestry does not prove a standard type or a Feat. No invented
+native Feat flag is used. Custom Feats follow explicit type or their authored
+Feats category rather than a zero-point heuristic. Scope separately uses the
+validated runtime `ACHIEVEMENT_FLAGS_ACCOUNT` bit, without deriving it from source.
+
+Current name recognition and interface labels use English, so unrecognized
+localized names remain in Other Legacy Challenges rather than receive a guessed
+subject category. There is no standalone Unmapped Challenges navigation root.
+
+The view model retains unknown mappings as `model.unmapped`, recording ID, name,
+original category and reason for later classification work. The original native
+challenge ID is retained even when its displayed navigation location changes.
+`/fa legacyui unmapped` reports the current observed list in chat, bounded to 30
+entries with a truncation notice; it does not enumerate unavailable native data.
+The full current list remains in the view model. See the
+[classification/overlap audit](iteration3-achievement-audit.md) for static records
+and unresolved relationships.
 
 Native and custom rows share the same card renderer but keep `legacy:<id>` and
 `custom:<original-key>` identifiers and distinct point-system tooltips. Unknown
@@ -206,6 +290,71 @@ Supplied live evidence, documented contracts and guarded calls are used together
 
 ## Reversibility and limits
 
+### Quest tracking and deferred work
+
+No full Questie/Loremaster integration is introduced. Existing quest helpers
+prefer the native completed-quest statistic and guarded completed-ID getters:
+`C_QuestLog.GetAllCompletedQuestIDs`, then `GetQuestsCompleted` where available.
+Existing Loremaster counting recognizes the optional `QuestDB.Exists` and
+`QuestDB.Get(id, "zoneOrSort")` contract and the authored continent-area lists.
+Missing or failing completion/database data must remain unavailable rather than
+become a fabricated zero or completed Loremaster achievement. This narrow
+optional contract is not proof that an arbitrary Questie version is compatible.
+The standalone card/sort paths, tracker, and social tooltips also guard unavailable
+quest/Loremaster progress and leave its progress bar empty. A confirmed zero is
+still a known value. Retained daily tracked keys are hidden without deleting history.
+
+Future integration needs a Forever-compatible licensed quest database, reliable
+completed-ID coverage, zone/faction mapping, and agreement on which quests count
+toward each authored requirement. Existing quest keys, history, and currently
+working checks remain intact. Historical daily keys are retained but disabled;
+daily completion checks/categories are not added. Complex multi-stage money
+chains are preserved for later work rather than redesigned here.
+
+### Statistics authority
+
+`Integrations/StatisticsAdapter.lua` supplies an independent Statistics hierarchy
+and does not reuse the achievement category selection. Populated categories
+cover Character, Combat, Quests, Exploration, Professions, Dungeons & Raids, PvP,
+and Miscellaneous; Character, Combat and secondary professions have relevant
+subcategories. Parent selection aggregates each stable statistic identity once.
+Definitions alone do not establish that the client can return a valid value.
+
+Native rows call guarded `GetStatistic(id)` and preserve actual formatted text,
+including genuine `0`, grouped values, names and coin textures. Missing getters,
+exceptions, secret values and placeholder results display `Unavailable`.
+Local rows read original character counters/collections without adding defaults:
+an initialized empty collection confirms zero recorded observations, while an
+absent counter remains unavailable. These observations reflect addon tracking
+since installation, not a reconstructed lifetime total. Exploration is labeled
+as recorded areas, not a claim of full historical zone completion.
+
+The unified Statistics view omits unsupported daily statistics (97, 1525, 1526)
+and Dalaran Cooking Awards (1976), while preserving historical `ns.STATS` data
+and standalone behavior. Average quests per day is an ordinary statistic and
+does not imply that daily quests exist. No account histories or statistic values
+are merged or migrated.
+
+### Saved layout and local search
+
+`legacyUISize` records Compact, Standard or Large; absent/invalid preferences
+use Standard. `legacyUIPosition` contains `point`, `relativePoint`, `x` and `y`
+relative to UIParent. The controller validates values, fits the complete window
+to the current screen and clamps restored positions. `/fa legacyui reset`
+clears only that presentation preference; `/fa legacyui size ...` never changes
+achievement tracking or native progression. Size commands issued in combat
+save the preference and wait for safe layout work.
+
+Achievement and Statistics sidebar selections, expansion and scroll state are
+independent runtime navigation preferences. Search uses title, description and
+available category metadata plus already-loaded criterion text. It performs no
+native criterion queries on each keystroke and does not pretend to search every
+unloaded objective. The loaded-criteria index is bounded to 64 names of 256
+characters. The clear control resets the query and filter; completion/source
+filters are selected one at a time and respect the current subject category.
+
+### Native presentation restoration
+
 Disabled by default, the account option is controlled by `/fa legacyui on`
 and `/fa legacyui off`. The native registered root remains intact and owns
 normal open/close and panel lifecycle. The addon temporarily hides its original
@@ -220,7 +369,10 @@ using temporary cross-parent anchors, preserving each original parent and every
 descendant. Original native selection events drive those pages; their original
 callbacks own points, rewards, talent editing and progression. The bridge
 records/restores page anchors, dimensions, scale, strata, frame level and known
-decorative visibility. It does not recreate claim/spend controls or assign a new
+decorative visibility. Iteration 3 preserves original Rewards/Tree backgrounds
+and the native tree divider inside the shared Wrath frame; only native root
+presentation is suppressed. This supersedes iteration 2's inner-background
+suppression. It does not recreate claim/spend controls or assign a new
 page parent. The native panel's original width reservation remains unchanged to
 preserve relationships with other panels, even though the visible artwork is
 smaller. Rewards/Trees selection must preserve native access if mounting fails.
@@ -236,6 +388,9 @@ ends. Runtime protected/forbidden checks supplement source contracts. Missing
 frames wait for native loading; incompatible objects and rendering errors restore
 native access. No force-load, native search setter, global function replacement,
 transmission, CVar write, completion grant, trait purchase or reward claim is added.
+Drag-stop and saved-position cleanup errors cannot prevent an attempted native
+restoration or clearing the controller's busy state. Bridge restoration failures
+remain pending for a later legal retry.
 
 Gamepad mode uses the original native presentation. Its SmartNavigation maps the
 original three pages and original challenge controls, so the addon does not claim

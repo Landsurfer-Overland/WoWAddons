@@ -100,7 +100,7 @@ frames.append(header)
 # original point-border and tiny-shield artwork, not another outer frame.
 border = header.find('.//' + tag('Texture') + "[@name='$parentPointBorder']")
 border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '170')
-border.find('.//' + tag('Offset')).set('x', '-86')
+border.find('.//' + tag('Offset')).set('x', '-115')
 title = header.find('.//' + tag('FontString') + "[@name='$parentTitle']")
 title.find(tag('Size')).set('x', '220')
 title.set('text', 'Character Achievement Points')
@@ -114,7 +114,7 @@ for name, replacement in [('PointBorder', 'LegacyPointBorder'), ('Title', 'Legac
             value = value.replace('HeaderPointBorder', 'HeaderLegacyPointBorder')
             if value == '$parentPoints': value = '$parentLegacyPoints'
             node.set('relativeTo', value)
-    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '105')
+    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '115')
     if name == 'Title':
         item.set('text', 'Legacy Points'); item.find(tag('Size')).set('x', '160')
     layer = next(layer for layer in header.find(tag('Layers')) if header.find('.//*[@name="$parent' + name + '"]') in list(layer))

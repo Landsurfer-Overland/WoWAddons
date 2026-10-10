@@ -130,7 +130,9 @@ function B:Mount(view, host)
     invoke(page, "SetPoint", "CENTER", host, "CENTER", 0, 0)
     invoke(page, "SetFrameStrata", host:GetFrameStrata())
     invoke(page, "SetFrameLevel", host:GetFrameLevel() + 10)
-    for _, item in ipairs(data.decorations) do visibility(item.object, false) end
+    -- Keep the page's own background and divider art. Only the native outer
+    -- window is suppressed; native content retains its intended visual identity.
+    for _, item in ipairs(data.decorations) do visibility(item.object, item.shown) end
     visibility(page, true)
 end
 function B:Restore()

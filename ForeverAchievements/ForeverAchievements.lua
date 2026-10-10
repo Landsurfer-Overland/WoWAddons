@@ -40,6 +40,12 @@ local function Count(t)
 end
 
 local secret = issecretvalue or function() return false end
+local function ProgressKnown(cur, need)
+    return type(cur) == "number" and type(need) == "number"
+        and not secret(cur) and not secret(need)
+        and cur == cur and need == need and cur >= 0 and need >= 0
+        and cur < math.huge and need < math.huge
+end
 
 -------------------------------------------------------------------------------
 --  Lists (WotLK criteria; Northrend and Outland-only entries left out)
@@ -200,8 +206,9 @@ local SECTIONS = {
 -- Character statistics the client keeps (the WotLK Statistics page): a
 -- number, or a money string with coin icons.
 local function StatText(id)
-    local text = GetStatistic and GetStatistic(id)
-    if type(text) ~= "string" or secret(text) then return nil end
+    if type(GetStatistic) ~= "function" then return nil end
+    local ok, text = pcall(GetStatistic, id)
+    if not ok or type(text) ~= "string" or secret(text) then return nil end
     return text
 end
 
@@ -230,9 +237,13 @@ end
 local STAT_QUESTS, STAT_DAILIES, STAT_QUEST_GOLD = 98, 97, 326
 
 local function CompletedIDs()
-    if C_QuestLog and C_QuestLog.GetAllCompletedQuestIDs then return C_QuestLog.GetAllCompletedQuestIDs() or {} end
+    if C_QuestLog and type(C_QuestLog.GetAllCompletedQuestIDs) == "function" then
+        local ok, ids = pcall(C_QuestLog.GetAllCompletedQuestIDs)
+        if ok and not secret(ids) and type(ids) == "table" then return ids end
+    end
+    if type(GetQuestsCompleted) ~= "function" then return nil end
     local t, out = {}, {}
-    if GetQuestsCompleted then GetQuestsCompleted(t) end
+    if not pcall(GetQuestsCompleted, t) then return nil end
     for id in pairs(t) do out[#out + 1] = id end
     return out
 end
@@ -240,7 +251,9 @@ end
 local function QuestCount()
     local n = StatNumber(STAT_QUESTS)
     if n and n > 0 then return n end
-    return #CompletedIDs()
+    local ids = CompletedIDs()
+    if ids then return #ids end
+    return n -- a confirmed native zero remains distinct from unavailable
 end
 
 local function IsQuestDone(id)
@@ -278,13 +291,16 @@ local loreCount = {}
 local function CountLore()
     wipe(loreCount)
     local Q = _G.QuestDB
-    if not Q then return end
+    if type(Q) ~= "table" or type(Q.Exists) ~= "function" or type(Q.Get) ~= "function" then return end
+    local ids = CompletedIDs()
+    if not ids then return end
     local ek, kal = {}, {}
     for _, a in ipairs(ns.LORE_EK_A.areas) do ek[a] = true end
     for _, a in ipairs(ns.LORE_KAL_A.areas) do kal[a] = true end
     local nEK, nKal = 0, 0
-    for _, id in ipairs(CompletedIDs()) do
-        local z = Q.Exists and Q.Exists(id) and Q.Get(id, "zoneOrSort")
+    for _, id in ipairs(ids) do
+        local ok, z = pcall(function() return Q.Exists(id) and Q.Get(id, "zoneOrSort") end)
+        if not ok then return end -- partial data cannot prove a complete count
         if z then
             if ek[z] then nEK = nEK + 1 elseif kal[z] then nKal = nKal + 1 end
         end
@@ -384,11 +400,12 @@ end
 local function QuestAch(key, id, n, pts)
     return { key = key, id = id, series = "quests", name = n .. " Quests Completed",
              desc = "Complete " .. n .. " quests.", pts = pts or 10,
-             progress = function() return math.min(QuestCount(), n), n end }
+             progress = function() local count = QuestCount(); return count and math.min(count, n), n end }
 end
 
 local function DailyAch(key, id, n)
     return { key = key, id = id, series = "dailies", name = n .. " Daily Quests Complete",
+             unsupported = true, unsupportedReason = "Daily quests are unavailable in this Forever project.",
              desc = "Complete " .. n .. " daily quests.", pts = 10,
              progress = function() return math.min(StatNumber(STAT_DAILIES) or 0, n), n end }
 end
@@ -398,9 +415,9 @@ local greenHillsList = {}
 for _, q in ipairs(ns.GREEN_HILLS) do greenHillsList[#greenHillsList + 1] = GREEN_HILLS_NAMES[q] or ("Quest " .. q) end
 
 local loreEK = { key = "loreEK", id = 1676, name = "Loremaster of Eastern Kingdoms", pts = 10,
-    progress = function() local n = LoreNeed("EK"); return math.min(loreCount.ek or 0, n), n end }
+    progress = function() local n = LoreNeed("EK"); return loreCount.ek and math.min(loreCount.ek, n), n end }
 local loreKal = { key = "loreKal", id = 1678, name = "Loremaster of Kalimdor", pts = 10,
-    progress = function() local n = LoreNeed("KAL"); return math.min(loreCount.kal or 0, n), n end }
+    progress = function() local n = LoreNeed("KAL"); return loreCount.kal and math.min(loreCount.kal, n), n end }
 loreEK.desc = "Complete quests in Eastern Kingdoms (counted with QuestieDB)."
 loreKal.desc = "Complete quests in Kalimdor (counted with QuestieDB)."
 
@@ -425,6 +442,7 @@ local QUEST_SECTIONS = {
         DailyAch("d5", 973, 5), DailyAch("d50", 974, 50), DailyAch("d200", 975, 200),
         DailyAch("d500", 976, 500), DailyAch("d1000", 977, 1000),
         { key = "request", id = 31, name = "A Simple Re-Quest", pts = 10,
+          unsupported = true, unsupportedReason = "Daily quests are unavailable in this Forever project.",
           desc = "Complete a daily quest every day for five consecutive days.",
           progress = function() return math.min(DailyStreak(), 5), 5 end },
     } },
@@ -570,7 +588,7 @@ end
 local function SkillRank(name) return Skills()[name] or 0 end
 
 local function RankAch(key, id, series, name, desc, skill, n, icon)
-    return { key = key, id = id, icon = icon, series = series, name = name, desc = desc, pts = 10,
+    return { key = key, id = id, icon = icon, series = series, skill = skill, name = name, desc = desc, pts = 10,
              progress = function()
                  local r = skill and SkillRank(skill) or BestPrimary()
                  return math.min(r, n), n
@@ -1296,6 +1314,7 @@ local function Settings() return AccountDB().settings end
 -- Faction-only achievements show for that faction alone; ones that need
 -- another addon (requires) only while it is loaded.
 local function Available(a)
+    if a.unsupported then return false end -- preserve definitions and old saved keys
     if a.requires and not a.requires() then return false end
     return not a.faction or a.faction == UnitFactionGroup("player")
 end
@@ -1438,7 +1457,7 @@ local function CheckAll(quiet)
     for _, a in ipairs(ALL) do
         if not DB().done[a.key] and Available(a) then
             local cur, need = a.progress()
-            if cur >= need then
+            if ProgressKnown(cur, need) and cur >= need then
                 if quiet then DB().done[a.key] = time() else Complete(a) end
             end
         end
@@ -1461,7 +1480,6 @@ ev:SetScript("OnEvent", function(_, event, ...) handlers[event](...) end)
 
 -- Login: anything already true counts quietly (no toast storm), then checks.
 On("PLAYER_LOGIN", function()
-    TrackDailies()
     CountLore()
     NoteSubzone()
     -- Achievements added in a new version are taken in quietly once (no
@@ -1491,7 +1509,7 @@ On("PLAYER_LOGIN", function()
 end)
 On("PLAYER_LEVEL_UP", function() C_Timer.After(1, function() CheckAll() end) end)
 On("QUEST_TURNED_IN", function()
-    C_Timer.After(1, function() TrackDailies(); CountLore(); CheckAll() end)
+    C_Timer.After(1, function() CountLore(); CheckAll() end)
 end)
 for _, e in ipairs({ "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }) do
     On(e, function() if NoteSubzone() then CheckAll() end end)
@@ -2094,7 +2112,9 @@ local function VisibleOf(list)
                 frac[a] = 2
             else
                 local cur, need = a.progress()
-                frac[a] = 1 - (cur / math.max(1, need))
+                -- Unknown progress sorts after known unfinished rows without
+                -- inventing a zero counter for display or completion.
+                frac[a] = ProgressKnown(cur, need) and (1 - cur / math.max(1, need)) or 1.5
             end
         end
         table.sort(out, function(p, q)
@@ -2220,6 +2240,7 @@ local function BuildList(child, width)
         for _, a in ipairs(visible) do
             local done = Earned(a.key)
             local cur, need = a.progress()
+            local progressKnown = ProgressKnown(cur, need)
             local dyn = a.dynamicList and a.dynamicList()
             if dyn and #dyn < 2 then dyn = nil end
             local hasList = a.list or a.seen or dyn
@@ -2333,16 +2354,18 @@ local function BuildList(child, width)
             if done then pts:SetTextColor(0.03, 0.07, 0.09) else pts:SetTextColor(r, g, b, 1) end
 
             local right = Kit.MakeFont(card, 12, nil, C.text[1], C.text[2], C.text[3], 0.85)
-            right:SetPoint("RIGHT", badge, "LEFT", -16, (not done and need > 1) and 5 or 0)
+            right:SetPoint("RIGHT", badge, "LEFT", -16, (not done and progressKnown and need > 1) and 5 or 0)
             if done then
                 right:SetText(date("%d.%m.%Y", done))
                 right:SetTextColor(r, g, b, 1)
+            elseif not progressKnown then
+                right:SetText("Unavailable")
             elseif a.money then
                 right:SetText(Money(cur) .. " / " .. Money(need))
             else
                 right:SetText(cur .. " / " .. need)
             end
-            if not done and need > 1 then
+            if not done and progressKnown and need > 1 then
                 local track = card:CreateTexture(nil, "ARTWORK")
                 track:SetColorTexture(1, 1, 1, 0.1)
                 track:SetSize(150, 2)
@@ -2709,7 +2732,9 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
             { "/fach compare Firstname Lastname", "compare with a player who runs the addon (or right-click them)" },
             { "/fach compare off", "stop comparing" },
             { "/fach welcome", "show the welcome screen again" },
-            { "/fa legacyui on|off", "enable or disable the experimental Wrath UI in native Legacy Challenges" },
+            { "/fa legacyui on|off", "enable or disable the unified Wrath Legacy interface" },
+            { "/fa legacyui size compact|standard|large", "choose a saved window size" },
+            { "/fa legacyui reset", "reset the Legacy window position without changing progress" },
             { "/fach debug", "debug messages for critters, pests and kills" },
             { "/fach reset", "clear this character's progress" },
             { "/fach help", "this list" },
@@ -2749,7 +2774,7 @@ local BY_KEY = {}
 for _, a in ipairs(ALL) do BY_KEY[a.key] = a end
 
 ns.FA = {
-    TAG = TAG, Kit = Kit, secret = secret, Count = Count,
+    TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     IsDebug = function() return debugOn end, -- /fach debug, for messages in the other files
     DB = DB, Account = AccountDB, Settings = Settings,
     ALL = ALL, BY_KEY = BY_KEY, SERIES = SERIES, Available = Available, Earned = Earned,
@@ -2757,6 +2782,10 @@ ns.FA = {
     EARN_HOOKS = EARN_HOOKS, CHECK_HOOKS = CHECK_HOOKS, VIEWS = VIEWS, SLASH = SLASH, COMPARE = COMPARE, LINK = LINK,
     CheckAll = CheckAll, TotalPoints = TotalPoints, SeriesPoints = SeriesPoints, ToggleTrack = ToggleTrack,
     Money = Money, StatText = StatText, NpcID = NpcID, IsDrink = IsDrink,
+    -- Read-only seams for a later compatible quest-database adapter. No new
+    -- Questie integration or imported quest catalog is introduced here.
+    QuestTracking = { CompletedIDs = CompletedIDs, Count = QuestCount,
+        LoremasterCounts = function() return loreCount.ek, loreCount.kal end },
     CRITTERS = CRITTERS, PESTS = PESTS, PEST_NAMES = PEST_NAMES, BOSS_IDS = BOSS_IDS, BOSS_BY_NAME = BOSS_BY_NAME,
     BOSS_ACH = BOSS_ACH, BOOKSET = BOOKSET, ZONE_ACH = ZONE_ACH,
     Open = Open,

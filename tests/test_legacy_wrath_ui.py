@@ -99,35 +99,76 @@ function UIObject(kind, name, parent)
     function f:SetHeight(h) self.height=h end
     function f:GetWidth() return self.width end
     function f:GetHeight() return self.height end
-    function f:GetCenter() return self.centerX or 640, self.centerY or 450 end
+    function f:GetCenter()
+        if self.centerX ~= nil and self.centerY ~= nil then return self.centerX,self.centerY end
+        if not self.parent then return self.width/2,self.height/2 end
+        local anchor = self.points and self.points[1]
+        local relative = anchor and anchor[2] or self.allPoints or self.parent
+        if not relative or relative==self then return self.width/2,self.height/2 end
+        local x,y=relative:GetCenter()
+        local relativeScale,selfScale=relative:GetEffectiveScale(),self:GetEffectiveScale()
+        x,y=x*relativeScale,y*relativeScale
+        if anchor then
+            local point,relativePoint=anchor[1],anchor[3] or anchor[1]
+            if relativePoint:find("LEFT") then x=x-relative:GetWidth()*relativeScale/2 end
+            if relativePoint:find("RIGHT") then x=x+relative:GetWidth()*relativeScale/2 end
+            if relativePoint:find("TOP") then y=y+relative:GetHeight()*relativeScale/2 end
+            if relativePoint:find("BOTTOM") then y=y-relative:GetHeight()*relativeScale/2 end
+            x,y=x+(anchor[4] or 0)*selfScale,y+(anchor[5] or 0)*selfScale
+            if point:find("LEFT") then x=x+self:GetWidth()*selfScale/2 end
+            if point:find("RIGHT") then x=x-self:GetWidth()*selfScale/2 end
+            if point:find("TOP") then y=y-self:GetHeight()*selfScale/2 end
+            if point:find("BOTTOM") then y=y+self:GetHeight()*selfScale/2 end
+        end
+        return x/selfScale,y/selfScale
+    end
+    function f:GetLeft() local x=self:GetCenter(); return x-self:GetWidth()/2 end
+    function f:GetRight() local x=self:GetCenter(); return x+self:GetWidth()/2 end
+    function f:GetTop() local _,y=self:GetCenter(); return y+self:GetHeight()/2 end
+    function f:GetBottom() local _,y=self:GetCenter(); return y-self:GetHeight()/2 end
     function f:SetText(t) self.textValue=tostring(t or ""); if type(self.text)=="table" then self.text:SetText(t) end end
     function f:GetText() return self.textValue end
     function f:GetStringHeight() return math.max(12, math.ceil(#self.textValue / math.max(1,self.width/6)) * 12) end
     function f:SetTextColor(...) self.color={...} end
     function f:SetFontObject(object) self.fontObject=object end
+    function f:GetFontObject() return self.fontObject end
     function f:SetVertexColor(...) self.color={...} end
     function f:SetTexCoord(...) self.coords={...} end
     function f:SetTexture(t) self.textureValue=t end
     function f:SetColorTexture(...) self.colorTexture={...} end
-    function f:SetPoint(...) self.points=self.points or {}; table.insert(self.points,{...}) end
-    function f:ClearAllPoints() self.points={} end
+    function f:SetPoint(point,relative,relativePoint,x,y)
+        if type(relative)=="number" then
+            x,y,relative,relativePoint=relative,relativePoint,self.parent,point
+        elseif type(relativePoint)=="number" then
+            x,y,relativePoint=relativePoint,x,point
+        end
+        if type(relative)=="string" then relative=_G[relative] end
+        relative=relative or self.parent
+        self.points=self.points or {}
+        table.insert(self.points,{point,relative,relativePoint or point,x or 0,y or 0})
+    end
+    function f:ClearAllPoints() self.points={}; self.allPoints=nil end
     function f:GetNumPoints() return #(self.points or {}) end
-    function f:GetPoint(index) return unpack(self.points[index or 1]) end
+    function f:GetPoint(index) return unpack((self.points or {})[index or 1] or {}) end
     function f:SetAllPoints(relative) self.allPoints=relative or self.parent end
     function f:SetParent(p) self.parent=p end
     function f:SetScale(v) self.scale=v end
     function f:GetScale() return self.scale end
     function f:GetEffectiveScale() return self.scale * (self.parent and self.parent:GetEffectiveScale() or 1) end
     function f:GetAlpha() return self.alpha or 1 end
+    function f:SetAlpha(v) self.alpha=v end
     function f:SetFrameLevel(v) self.level=v end
     function f:SetFrameStrata(v) self.strata=v end
     function f:SetBackdrop(v) self.backdrop=v end
+    function f:SetBackdropColor(...) self.backdropColor={...} end
     function f:SetBackdropBorderColor(...) self.borderColor={...} end
     function f:SetStatusBarColor(...) self.barColor={...} end
     function f:SetMinMaxValues(a,b) self.minimum=a; self.maximum=b end
     function f:SetValue(v) self.value=v end
     function f:GetStatusBarTexture() if not self.barTexture then self.barTexture=UIObject("Texture",nil,self) end; return self.barTexture end
     function f:SetDrawLayer(v) self.layer=v end
+    function f:SetBlendMode(v) self.blendMode=v end
+    function f:GetBlendMode() return self.blendMode or "BLEND" end
     function f:SetScrollChild(v) self.scrollChild=v end
     function f:SetVerticalScroll(v) self.scroll=v; self:Fire("OnVerticalScroll",v) end
     function f:GetVerticalScroll() return self.scroll end
@@ -149,7 +190,9 @@ function UIObject(kind, name, parent)
     function f:SetAutoFocus(v) self.autoFocus=v end
     function f:SetMaxLetters(v) self.maxLetters=v end
     function f:ClearFocus() self.focused=false end
+    function f:SetFocus() self.focused=true end
     function f:SetJustifyH(v) self.justify=v end
+    function f:SetJustifyV(v) self.justifyVertical=v end
     function f:SetWordWrap(v) self.wordWrap=v end
     function f:SetShadowOffset(...) self.shadow={...} end
     function f:CreateTexture(name) return UIObject("Texture",name,self) end
@@ -162,6 +205,14 @@ UISpecialFrames={}
 tinsert=table.insert
 function HideUIPanel(frame) frame:Hide() end
 function ShowUIPanel(frame) frame:Show() end
+function CategoryRoot(model,key)
+    local category,seen=model.byCategory[key],{}
+    while category and category.parent and not seen[category.key] do
+        seen[category.key]=true
+        category=model.byCategory[category.parent]
+    end
+    return category and category.key
+end
 
 -- Default fixture order is native selector first. A regression test reverses
 -- it because the actual owner-keyed CallbackRegistry has no ordering guarantee.
@@ -301,7 +352,8 @@ class Harness:
         self.templates = {e.get("name"): e for e in ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()}
         self.g.CreateFrame = self.create
         for path in ("Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua",
-                     "Integrations/Presentation.lua", "UI/WrathAchievementUI.lua"):
+                     "Integrations/Presentation.lua", "Integrations/StatisticsAdapter.lua",
+                     "UI/WrathAchievementUI.lua"):
             self.load(path)
         if controller:
             self.g.SetupNative()
@@ -396,10 +448,10 @@ class AdapterTests(unittest.TestCase):
         self.check('''
             local m=ns.LegacyPresentation.Build()
             assert(m.byKey["legacy:62382"] and not m.byKey["legacy:64015"])
-            assert(m.byCategory["legacy-category:15587"].parent=="professions")
+            assert(CategoryRoot(m,"legacy-category:15587")=="professions")
             assert(#ns.LegacyPresentation.Rows(m,"professions")==1)
-            assert(m.byKey["legacy:62382"].category=="exploration")
-            assert(m.byKey["legacy:62053"].category=="exploration")
+            assert(m.byKey["legacy:62382"].unifiedRoot=="exploration")
+            assert(m.byKey["legacy:62053"].unifiedRoot=="exploration")
         ''')
 
     def test_custom_native_ids_do_not_collide_or_import_synthetic_points(self):
@@ -535,20 +587,208 @@ class ControllerTests(unittest.TestCase):
             assert(#calls==0)
         ''')
 
-    def test_enable_replaces_outer_window_with_original_wrath_proportions(self):
+    def test_enable_uses_standard_size_and_restores_original_native_window(self):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
             assert(c.state=="Enabled", c.state)
-            assert(c.cover.parent==UIParent and c.cover.width==768 and c.cover.height==640)
+            assert(c.cover.parent==UIParent and c.cover.width==900 and c.cover.height==760)
             assert(c.cover:IsVisible() and c.ui.root.parent==c.cover and c.ui.root.scale==1)
-            assert(c.ui.root.width==768 and c.ui.root.height==500)
+            assert(c.ui.root.width==900 and c.ui.root.height==620)
             assert(not LegacySystemFrame.Background:IsShown() and not LegacySystemFrame.NineSlice:IsShown())
             assert(not LegacySystemFrame.NativeTabs:IsShown() and not LegacySystemFrame.ChallengesPage:IsShown())
             assert(not LegacySystemFrame:IsMouseEnabled())
             assert(LegacySystemFrame:GetScript("OnShow")==originalRootShow)
             assert(LegacySystemFrame:GetScript("OnHide")==originalRootHide)
             assert(#calls==0)
+        ''')
+
+    def test_size_presets_persist_real_content_dimensions_without_upscaling_art(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            local done,history,explored=saved.done,saved.history,saved.explored
+            local originalDefinition=ns.FA.BY_KEY.first
+            local cases={{"compact","Compact",768,640,500},{"standard","Standard",900,760,620},{"large","Large",1024,860,720}}
+            for _,case in ipairs(cases) do
+                ns.FA.SLASH.legacyui("size "..case[1]); FlushTimers()
+                assert(settings.legacyUISize==case[2])
+                assert(c.cover:GetWidth()==case[3] and c.cover:GetHeight()==case[4])
+                assert(c.ui.root:GetWidth()==case[3] and c.ui.root:GetHeight()==case[5])
+                assert(c.ui.root:GetScale()==1 and c.cover:GetScale()<=1)
+                assert(c.cover:GetParent()==UIParent and c.cover:IsVisible())
+                local _,relative=c.cover:GetPoint(1)
+                assert(relative==UIParent)
+                assert(saved.done==done and saved.history==history and saved.explored==explored)
+                assert(ns.FA.BY_KEY.first==originalDefinition and saved.done.first==1730000000)
+            end
+            assert(saved.history[1]=="keep" and saved.explored.zone.old and #calls==0)
+        ''')
+
+    def test_selecting_size_while_disabled_does_not_enable_native_replacement(self):
+        self.check('''
+            ns.FA.SLASH.legacyui("size large")
+            assert(settings.legacyUISize=="Large" and not settings.legacyUI)
+            assert(FAWrathLegacyCover==nil and LegacySystemFrame.NativeTabs:IsShown())
+            assert(LegacySystemFrame:IsMouseEnabled() and next(LegacySystemFrame.ChallengesPage.hooks)==nil)
+            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            assert(ns.LegacyUIController.cover:GetWidth()==1024 and #calls==0)
+        ''')
+
+    def test_size_cycle_callback_persists_choice_across_refreshes(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            assert(type(c.ui.callbacks.onSizePresetCycle)=="function")
+            for _,expected in ipairs({"Large","Compact","Standard"}) do
+                c.ui.callbacks.onSizePresetCycle(); FlushTimers()
+                assert(settings.legacyUISize==expected and c.cover:IsVisible())
+                local width=c.cover:GetWidth()
+                c:Refresh()
+                assert(c.cover:GetWidth()==width and settings.legacyUISize==expected)
+            end
+            assert(#calls==0)
+        ''')
+
+    def test_drag_position_persists_without_native_frame_reference(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            FAWrathAchievementFrameHeader:Fire("OnDragStart")
+            assert(c.cover.moving)
+            c.cover:ClearAllPoints(); c.cover:SetPoint("CENTER",UIParent,"CENTER",85,-35)
+            c:Refresh()
+            local _,relative,_,x,y=c.cover:GetPoint(1)
+            assert(relative==UIParent and x==85 and y==-35)
+            FAWrathAchievementFrameHeader:Fire("OnDragStop")
+            local position=settings.legacyUIPosition
+            assert(not c.cover.moving and type(position)=="table")
+            assert(position.point=="CENTER" and position.relativePoint=="CENTER")
+            assert(math.abs(position.x-85)<.01 and math.abs(position.y+35)<.01)
+            for _,value in pairs(position) do assert(type(value)=="string" or type(value)=="number") end
+            LegacySystemFrame:Hide(); LegacySystemFrame:Show(); FlushTimers()
+            local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
+            assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER")
+            assert(math.abs(x-85)<.01 and math.abs(y+35)<.01)
+            assert(saved.history[1]=="keep" and #calls==0)
+        ''')
+
+    def test_login_restores_preset_and_position_independently_of_native_anchor(self):
+        h=Harness()
+        h.execute('''
+            SetupNative(); settings.legacyUI=true; settings.legacyUISize="Compact"
+            settings.legacyUIPosition={point="CENTER",relativePoint="CENTER",x=110,y=45}
+        ''')
+        h.load("Integrations/LegacyWindowBridge.lua")
+        h.load("Integrations/LegacyController.lua")
+        h.execute('''
+            for _,frame in ipairs(frames) do
+                if frame.events and frame.events.PLAYER_LOGIN then frame:Fire("OnEvent","PLAYER_LOGIN"); break end
+            end
+            local c=ns.LegacyUIController
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==768 and c.cover:GetHeight()==640)
+            local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
+            assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER" and x==110 and y==45)
+            local _,nativeRelative,_,nativeX,nativeY=LegacySystemFrame:GetPoint(1)
+            assert(nativeRelative==UIParent and nativeX==24 and nativeY==10)
+            assert(saved.done.first==1730000000 and saved.explored.zone.old and #calls==0)
+        ''')
+
+    def test_reset_centers_window_without_resetting_size_selection_or_progress(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            ns.FA.SLASH.legacyui("size large"); FlushTimers()
+            c.ui.tabs[3]:Fire("OnClick")
+            settings.legacyUIPosition={point="CENTER",relativePoint="CENTER",x=99999,y=-99999}
+            ns.FA.SLASH.legacyui("reset"); FlushTimers()
+            local position=settings.legacyUIPosition
+            assert(position==nil or position.point=="CENTER" and position.relativePoint=="CENTER" and position.x==0 and position.y==0)
+            local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
+            assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER" and x==0 and y==0)
+            assert(settings.legacyUISize=="Large" and settings.legacyUI and c.ui.tab=="trees")
+            assert(LegacySystemFrame.TreePage:IsVisible() and LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
+        ''')
+
+    def test_offscreen_saved_position_is_clamped_into_available_screen(self):
+        self.check('''
+            settings.legacyUIPosition={point="CENTER",relativePoint="CENTER",x=99999,y=-99999}
+            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            local cover=ns.LegacyUIController.cover
+            local scale=cover:GetEffectiveScale()/UIParent:GetEffectiveScale()
+            assert(cover:GetLeft()*scale>=9.99 and cover:GetBottom()*scale>=9.99)
+            assert(cover:GetRight()*scale<=UIParent:GetWidth()-9.99)
+            assert(cover:GetTop()*scale<=UIParent:GetHeight()-9.99)
+            assert(cover:IsVisible() and #calls==0)
+        ''')
+
+    def test_malformed_saved_geometry_uses_safe_defaults(self):
+        self.check('''
+            settings.legacyUISize="Enormous"
+            settings.legacyUIPosition={point="NOT_AN_ANCHOR",relativePoint={},x=0/0,y=math.huge}
+            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            local c=ns.LegacyUIController
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==900 and c.cover:GetHeight()==760)
+            local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
+            assert(point=="CENTER" and relative==UIParent and relativePoint=="CENTER" and x==0 and y==0)
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
+        ''')
+
+    def test_invalid_preset_command_keeps_active_geometry_and_settings(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            ns.FA.SLASH.legacyui("size compact"); FlushTimers()
+            ns.FA.SLASH.legacyui("size unsupported")
+            assert(settings.legacyUISize=="Compact" and settings.legacyUI)
+            assert(c.cover:GetWidth()==768 and c.cover:GetHeight()==640 and c.cover:IsVisible())
+            assert(LegacySystemFrame.ChallengesPage:GetScript("OnShow")==originalShow and #calls==0)
+        ''')
+
+    def test_combat_preset_change_defers_protected_native_geometry(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            local tree=LegacySystemFrame.TreePage
+            local writes=0
+            for _,name in ipairs({"SetPoint","ClearAllPoints","SetScale","SetSize","SetFrameLevel","SetFrameStrata"}) do
+                local original=tree[name]
+                tree[name]=function(self,...)
+                    writes=writes+1
+                    return original(self,...)
+                end
+            end
+            tree.protected=true; inCombat=true
+            ns.FA.SLASH.legacyui("size large")
+            assert(settings.legacyUISize=="Large" and writes==0)
+            assert(tree:GetParent()==LegacySystemFrame and saved.done.first==1730000000)
+            tree.protected=false; inCombat=false
+            for _,frame in ipairs(frames) do
+                if frame.events and frame.events.PLAYER_REGEN_ENABLED then frame:Fire("OnEvent","PLAYER_REGEN_ENABLED"); break end
+            end
+            FlushTimers()
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==1024 and c.ui.tab=="trees")
+            assert(tree:IsVisible() and tree:GetParent()==LegacySystemFrame and #calls==0)
+        ''')
+
+    def test_size_layout_failure_restores_native_page_and_keeps_saved_history(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[2]:Fire("OnClick")
+            local fit=c.ui.Fit
+            c.ui.Fit=function() error("Injected preset layout failure") end
+            ns.FA.SLASH.legacyui("size compact"); FlushTimers()
+            local reward=LegacySystemFrame.RewardTrackPage
+            assert(not c.cover:IsShown() and c.state:find("Fallback"))
+            assert(reward:IsVisible() and reward:GetParent()==LegacySystemFrame and reward:GetScale()==1)
+            assert(reward:GetWidth()==910 and reward:GetHeight()==569 and reward.Background:IsShown())
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and settings.legacyUISize=="Compact")
+            c.ui.Fit=fit; ns.FA.SLASH.legacyui("on"); FlushTimers()
+            assert(c.cover:IsVisible() and c.cover:GetWidth()==768 and #calls==0)
         ''')
 
     def test_disable_preserves_native_function_script_provider_and_rewards(self):
@@ -627,13 +867,13 @@ class ControllerTests(unittest.TestCase):
             assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>reward:GetFrameLevel())
             local _,relative=reward:GetPoint(1)
             assert(relative==c.ui.nativeHost and reward:GetParent()==LegacySystemFrame)
-            assert(not reward.Background:IsShown())
+            assert(reward.Background:IsShown())
             assert(reward:GetWidth()*reward:GetEffectiveScale()<=c.ui.nativeHost:GetWidth()*c.ui.nativeHost:GetEffectiveScale()+.01)
             assert(reward:GetHeight()*reward:GetEffectiveScale()<=c.ui.nativeHost:GetHeight()*c.ui.nativeHost:GetEffectiveScale()+.01)
             c.ui.tabs[3]:Fire("OnClick")
             assert(c.ui.tab=="trees" and LegacySystemFrame.currentPage==3 and tree:IsVisible())
             assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>tree:GetFrameLevel())
-            assert(tree:GetParent()==LegacySystemFrame and not tree.VerticalDivider:IsShown())
+            assert(tree:GetParent()==LegacySystemFrame and tree.Background:IsShown() and tree.VerticalDivider:IsShown())
             assert(not reward:IsShown() and reward:GetParent()==LegacySystemFrame)
             c.ui.tabs[4]:Fire("OnClick")
             assert(c.ui.tab=="statistics" and not reward:IsShown() and not tree:IsShown())
@@ -736,6 +976,52 @@ class ControllerTests(unittest.TestCase):
             assert(LegacySystemFrame:IsMouseEnabled() and #calls==0)
         ''')
 
+    def test_drag_cleanup_failure_does_not_block_native_restoration(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[3]:Fire("OnClick")
+            FAWrathAchievementFrameHeader:Fire("OnDragStart")
+            assert(c.dragging and c.cover.moving)
+            c.cover.StopMovingOrSizing=function() error("Injected drag cleanup failure") end
+            ns.FA.SLASH.legacyui("off")
+            local tree=LegacySystemFrame.TreePage
+            local point,relative,relativePoint,x,y=tree:GetPoint(1)
+            assert(not c.busy and not c.dragging and not c.restorePending and c.bridge==nil)
+            assert(c.state=="Disabled" and not c.cover:IsShown() and not settings.legacyUI)
+            assert(tree:IsVisible() and tree:GetParent()==LegacySystemFrame and tree:GetScale()==1)
+            assert(tree:GetWidth()==920 and tree:GetHeight()==575)
+            assert(point=="TOPLEFT" and relative==LegacySystemFrame and relativePoint=="TOPLEFT" and x==0 and y==0)
+            assert(tree.Background:IsShown() and tree.VerticalDivider:IsShown())
+            assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
+        ''')
+
+    def test_throwing_bridge_restore_retains_pending_cover_and_allows_safe_retry(self):
+        self.h.enable()
+        self.check('''
+            local c=ns.LegacyUIController
+            c.ui.tabs[2]:Fire("OnClick")
+            local bridge=c.bridge
+            local originalRestore=bridge.Restore
+            bridge.Restore=function() error("Injected restoration exception") end
+            ns.FA.SLASH.legacyui("off")
+            assert(not settings.legacyUI and not c.busy and c.restorePending)
+            assert(c.bridge==bridge and c.cover:IsVisible())
+            assert(c.state:find("Restoration pending") and c.state:find("Injected restoration exception"))
+            assert(LegacySystemFrame.RewardTrackPage:IsVisible() and not LegacySystemFrame.NativeTabs:IsShown())
+            bridge.Restore=originalRestore
+            for _,frame in ipairs(frames) do
+                if frame.events and frame.events.PLAYER_REGEN_ENABLED then frame:Fire("OnEvent","PLAYER_REGEN_ENABLED"); break end
+            end
+            local reward=LegacySystemFrame.RewardTrackPage
+            assert(not c.busy and not c.restorePending and c.bridge==nil and not c.cover:IsShown())
+            assert(c.state=="Disabled" and reward:IsVisible() and reward:GetParent()==LegacySystemFrame)
+            assert(reward:GetScale()==1 and reward:GetWidth()==910 and reward:GetHeight()==569)
+            assert(reward.Background:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
+            assert(LegacySystemFrame:IsMouseEnabled() and saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
+        ''')
+
     def test_partial_mount_failure_restores_anchors_scale_and_native_access(self):
         self.h.enable()
         self.check('''
@@ -773,15 +1059,21 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
+            ns.FA.SLASH.legacyui("size large"); FlushTimers()
             c.ui.tabs[2]:Fire("OnClick")
             UIParent:SetSize(640,480); UIParent:SetScale(.75)
             UIParent:Fire("OnSizeChanged"); FlushTimers()
             assert(c.cover:GetScale()<1 and c.cover:IsVisible())
             assert(c.cover:GetWidth()*c.cover:GetScale()<=UIParent:GetWidth()-20+.01)
             assert(c.cover:GetHeight()*c.cover:GetScale()<=UIParent:GetHeight()-20+.01)
+            assert(c.cover:GetWidth()==1024 and c.cover:GetHeight()==860)
+            assert(c.ui.root:GetWidth()==1024 and c.ui.root:GetHeight()==720 and c.ui.root:GetScale()==1)
             local page=LegacySystemFrame.RewardTrackPage
             assert(page:GetWidth()*page:GetEffectiveScale()<=c.ui.nativeHost:GetWidth()*c.ui.nativeHost:GetEffectiveScale()+.01)
             assert(page:GetHeight()*page:GetEffectiveScale()<=c.ui.nativeHost:GetHeight()*c.ui.nativeHost:GetEffectiveScale()+.01)
+            UIParent:SetSize(1920,1080); UIParent:SetScale(1)
+            UIParent:Fire("OnSizeChanged"); FlushTimers()
+            assert(c.cover:GetScale()==1 and c.ui.root:GetScale()==1 and settings.legacyUISize=="Large")
             ns.FA.SLASH.legacyui("off")
             assert(page:GetScale()==1 and page:GetParent()==LegacySystemFrame and #calls==0)
         ''')
@@ -911,8 +1203,13 @@ class ControllerTests(unittest.TestCase):
             for _, c in ipairs(ui.cards) do if c.record.key=="legacy:62053" then card=c end end
             ns.WrathAchievementUI.MetaClick(card.metaPool[1])
             assert(ui.focus.key=="legacy:62353" and #calls==0)
+            saved.critters={}
             ui.tab="statistics"; ui.focus=nil; ui:Render()
-            assert(#ui.stats>=8 and ui.stats[1].value:GetText()=="0")
+            local critters
+            for _,row in ipairs(ui.stats) do
+                if row:IsShown() and not row.isHeader and row.record and row.record.key=="statistic:tracked:critters" then critters=row end
+            end
+            assert(critters and critters.value:GetText()=="0")
         ''')
 
     def test_large_catalog_uses_visible_card_pool_and_scrolls(self):
@@ -947,7 +1244,7 @@ class ControllerTests(unittest.TestCase):
 
 
 class CoreIntegrationTests(unittest.TestCase):
-    def test_real_definitions_keep_saved_keys_and_build_custom_criteria(self):
+    def core_harness(self):
         h = Harness()
         h.execute('''
             SlashCmdList={}; UISpecialFrames={}; tinsert=table.insert
@@ -960,6 +1257,10 @@ class CoreIntegrationTests(unittest.TestCase):
         for name in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
                      "DataExtra.lua", "ForeverAchievements.lua", "Integrations/CustomAdapter.lua"):
             h.load(name)
+        return h
+
+    def test_real_definitions_keep_saved_keys_and_build_custom_criteria(self):
+        h = self.core_harness()
         h.execute('''
             ForeverAchievementsCharDB.done.lvl10=1730000000
             local c=ns.CustomAchievementAdapter.Catalog()
@@ -973,6 +1274,53 @@ class CoreIntegrationTests(unittest.TestCase):
             end
             assert(SLASH_FOREVERACHIEVEMENTS3=="/fa")
             assert(#calls==0)
+        ''')
+
+    def test_unsupported_daily_definitions_preserve_history_without_reading_progress(self):
+        h=self.core_harness()
+        h.execute('''
+            local db=ns.FA.DB()
+            db.done.d5=12345; db.done.request=54321; db.tracked.d5=true
+            db.dailyLast=17; db.dailyDays={old=true}
+            local dailyKeys={"d5","d50","d200","d500","d1000","request"}
+            for _,key in ipairs(dailyKeys) do
+                local definition=ns.FA.BY_KEY[key]
+                assert(definition and definition.unsupported and not ns.FA.Available(definition))
+                definition.progress=function() error("Unsupported daily progress must not be queried") end
+            end
+            GetStatistic=function(id) assert(id~=97); return nil end
+            local catalog=ns.CustomAchievementAdapter.Catalog()
+            for _,key in ipairs(dailyKeys) do assert(catalog.byKey["custom:"..key]==nil) end
+            assert(#ns.FA.ALL==322 and db.done.d5==12345 and db.done.request==54321)
+            assert(db.dailyLast==17 and db.dailyDays.old and db.tracked.d5)
+            assert(db.history[1]=="keep" and db.done.first==1730000000 and #calls==0)
+        ''')
+
+    def test_quest_seam_distinguishes_missing_counts_zero_and_completed_ids(self):
+        h=self.core_harness()
+        h.execute('''
+            local quests=ns.FA.QuestTracking
+            GetStatistic=nil; C_QuestLog=nil; GetQuestsCompleted=nil
+            assert(quests.Count()==nil and quests.CompletedIDs()==nil)
+            local current,required=ns.FA.BY_KEY.q50.progress()
+            assert(current==nil and required==50)
+            local loreEK,loreKal=quests.LoremasterCounts()
+            assert(loreEK==nil and loreKal==nil)
+            current=ns.FA.BY_KEY.loreEK.progress(); assert(current==nil)
+            GetStatistic=function(id) assert(id==98); return "0" end
+            assert(quests.Count()==0)
+            current=ns.FA.BY_KEY.q50.progress(); assert(current==0)
+            C_QuestLog={GetAllCompletedQuestIDs=function() return {100,200,300} end}
+            assert(quests.Count()==3 and #quests.CompletedIDs()==3)
+            GetStatistic=function() return "75" end
+            assert(quests.Count()==75)
+            GetStatistic=nil
+            C_QuestLog.GetAllCompletedQuestIDs=function() error("Client API unavailable") end
+            GetQuestsCompleted=function(target) target[44]=true; target[55]=true end
+            assert(quests.Count()==2 and #quests.CompletedIDs()==2)
+            GetQuestsCompleted=function() error("Fallback unavailable") end
+            assert(quests.Count()==nil and quests.CompletedIDs()==nil)
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
 
@@ -1006,6 +1354,8 @@ class PackagingTests(unittest.TestCase):
         original = ET.parse(ROOT / "References/WrathAchievementUI/Blizzard_AchievementUI.xml").getroot()
         adapted = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
         original_files = {e.get("file") for e in original.iter() if e.get("file")}
+        # A stock client search icon accompanies the new unified search field.
+        original_files.add("Interface\\Common\\UI-Searchbox-Icon")
         adapted_files = {e.get("file") for e in adapted.iter() if e.get("file")}
         self.assertTrue(adapted_files <= original_files)
         slices = {tuple(sorted(e.attrib.items())) for e in original.iter(URI + "TexCoords")}

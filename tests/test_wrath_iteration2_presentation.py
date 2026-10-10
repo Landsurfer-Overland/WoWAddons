@@ -101,7 +101,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             view.tabs[2]:Fire("OnClick")
             assert(view.tab == "rewards" and selectedTabs[1] == "rewards")
             assert(view.nativeHost:IsShown() and not view.categoryScroll:IsShown())
-            assert(not view.contentBackground:IsShown() and view.nativeBackground:IsVisible())
+            assert(not view.contentBackground:IsShown() and not view.nativeBackground:IsVisible())
             assert(not view.searchBox:IsShown() and not view.contentScroll:IsShown())
             assert(FAWrathTab2LeftDisabled:IsShown() and not FAWrathTab2Left:IsShown())
             view:SetTab("trees", false)
@@ -122,12 +122,12 @@ class Iteration2PresentationTests(unittest.TestCase):
             assert(view.bars[1].text:GetText() == "1/2")
             assert(view.bars[2].label:GetText() == "Native Legacy Challenges Earned")
             assert(view.bars[2].text:GetText() == "0/3 shown (1 unknown)")
-            local character, native = false, false
             for _, heading in ipairs(view.headings) do
-                character = character or heading:GetText() == "Character Achievement Points: 10"
-                native = native or heading:GetText() == "Legacy Points: 16"
+                assert(heading:GetText()~="Character Achievement Points: 10")
+                assert(heading:GetText()~="Legacy Points: 16")
             end
-            assert(character and native and #calls == 0)
+            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="10")
+            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=="16" and #calls==0)
         """)
 
     def test_undated_native_completion_is_not_fabricated_as_recent(self):

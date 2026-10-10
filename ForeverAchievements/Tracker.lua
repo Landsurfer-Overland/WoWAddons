@@ -91,7 +91,12 @@ local function Update()
     local list = {}
     for key in pairs(d.tracked or {}) do
         local a = FA.BY_KEY[key]
-        if a and not d.done[key] then list[#list + 1] = a else d.tracked[key] = nil end
+        if a and not FA.Available(a) then
+            -- Keep historical tracked keys while unsupported definitions are
+            -- inactive, including earned daily records; never poll them.
+        elseif a and not d.done[key] then
+            list[#list + 1] = a
+        else d.tracked[key] = nil end
     end
     table.sort(list, function(p, q) return p.name < q.name end)
     if #list == 0 or FA.Settings().trackerShown == false then
@@ -103,12 +108,18 @@ local function Update()
         local cur, need = a.progress()
         row.a = a
         row.name:SetText(a.name)
-        if a.money then
+        if not FA.ProgressKnown(cur, need) then
+            row.value:SetText("Unavailable")
+            row.fill:Hide()
+        elseif a.money then
             row.value:SetText(math.floor(cur / 10000) .. "/" .. math.floor(need / 10000) .. "g")
         else
             row.value:SetText(cur .. "/" .. need)
         end
-        row.fill:SetWidth(math.max(1, (WIDTH - 20) * math.min(1, cur / math.max(1, need))))
+        if FA.ProgressKnown(cur, need) then
+            row.fill:SetWidth(math.max(1, (WIDTH - 20) * math.min(1, cur / math.max(1, need))))
+            row.fill:Show()
+        end
         row:Show()
     end
     for i = #list + 1, #rows do rows[i]:Hide() end

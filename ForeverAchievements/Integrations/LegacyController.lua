@@ -20,12 +20,22 @@ local function shown(root)
 end
 function C:Release(state)
     self.busy = true
+    if self.dragging and self.cover then
+        -- Drag cleanup is best effort. Native restoration must still run if
+        -- a geometry setter fails while combat/input mode changes the frame.
+        pcall(self.cover.StopMovingOrSizing, self.cover)
+        pcall(self.SavePosition, self)
+        self.dragging = false
+    end
     local ok, err = true, nil
-    if self.bridge then ok, err = self.bridge:Restore() end
+    if self.bridge then
+        local called, restored, reason = pcall(self.bridge.Restore, self.bridge)
+        if called then ok, err = restored, reason else ok, err = false, restored end
+    end
     self.busy = false
     if ok then
         self.bridge = nil
-        if self.cover then self.cover:Hide() end
+        if self.cover then pcall(self.cover.Hide, self.cover) end
         self.restorePending = false
         self.state = state
     else
@@ -47,11 +57,88 @@ function C:Guard(fn)
     if not ok then self:Fail(err) end
     return ok
 end
+local anchors = { TOPLEFT = { 0, 1 }, TOP = { .5, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, .5 },
+    CENTER = { .5, .5 }, RIGHT = { 1, .5 }, BOTTOMLEFT = { 0, 0 }, BOTTOM = { .5, 0 }, BOTTOMRIGHT = { 1, 0 } }
+function C:Preset()
+    local name = R.Text(FA.Settings().legacyUISize)
+    local sizes = ns.WrathAchievementUI.PRESETS
+    if not name or not sizes[name] then name = "Standard" end
+    return name, sizes[name]
+end
+function C:RestorePosition()
+    if not self.cover or self.dragging then return end
+    local saved = FA.Settings().legacyUIPosition
+    local point, relativePoint = R.Text(R.Field(saved, "point")), R.Text(R.Field(saved, "relativePoint"))
+    local x, y = R.Number(R.Field(saved, "x")), R.Number(R.Field(saved, "y"))
+    if not anchors[point] or not anchors[relativePoint] or not x or not y then
+        point, relativePoint, x, y = "CENTER", "CENTER", 0, 0
+    end
+    local width, height = UIParent:GetWidth(), UIParent:GetHeight()
+    local scale = self.cover:GetScale()
+    local fw, fh = self.cover:GetWidth() * scale, self.cover:GetHeight() * scale
+    local a, b = anchors[point], anchors[relativePoint]
+    local left, bottom = width * b[1] + x * scale - fw * a[1], height * b[2] + y * scale - fh * a[2]
+    left = math.max(10, math.min(width - fw - 10, left))
+    bottom = math.max(10, math.min(height - fh - 10, bottom))
+    x, y = (left + fw * a[1] - width * b[1]) / scale, (bottom + fh * a[2] - height * b[2]) / scale
+    self.cover:ClearAllPoints()
+    self.cover:SetPoint(point, UIParent, relativePoint, x, y)
+end
+function C:SavePosition()
+    self.dragging = false
+    if not self.cover then return end
+    local r = R.Method(self.cover, "GetPoint", 1)
+    if not r or r[2] ~= nil and r[2] ~= UIParent then return end
+    local point, relativePoint, x, y = R.Text(r[1]), R.Text(r[3]), R.Number(r[4]), R.Number(r[5])
+    if anchors[point] and anchors[relativePoint] and x and y then
+        FA.Settings().legacyUIPosition = { point = point, relativePoint = relativePoint, x = x, y = y }
+        self:RestorePosition()
+    end
+end
 function C:Fit()
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
-    assert(width > 0 and height > 0, "UIParent dimensions unavailable")
-    self.cover:SetScale(math.min(1, (width - 20) / 768, (height - 20) / 640))
+    assert(width > 20 and height > 20, "UIParent dimensions unavailable")
+    local name, size = self:Preset()
+    self.cover:SetSize(size[1], size[2] + 140)
+    self.cover:SetScale(math.min(1, (width - 20) / size[1], (height - 20) / (size[2] + 140)))
+    self:RestorePosition()
+    self.ui.sizePreset = name
     self.ui:Fit(self.cover)
+end
+function C:SetSizePreset(input)
+    local normalized = type(input) == "string" and input:lower() or ""
+    local name = normalized == "compact" and "Compact" or normalized == "standard" and "Standard" or
+        normalized == "large" and "Large"
+    if not name then notify("Use /fa legacyui size compact|standard|large."); return false end
+    FA.Settings().legacyUISize = name
+    if self.ui and self.cover and not combat() then
+        if enabled() and self.root and shown(self.root) then self:Refresh()
+        else self:Guard(function() self:Fit() end) end
+    end
+    return true
+end
+function C:CycleSizePreset()
+    local name = self:Preset()
+    self:SetSizePreset(name == "Compact" and "Standard" or name == "Standard" and "Large" or "Compact")
+end
+function C:ResetPosition()
+    FA.Settings().legacyUIPosition = nil
+    if self.cover then
+        self.cover:StopMovingOrSizing(); self.dragging = false
+        if not combat() then self:Guard(function() self:RestorePosition() end) end
+    end
+    notify("Window position reset. Achievement progress is preserved.")
+end
+function C:ReportUnmapped()
+    local model = self.ui and self.ui.model
+    if not model then notify("Open the enabled Legacy window first to obtain the current classification report."); return end
+    local rows = model.unmapped or {}
+    notify(tostring(#rows) .. " observed challenges use Feats of Strength > Other Legacy Challenges (navigation only).")
+    for i = 1, math.min(30, #rows) do
+        local row = rows[i]
+        notify(tostring(row.id) .. " | " .. tostring(row.name) .. " | " .. tostring(row.nativeCategory) .. " | " .. tostring(row.reason))
+    end
+    if #rows > 30 then notify("Showing the first 30 records; the full list is retained in the current view model.") end
 end
 function C:Refresh()
     if self.busy then return end
@@ -154,8 +241,10 @@ function C:Attach()
         self.root, self.page = root, page
         if not self.cover then
             self.cover = CreateFrame("Frame", "FAWrathLegacyCover", UIParent)
-            self.cover:Hide(); self.cover:SetSize(768, 640)
-            self.cover:SetPoint("TOPLEFT", root, "TOPLEFT", 0, 0)
+            self.cover:Hide()
+            local _, size = self:Preset()
+            self.cover:SetSize(size[1], size[2] + 140)
+            self.cover:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
             self.cover:SetMovable(true); self.cover:SetClampedToScreen(true)
             self.cover:EnableMouse(false)
             self.cover:SetFrameStrata(root:GetFrameStrata())
@@ -166,6 +255,9 @@ function C:Attach()
                 function() self:Refresh() end, {
                     onTab = function() self:Refresh() end,
                     onClose = function() self:Close() end,
+                    onDragStart = function() self.dragging = true end,
+                    onPositionSave = function() self:SavePosition() end,
+                    onSizePresetCycle = function() self:CycleSizePreset() end,
                 })
         end
         if not self.hooked[root] then
@@ -222,7 +314,11 @@ FA.SLASH.legacyui = function(input)
     input = (input or ""):lower():match("^%s*(.-)%s*$")
     if input == "on" then C:SetEnabled(true)
     elseif input == "off" then C:SetEnabled(false)
-    else notify(C.state .. ". Use /fa legacyui on or /fa legacyui off (experimental).") end
+    elseif input == "reset" then C:ResetPosition()
+    elseif input == "unmapped" then C:ReportUnmapped()
+    elseif input:match("^size%s+") then
+        if C:SetSizePreset(input:match("^size%s+(.+)$")) then notify("Window size: " .. C:Preset()) end
+    else notify(C.state .. ". Use /fa legacyui on|off, size compact|standard|large, reset, or unmapped.") end
 end
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",

@@ -8,10 +8,32 @@ local function first(fn, ...)
     local result = R.Call(fn, ...)
     return result and result[1]
 end
+local TYPES = { standard = true, feat_of_strength = true, special = true, unknown = true }
+local function achievementType(a, category)
+    local explicit = R.Text(a.achievementType)
+    if explicit and TYPES[explicit] then return explicit end
+    -- This is the definition's authored category, not a navigation fallback.
+    -- A zero-point record elsewhere remains a standard achievement.
+    return category == "feats" and "feat_of_strength" or "standard"
+end
+local function explorationMetadata()
+    local byKey, continents = {}, { ek = {}, kal = {} }
+    for _, zone in ipairs(ns.EXPLORE or {}) do
+        local key = R.Text(zone.key) or (R.ID(zone.id) and ("explore" .. zone.id))
+        if key then
+            byKey[key] = { zone = R.Text(zone.zone), geography = zone.cont == "ek" and "Eastern Kingdoms"
+                or zone.cont == "kal" and "Kalimdor" or R.Text(zone.zone), continent = R.Text(zone.cont) }
+            if continents[zone.cont] then continents[zone.cont][#continents[zone.cont] + 1] = "custom:" .. key end
+        end
+    end
+    return byKey, continents
+end
 function A.Catalog()
     local d = FA.DB()
-    local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0, available = true, partial = false }
+    local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
+        pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false }
     local labels, seen = {}, {}
+    local zones, continents = explorationMetadata()
     for _, c in ipairs(FA.CATEGORIES) do labels[c.key] = c.label end
     for _, key in ipairs(FA.CATEGORY_ORDER) do
         local cat = { key = "custom-category:" .. key, customKey = key, parent = "custom", name = labels[key] or key, source = "custom", records = {} }
@@ -20,25 +42,61 @@ function A.Catalog()
             for _, a in ipairs(section.list) do
                 if not a.native and not seen[a.key] and first(FA.Available, a) == true then
                     seen[a.key] = true
-                    local timestamp = R.Number(d.done[a.key])
+                    local savedCompletion = rawget(d.done, a.key)
+                    local timestamp = R.Number(savedCompletion)
+                    local completed
+                    if R.Safe(savedCompletion) then
+                        if savedCompletion == nil then completed = false elseif timestamp then completed = true end
+                    end
                     local progress = R.Call(a.progress)
-                    local row = { key = "custom:" .. a.key, source = "custom", id = a.id,
-                        category = cat.key, customCategory = key, achievement = a, name = a.name, description = a.desc or "",
-                        completed = timestamp ~= nil, timestamp = timestamp, scope = "Character",
-                        icon = a.icon or ns.ICONS[a.id], points = R.Number(a.pts),
+                    local uniqueID = "custom:" .. a.key
+                    local points, kind = R.Number(a.pts), achievementType(a, key)
+                    local zone = zones[a.key]
+                    local row = { key = uniqueID, uniqueID = uniqueID, source = "custom", sourceType = "custom_character", id = a.id,
+                        savedKey = a.key, category = cat.key, customCategory = key, customSection = R.Text(section.title),
+                        series = R.Text(a.series), skill = R.Text(a.skill), faction = R.Text(a.faction),
+                        customGeography = R.Text(a.geography) or zone and zone.geography,
+                        zoneName = zone and zone.zone, customContinent = zone and zone.continent,
+                        achievement = a, name = a.name, description = a.desc or "",
+                        completed = completed, completionState = R.CompletionState(completed), timestamp = timestamp,
+                        scope = "Character", scopeType = "character", achievementType = kind,
+                        achievementTypeEvidence = R.Text(a.achievementType) and "Explicit custom definition" or "Authored custom category",
+                        icon = a.icon or ns.ICONS[a.id], pointValue = points, points = points, pts = points,
+                        pointType = points ~= nil and (kind == "feat_of_strength" and points == 0 and "none" or "character") or "unknown",
                         current = progress and R.Number(progress[1]), required = progress and R.Number(progress[2]),
                         quantityText = progress and R.Text(progress[3]), tracked = d.tracked[a.key] == true,
                         reward = R.Text(a.rewardDescription) or R.Text(a.reward) }
-                    if timestamp and type(date) == "function" then row.date = first(date, "%m/%d/%y", timestamp) end
+                    row.progress = { current = row.current, required = row.required, quantityText = row.quantityText,
+                        available = row.current ~= nil and row.required ~= nil }
+                    if key == "exploration" then
+                        if a.key == "exploreEK" then
+                            row.customGeography, row.metaChildren = "Eastern Kingdoms", continents.ek
+                        elseif a.key == "exploreKal" then
+                            row.customGeography, row.metaChildren = "Kalimdor", continents.kal
+                        elseif a.key == "worldexplorer" then
+                            row.customGeography, row.metaChildren = "World Exploration", { "custom:exploreEK", "custom:exploreKal" }
+                        end
+                    end
+                    if timestamp and type(date) == "function" then
+                        row.date = first(date, "%m/%d/%y", timestamp)
+                        row.completionDate = row.date
+                    end
                     cat.records[#cat.records + 1] = row
                     out.records[#out.records + 1] = row
                     out.byKey[row.key] = row
                     out.possiblePoints = out.possiblePoints + (row.points or 0)
                     if row.completed then out.points = out.points + (row.points or 0) end
+                    if row.completed == nil then out.pointsAvailable = false end
+                    if row.points == nil then
+                        out.possiblePointsAvailable = false
+                        if row.completed then out.pointsAvailable = false end
+                    end
                 end
             end
         end
     end
+    if not out.pointsAvailable then out.points = nil end
+    if not out.possiblePointsAvailable then out.possiblePoints = nil end
     return out
 end
 function A.Criteria(row)
@@ -82,6 +140,7 @@ function A.Criteria(row)
         end
     end
     data.count = #data.items
+    row.criteria = data
     return data
 end
 function A.Track(row)

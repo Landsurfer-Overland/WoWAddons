@@ -26,7 +26,7 @@ class UnifiedCategoryTests(unittest.TestCase):
             local rows=ns.LegacyPresentation.Rows(m,"professions")
             assert(#rows==2 and rows[1].source=="legacy" and rows[2].source=="custom")
             assert(m.byKey["legacy:62013"].nativeCategory=="legacy-category:15587")
-            assert(m.byKey["custom:second"].category=="professions")
+            assert(m.byKey["custom:second"].unifiedRoot=="professions")
             assert(#ns.LegacyPresentation.Rows(m,"legacy")==3)
             assert(#ns.LegacyPresentation.Rows(m,"custom")==2 and #calls==0)
         ''')
@@ -42,13 +42,15 @@ class UnifiedCategoryTests(unittest.TestCase):
                 return id,name,0,false,nil,nil,nil,"Live description",0,237387,""
             end
             local m=ns.LegacyPresentation.Build()
-            assert(m.byKey["legacy:62054"].category=="quests")
-            assert(m.byKey["legacy:62382"].category=="exploration")
-            assert(m.byKey["legacy:79999"].unifiedRoot=="unmapped")
+            assert(m.byKey["legacy:62054"].unifiedRoot=="quests")
+            assert(m.byKey["legacy:62382"].unifiedRoot=="exploration")
+            assert(m.byKey["legacy:79999"].unifiedRoot=="feats")
+            assert(m.byKey["legacy:79999"].category=="feats:other-legacy")
             assert(#ns.LegacyPresentation.Rows(m,"quests")==1)
             assert(#ns.LegacyPresentation.Rows(m,"exploration")==1)
-            assert(#ns.LegacyPresentation.Rows(m,"unmapped")==1)
-            assert(m.roots[#m.roots].name=="Unmapped Challenges")
+            assert(#ns.LegacyPresentation.Rows(m,"feats:other-legacy")==1)
+            assert(m.byCategory["feats:other-legacy"].parent=="feats")
+            for _,root in ipairs(m.roots) do assert(root.key~="unmapped" and root.name~="Unmapped Challenges") end
             assert(#m.records==5)
         ''')
 
@@ -59,7 +61,8 @@ class UnifiedCategoryTests(unittest.TestCase):
             GetCategoryNumAchievements=function() return 1,0,1 end
             GetAchievementInfo=function() return 62382,"Completely New Challenge",0,false,nil,nil,nil,"Description",0,237387,"" end
             local m=ns.LegacyPresentation.Build()
-            assert(m.byKey["legacy:62382"].unifiedRoot=="unmapped")
+            assert(m.byKey["legacy:62382"].unifiedRoot=="feats")
+            assert(m.byKey["legacy:62382"].category=="feats:other-legacy")
             assert(#ns.LegacyPresentation.Rows(m,"exploration")==0)
         ''')
 
@@ -87,8 +90,8 @@ class UnifiedCategoryTests(unittest.TestCase):
             assert(m.byKey["legacy:80011"].unifiedRoot=="pvp")
             assert(m.byKey["legacy:80013"].unifiedRoot=="classes")
             assert(m.byKey["legacy:80015"].unifiedRoot=="professions")
-            assert(m.byCategory["legacy-category:11"].parent=="pvp")
-            assert(m.byCategory["legacy-category:13"].parent=="classes")
+            assert(CategoryRoot(m,"legacy-category:11")=="pvp")
+            assert(CategoryRoot(m,"legacy-category:13")=="classes")
         ''')
 
     def test_adventure_geography_and_quest_subcategories_map_by_metadata(self):
@@ -104,7 +107,7 @@ class UnifiedCategoryTests(unittest.TestCase):
             local m=ns.LegacyPresentation.Build()
             assert(m.byKey["legacy:80001"].unifiedRoot=="exploration")
             assert(m.byKey["legacy:80002"].unifiedRoot=="quests")
-            assert(not m.byCategory.unmapped)
+            assert(not m.byCategory["feats:other-legacy"])
         ''')
 
     def test_unknown_and_cyclic_categories_remain_reachable_without_duplicate_rows(self):
@@ -115,7 +118,7 @@ class UnifiedCategoryTests(unittest.TestCase):
             for _,row in ipairs(ns.LegacyPresentation.Rows(m,"summary")) do
                 assert(not seen[row.key]); seen[row.key]=true
             end
-            assert(#ns.LegacyPresentation.Rows(m,"unmapped")==1)
+            assert(#ns.LegacyPresentation.Rows(m,"feats:other-legacy")==1)
             assert(#ns.LegacyPresentation.Rows(m,"legacy")==3)
             local visited={}
             local function visit(cat)
@@ -203,7 +206,7 @@ class UnifiedCategoryTests(unittest.TestCase):
             assert(m.native.partial and #m.native.records==1)
             assert(m.byKey["legacy:62013"].unifiedRoot=="professions")
             assert(m.byKey["legacy:62013"].nativeCategory=="legacy-category:99")
-            assert(m.byCategory["legacy-category:99"].parent=="professions")
+            assert(CategoryRoot(m,"legacy-category:99")=="professions")
             assert(#calls==0)
         ''')
 

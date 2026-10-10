@@ -119,7 +119,8 @@ local function OnLink(link)
         tt:AddLine("You earned it on " .. date("%d.%m.%Y", done), r, g, b)
     else
         local cur, need = a.progress()
-        tt:AddLine(("Your progress: %s / %s"):format(cur, need), 0.8, 0.8, 0.8)
+        local progress = FA.ProgressKnown(cur, need) and ("%s / %s"):format(cur, need) or "Unavailable"
+        tt:AddLine("Your progress: " .. progress, 0.8, 0.8, 0.8)
     end
     tt:AddLine("Shift-click the link to open Forever Achievements", 0.55, 0.55, 0.55, true)
     tt:Show()
