@@ -925,10 +925,31 @@ function U.Heading(self, text, y)
     h:ClearAllPoints(); h:SetPoint("TOP", self.contentChild, "TOP", 0, -y); h:SetText(text); h:Show()
     return y + 30
 end
--- The original Wrath statistic header provides matching ornamental end caps
--- and a plain center strip. Only that center strip grows with the panel; the
--- 23px end artwork keeps its original proportions at every window preset.
-local CATEGORY_DIVIDER = "Interface\\AchievementFrame\\UI-Achievement-Stat-Buttons"
+-- Small transparent knots are created once. No statistic-row atlas or filled
+-- subtitle panel: thin gold rules flank the title, with the subtitle below.
+local function headingOrnament(parent, mirror)
+    local ornament = CreateFrame("Frame", nil, parent)
+    ornament:SetSize(24, 14)
+    if type(ornament.CreateLine) ~= "function" then return ornament, false end
+    local function diamond(center, radiusX, radiusY)
+        local vertices = { { center - radiusX, 0 }, { center, radiusY },
+            { center + radiusX, 0 }, { center, -radiusY } }
+        for i, vertex in ipairs(vertices) do
+            local nextVertex = vertices[i % 4 + 1]
+            for _, shadow in ipairs({ true, false }) do
+                local line = ornament:CreateLine(nil, shadow and "BACKGROUND" or "ARTWORK")
+                local offset = shadow and -.75 or 0
+                line:SetThickness(shadow and 2.5 or 1.2)
+                if shadow then line:SetColorTexture(.24, .12, .025, .9)
+                else line:SetColorTexture(.95, .7, .2, 1) end
+                line:SetStartPoint("CENTER", ornament, mirror * vertex[1], vertex[2] + offset)
+                line:SetEndPoint("CENTER", ornament, mirror * nextVertex[1], nextVertex[2] + offset)
+            end
+        end
+    end
+    diamond(-3, 6, 6); diamond(6, 3, 3)
+    return ornament, true
+end
 function U.CreateCategoryHeading(self)
     if self.categoryHeading then return end
     local h = CreateFrame("Frame", nil, self.root)
@@ -941,16 +962,15 @@ function U.CreateCategoryHeading(self)
         if type(label.SetNonSpaceWrap) == "function" then label:SetNonSpaceWrap(true) end
         label:SetTextColor(1, .82, .25)
     end
-    h.left, h.middle, h.right = h:CreateTexture(nil, "ARTWORK"), h:CreateTexture(nil, "ARTWORK"), h:CreateTexture(nil, "ARTWORK")
-    for _, texture in ipairs({ h.left, h.middle, h.right }) do
-        texture:SetTexture(CATEGORY_DIVIDER); texture:SetVertexColor(1, .82, .35)
-    end
-    h.left:SetTexCoord(0, .08984375, 0, .1796875)
-    h.middle:SetTexCoord(.08984375, .91015625, 0, .1796875)
-    h.right:SetTexCoord(.91015625, 1, 0, .1796875)
+    h.left, h.right = h:CreateTexture(nil, "ARTWORK"), h:CreateTexture(nil, "ARTWORK")
+    h.left:SetColorTexture(.82, .58, .16, .85); h.right:SetColorTexture(.82, .58, .16, .85)
+    local leftArt, rightArt
+    h.leftOrnament, leftArt = headingOrnament(h, 1)
+    h.rightOrnament, rightArt = headingOrnament(h, -1)
+    h.hasOrnaments = leftArt and rightArt
     h:EnableMouse(true)
     h:SetScript("OnEnter", function(header)
-        if not GameTooltip then return end
+        if not GameTooltip or not header.truncated then return end
         GameTooltip:SetOwner(header, "ANCHOR_TOP")
         GameTooltip:SetText(header.title:GetText())
         if header.subtitle:IsShown() then GameTooltip:AddLine(header.subtitle:GetText(), 1, .82, .25, true) end
@@ -978,21 +998,28 @@ function U.CategoryHeading(self, category)
         local textWidth = math.max(80, width - 46)
         h.title:ClearAllPoints(); h.title:SetPoint("TOP", h, "TOP", 0, 0)
         h.title:SetWidth(textWidth); h.title:SetHeight(0); h.title:SetText(title)
-        local titleHeight = math.min(48, math.max(20, h.title:GetStringHeight()))
+        local rawTitleHeight = h.title:GetStringHeight()
+        local titleHeight = math.min(48, math.max(20, rawTitleHeight))
         h.title:SetHeight(titleHeight)
         h.subtitle:ClearAllPoints()
         h.subtitle:SetWidth(textWidth); h.subtitle:SetHeight(0); h.subtitle:SetText(subtitle)
-        local subtitleHeight = subtitle ~= "" and math.min(36, math.max(18, h.subtitle:GetStringHeight())) or 0
+        local rawSubtitleHeight = subtitle ~= "" and h.subtitle:GetStringHeight() or 0
+        local subtitleHeight = subtitle ~= "" and math.min(36, math.max(18, rawSubtitleHeight)) or 0
         h.subtitle:SetHeight(subtitleHeight); show(h.subtitle, subtitle ~= "")
-        local dividerHeight = math.max(23, subtitleHeight)
-        h.subtitle:SetPoint("TOP", h, "TOP", 0, -titleHeight - 6 - (dividerHeight - subtitleHeight) / 2)
-        local dividerY = -titleHeight - 6 - dividerHeight / 2
-        h.left:ClearAllPoints(); h.left:SetSize(23, 23); h.left:SetPoint("LEFT", h, "TOPLEFT", 8, dividerY)
-        h.right:ClearAllPoints(); h.right:SetSize(23, 23); h.right:SetPoint("RIGHT", h, "TOPRIGHT", -8, dividerY)
-        h.middle:ClearAllPoints(); h.middle:SetHeight(23)
-        h.middle:SetPoint("TOPLEFT", h.left, "TOPRIGHT", 0, 0)
-        h.middle:SetPoint("BOTTOMRIGHT", h.right, "BOTTOMLEFT", 0, 0)
-        h:SetHeight(titleHeight + 6 + dividerHeight + 4)
+        h.subtitle:SetPoint("TOP", h, "TOP", 0, -titleHeight - 4)
+        h.truncated = rawTitleHeight > 48 or rawSubtitleHeight > 36
+        local textSpan = math.min(textWidth, h.title:GetStringWidth())
+        local room = (width - textSpan) / 2
+        local ornament = h.hasOrnaments and room >= 42
+        local ruleWidth = math.max(0, room - (ornament and 42 or 16))
+        local dividerY = -titleHeight / 2
+        h.left:ClearAllPoints(); h.left:SetSize(ruleWidth, 1); h.left:SetPoint("LEFT", h, "TOPLEFT", 8, dividerY)
+        h.right:ClearAllPoints(); h.right:SetSize(ruleWidth, 1); h.right:SetPoint("RIGHT", h, "TOPRIGHT", -8, dividerY)
+        show(h.left, ruleWidth > 0); show(h.right, ruleWidth > 0)
+        h.leftOrnament:ClearAllPoints(); h.leftOrnament:SetPoint("LEFT", h.left, "RIGHT", 2, 0)
+        h.rightOrnament:ClearAllPoints(); h.rightOrnament:SetPoint("RIGHT", h.right, "LEFT", -2, 0)
+        show(h.leftOrnament, ornament); show(h.rightOrnament, ornament)
+        h:SetHeight(titleHeight + (subtitleHeight > 0 and 4 + subtitleHeight or 0) + 4)
     end
     h:Show()
     return h:GetHeight()

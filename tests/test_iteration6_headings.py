@@ -12,18 +12,25 @@ class Iteration6HeadingTests(unittest.TestCase):
     setUp = iteration3.Iteration3UITests.setUp
     check = iteration3.Iteration3UITests.check
 
-    def test_main_category_has_centered_original_texture_heading_outside_viewport(self):
+    def test_main_category_has_thin_rules_beside_centered_title_outside_viewport(self):
         self.check("""
             view.category='professions'; view:Render()
             local h=view.categoryHeading
             assert(h:IsShown() and h.title:GetText()=='Professions' and not h.subtitle:IsShown())
             assert(h:GetParent()==view.root and h:GetWidth()==view.contentPanelWidth)
             assert(h:GetLeft()==view.root:GetLeft()+view.contentLeft)
-            assert(h.left.textureValue=='Interface\\\\AchievementFrame\\\\UI-Achievement-Stat-Buttons')
-            assert(h.right.textureValue==h.left.textureValue and h.middle.textureValue==h.left.textureValue)
-            assert(h.left:GetWidth()==23 and h.left:GetHeight()==23 and h.right:GetWidth()==23)
-            assert(h.left.coords[1]==0 and h.left.coords[2]==.08984375)
-            assert(h.right.coords[1]==.91015625 and h.right.coords[2]==1)
+            assert(h.left.textureValue==nil and h.right.textureValue==nil and h.middle==nil)
+            assert(h.left:GetHeight()==1 and h.right:GetHeight()==1)
+            assert(h.left:GetWidth()==h.right:GetWidth() and h.left:GetWidth()>0)
+            assert(h.leftOrnament:IsShown() and h.rightOrnament:IsShown())
+            assert(#h.leftOrnament.regions==16 and #h.rightOrnament.regions==16)
+            assert(h.leftOrnament:GetRight()<h:GetLeft()+(h:GetWidth()-h.title:GetStringWidth())/2)
+            assert(h.rightOrnament:GetLeft()>h:GetLeft()+(h:GetWidth()+h.title:GetStringWidth())/2)
+            assert(not h.truncated)
+            GameTooltip={SetOwner=function() error('Ordinary heading opened a duplicate tooltip') end}
+            h:Fire('OnEnter')
+            local _,lineY=h.left:GetCenter(); local _,titleY=h.title:GetCenter()
+            assert(lineY==titleY and h:GetHeight()==24)
             assert(h:GetTop()<view.notice:GetBottom())
             assert(view.contentScroll:GetTop()==h:GetBottom()-8)
             assert(view.contentScroll:GetBottom()==view.root:GetBottom()+29)
@@ -65,7 +72,7 @@ class Iteration6HeadingTests(unittest.TestCase):
             assert(view.headingIndex==0 and #calls==0)
         """)
 
-    def test_every_preset_has_spacing_fixed_end_caps_and_usable_list_viewport(self):
+    def test_every_preset_has_spacing_fixed_knots_and_usable_list_viewport(self):
         self.check("""
             view.category='professions:alchemy'
             for name,preset in pairs(ns.WrathAchievementUI.PRESETS) do
@@ -75,7 +82,9 @@ class Iteration6HeadingTests(unittest.TestCase):
                 assert(center==view.root:GetLeft()+view.contentLeft+view.contentPanelWidth/2)
                 assert(h.title:GetWidth()==view.contentPanelWidth-46)
                 assert(h:GetTop()<view.searchBox:GetBottom() and h:GetTop()<view.notice:GetBottom())
-                assert(h.left:GetWidth()==23 and h.right:GetHeight()==23 and h.middle:GetHeight()==23)
+                assert(h.left:GetHeight()==1 and h.right:GetHeight()==1)
+                assert(h.leftOrnament:GetWidth()==24 and h.rightOrnament:GetHeight()==14)
+                assert(h.subtitle:GetTop()==h.title:GetBottom()-4)
                 assert(view.contentScroll:GetTop()<=h:GetBottom()-8)
                 assert(view.contentScroll:GetHeight()>300 and view.root:GetScale()==1)
             end
@@ -92,6 +101,7 @@ class Iteration6HeadingTests(unittest.TestCase):
             local h=view.categoryHeading
             assert(h.title:GetText()==parent.name and h.subtitle:GetText()==child.name)
             assert(h.title:GetHeight()<=48 and h.subtitle:GetHeight()<=36 and h:GetHeight()<=94)
+            assert(h.truncated and not h.leftOrnament:IsShown() and not h.rightOrnament:IsShown())
             assert(h.title:GetLeft()>=h:GetLeft() and h.title:GetRight()<=h:GetRight())
             assert(h.subtitle:GetLeft()>=h:GetLeft() and h.subtitle:GetRight()<=h:GetRight())
             assert(view.contentScroll:GetHeight()>=300 and view.contentScroll:GetTop()<h:GetBottom())
@@ -126,7 +136,7 @@ class Iteration6HeadingTests(unittest.TestCase):
         self.check("""
             view.category='general'; view:Render()
             local h=view.categoryHeading
-            local regions={h.title,h.subtitle,h.left,h.middle,h.right}
+            local regions={h.title,h.subtitle,h.left,h.right,h.leftOrnament,h.rightOrnament}
             local frameCount=#frames
             local model=view.model
             ns.LegacyPresentation.Build=function() error('Unexpected model rebuild') end
@@ -138,9 +148,9 @@ class Iteration6HeadingTests(unittest.TestCase):
                 view.search=''; view.filter='All'; view:Render()
                 assert(view.categoryHeading==h and view.model==model)
             end
-            assert(#frames==frameCount and #h.regions==5)
+            assert(#frames==frameCount and #h.regions==4)
             assert(h.title==regions[1] and h.subtitle==regions[2] and h.left==regions[3])
-            assert(h.middle==regions[4] and h.right==regions[5])
+            assert(h.right==regions[4] and h.leftOrnament==regions[5] and h.rightOrnament==regions[6])
             assert(saved.done.first==1730000000 and saved.history[1]=='keep' and #calls==0)
         """)
 

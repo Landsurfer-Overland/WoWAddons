@@ -67,7 +67,7 @@ function UIObject(kind, name, parent)
         shown=true, width=100, height=24, level=1, scroll=0, textValue="", scale=1, mouse=false }
     if name then _G[name] = f end
     if parent and parent.children then
-        table.insert((kind == "Texture" or kind == "FontString") and parent.regions or parent.children, f)
+        table.insert((kind == "Texture" or kind == "FontString" or kind == "Line") and parent.regions or parent.children, f)
     end
     frames[#frames+1] = f
     function f:GetName() return self.name end
@@ -233,6 +233,10 @@ function UIObject(kind, name, parent)
     function f:SetWordWrap(v) self.wordWrap=v end
     function f:SetShadowOffset(...) self.shadow={...} end
     function f:CreateTexture(name) return UIObject("Texture",name,self) end
+    function f:CreateLine(name) return UIObject("Line",name,self) end
+    function f:SetThickness(value) self.thickness=value end
+    function f:SetStartPoint(...) self.startPoint={...} end
+    function f:SetEndPoint(...) self.endPoint={...} end
     function f:CreateMaskTexture(name,layer)
         local mask=UIObject("MaskTexture",name,self); mask:SetDrawLayer(layer); return mask
     end
