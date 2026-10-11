@@ -1,5 +1,16 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha-alert-test6 — testing branch
+
+- Bundle the supplied achievement-earned OGG unchanged and play it directly
+  with PlaySoundFile for previews and normal custom achievement unlocks.
+  This avoids the client's accepted but silent sound kit 12891 request.
+- Select the recording once on upgrade; retain mute, channel and volume settings.
+  Later sound selections persist. Settings can reselect/test the original chime.
+- Keep the original Reforged bell and client sound probes as selectable options.
+  Package OGG audio in installable ZIPs. Popup animation and progress are unchanged.
+  Audible playback on WoW Forever still requires an in-game check.
+
 ## 0.5.1-alpha-alert-test5 — testing branch
 
 - Tracked custom achievements use a Reforged Achievements section inside the

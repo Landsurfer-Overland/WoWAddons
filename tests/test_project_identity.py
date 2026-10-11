@@ -128,6 +128,7 @@ class ReforgedPackageTests(unittest.TestCase):
                 self.assertIn(ADDON + "/" + ADDON + ".toc", names)
                 self.assertIn(ADDON + "/CREDITS.md", names)
                 self.assertIn(ADDON + "/Media/ReforgedChime.wav", names)
+                self.assertIn(ADDON + "/Media/AchievementEarned.ogg", names)
                 self.assertFalse(any("/tests/" in n or "/References/" in n or "/tools/" in n for n in names))
                 self.assertEqual(z.testzip(), None)
                 for name in names:

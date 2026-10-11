@@ -84,6 +84,10 @@ function U.Create()
         LAR.Settings().soundName = "LAR_REFORGED_CHIME"
         U.Sync(); U.Status(Alerts.PlaySelectedSound())
     end)
+    p.achievementSound = button(p, "Use original achievement chime", 278, -460, 266, function()
+        LAR.Settings().soundName = "UI_ACHIEVEMENT_AWARDED"
+        U.Sync(); U.Status(Alerts.PlaySelectedSound())
+    end)
     p.status = label(p, "Change settings, then test the popup or sound. No achievement is awarded.",
         16, -494, 528, 54, "GameFontHighlightSmall")
     p:SetScript("OnShow", U.Sync)
@@ -149,7 +153,8 @@ local events = CreateFrame("Frame")
 U.events = events
 events:RegisterEvent("PLAYER_LOGIN"); events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_LOGIN" then Alerts.SelectAchievementRecordingOnce() end
     if event == "PLAYER_LOGIN" or U.registerPending then U.Register() end
     if event == "PLAYER_REGEN_ENABLED" and U.openPending then U.openPending = false; U.Open() end
 end)
-if IsLoggedIn and IsLoggedIn() then U.Register() end
+if IsLoggedIn and IsLoggedIn() then Alerts.SelectAchievementRecordingOnce(); U.Register() end

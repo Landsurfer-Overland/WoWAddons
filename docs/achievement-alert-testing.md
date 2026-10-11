@@ -1,6 +1,6 @@
 # Achievement alert test build
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test5`.
+Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test6`.
 This branch can be installed for testing without changing `main` or creating a
 release tag. The existing workflow builds a downloadable branch artifact after
 checks; actual GitHub releases require a version tag. No CurseForge upload is
@@ -17,19 +17,19 @@ animation leaves a static banner for the chosen hold duration. Scale and top
 offset are adjustable. The preview has a separate visible PREVIEW label below
 the banner so it cannot be confused with a real unlock.
 
-The client sound selection defaults to Achievement chime. The previous build
-incorrectly treated the absence of `SOUNDKIT.UI_ACHIEVEMENT_AWARDED` as proof
-the chime was unavailable. This build retains that saved selection key and
-requests the classic achievement sound kit **12891** when the constant is
-absent. This uses the client's own sound database, not a downloaded file. A
-successful request does not establish audible playback on WoW Forever; use
-**Play selected sound** to check it. Status text includes the requested kit.
-In-game testing confirmed that kit 12891 was accepted but remained inaudible
-on the reported WoW Forever client. This build adds separate **Classic chime
-(client WAV)** and **Classic chime (client OGG)** choices to probe legacy client
-paths. These are compatibility tests; those paths are not verified present on
-WoW Forever. Each click requests only the selected source, with no hidden retry
-or substitution. Status includes read-only client audio enable/volume values.
+**Achievement chime (bundled)** uses the supplied `AchievmentSound1.ogg`, copied
+unchanged to `Media/AchievementEarned.ogg`. It plays through `PlaySoundFile`
+instead of relying on the client's sound database. The reported client accepted
+sound kit **12891** but played nothing; direct file playback avoids that route.
+On the first login with this build, only the sound selection is switched to the
+recording and a one-time preference marker is stored. Mute and channel settings
+are retained. Later deliberate selections are not reset on login. **Use original
+achievement chime** selects and tests this file again without awarding progress.
+
+**Classic chime (client kit/WAV/OGG)** remain explicit compatibility probes;
+their sources are not verified audible/present on WoW Forever. Each click requests
+only the selected source, with no hidden retry or substitution. Status includes
+the requested kit/file and read-only client audio enable/volume values.
 
 **Use bundled Reforged chime** selects and tests the project's own bell chime
 via `PlaySoundFile`. This is a shipped PCM WAV independent of the client sound
@@ -64,11 +64,12 @@ events or create a second popup for those events.
    title, PREVIEW label, fade/glow/shine and one chime. Note any missing textures
    or clipping; the isolated tests do not establish pixel rendering.
 4. Click **Play selected sound**; cycle **Sound** and **Channel** to compare.
-   Test **Use bundled Reforged chime**, then **Test popup** and a normal custom
+   Test **Use original achievement chime**, then **Test popup** and a normal custom
    completion. If silent, retain the exact status message with source/channel
    and audio values; check client audio settings. Test client WAV/OGG separately
    to determine whether a legacy asset path resolves. No external download is
-   required for the bundled chime. The addon does not change client volume/mute.
+   required for the bundled chime. **Use bundled Reforged chime** still selects
+   the alternate original project bell. The addon does not change client volume/mute.
    Disable automatic sound and confirm popup preview is silent while the explicit
    sound button still works. Client audio settings still apply.
 5. Change hold time, top distance and scale; test again. Disable animation and
@@ -97,7 +98,8 @@ achievement completion remains recorded independently of this display limit.
 
 `UI/AddonSettings.lua` registers one modern canvas/legacy category, with a fallback
 owned panel. Registration and native settings opening defer during combat.
-Opening/syncing does not write default values into existing preferences. Tests
+On first login, the original recording is selected once; opening/syncing does
+not reset existing preferences. Tests
 and preview buttons do not invoke completion or EARN_HOOKS. The core's
 `Complete`, `PreviewToast` and `ResetToast` only route presentation to the new
 module; retained alpha toast code remains available if the module is absent.
@@ -109,17 +111,21 @@ Classic texture crops and alert geometry were checked against the Blizzard
 (observed source SHA256 `a70e6633301347f4948e63822dd4aa80b9b284c117f602feccb5560c8c91577a`).
 Only client-provided textures are used; its global alert scripts are not loaded.
 
-Validation: all **678 automated tests passed**, including 21 alert/settings
+Validation: all **680 automated tests passed**, including 23 alert/settings
 cases using real Lua completion and input callbacks. They cover no preview
 progress writes, correct crop/geometry contracts, animation lifecycle, sound
 failure/mute/channel behavior, missing sound constants, client sound overrides,
 shield-centered points, frame reuse, real-award routing/duplicate safety,
 title line/wrapping, explicit file playback, read-only audio diagnostics and
-bundled sound routing through a normal completion,
+bundled sound routing through a normal completion, supplied OGG routing without
+a sound-kit API, one-time selection with mute/channel retention,
 bounded bursts, combat deferral and modern/legacy settings APIs. Lua 5.1 syntax
 passed for 31 files, all 32 TOC references and four XML dependencies passed,
 and the existing 322-definition initialization/14 behavior assertions passed.
 Actual visuals, audio and client restrictions remain to be tested in-game.
+The supplied OGG decodes successfully as 5.19-second mono Vorbis at 22.05 kHz
+and contains non-silent audio. Its upload/runtime hashes match (see CREDITS).
+Package checks require the OGG and verify every ZIP entry against runtime source.
 
 This build also includes objective-tracker integration and 12 associated tests;
 see [native objective tracker testing](native-objective-tracker.md).

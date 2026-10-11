@@ -6,12 +6,13 @@ local A = { queue = {}, MAX_QUEUE = 32, overflow = 0 }
 ns.AchievementAlerts = A
 
 A.SOUNDS = {
-    -- The classic achievement sound kit can exist without an exported SOUNDKIT
-    -- constant. Keep the saved selection key and use its standard kit directly.
-    { key = "UI_ACHIEVEMENT_AWARDED", name = "Achievement chime", kit = 12891 },
+    -- Keep the existing selection key, but play the supplied recording directly:
+    -- Forever accepts sound kit 12891 without audibly playing it.
+    { key = "UI_ACHIEVEMENT_AWARDED", name = "Achievement chime (bundled)", file = "Interface\\AddOns\\LegacyAchievementsReforged\\Media\\AchievementEarned.ogg" },
     { key = "LEVELUP", name = "Level up" },
     { key = "IG_QUEST_LIST_COMPLETE", name = "Quest complete" },
     { key = "READY_CHECK", name = "Ready check" },
+    { key = "LAR_ACHIEVEMENT_KIT", name = "Classic chime (client kit)", kit = 12891 },
     -- Explicit probes: modern clients may no longer resolve these legacy paths.
     { key = "LAR_CLASSIC_WAV", name = "Classic chime (client WAV)", file = "Sound\\Interface\\UI_Achievement_Toast_Alert.wav" },
     { key = "LAR_CLASSIC_OGG", name = "Classic chime (client OGG)", file = "Sound\\Interface\\UI_Achievement_Toast_Alert.ogg" },
@@ -22,6 +23,13 @@ local function number(value, fallback, low, high)
     return math.max(low, math.min(high, value))
 end
 local function message(text) print(LAR.TAG .. " " .. text) end
+function A.SelectAchievementRecordingOnce()
+    local s = LAR.Settings()
+    if s.bundledAchievementSoundVersion == nil then
+        s.soundName = "UI_ACHIEVEMENT_AWARDED"
+        s.bundledAchievementSoundVersion = 1
+    end
+end
 function A.SoundChoice()
     local key = LAR.Settings().soundName or A.SOUNDS[1].key
     for _, choice in ipairs(A.SOUNDS) do if choice.key == key then return choice end end

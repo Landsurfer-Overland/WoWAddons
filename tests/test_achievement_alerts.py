@@ -10,6 +10,7 @@ class AlertHarness(CoreHarness):
         self.execute('''
             soundCalls={}; SOUNDKIT={UI_ACHIEVEMENT_AWARDED=12891,LEVELUP=888,IG_QUEST_LIST_COMPLETE=878,READY_CHECK=8960}
             function PlaySound(id,channel) soundCalls[#soundCalls+1]={id,channel}; return true end
+            function PlaySoundFile(path,channel) soundCalls[#soundCalls+1]={path,channel}; return true end
             registrationCalls=0; settingsOpenCalls=0
             function IsLoggedIn() return false end
             function StepAlert(elapsed)
@@ -69,7 +70,7 @@ class AchievementAlertTests(unittest.TestCase):
             assert(not A.active and not A.frame:IsShown() and not A.frame:GetScript('OnUpdate'))
             assert(Fingerprint(L.DB())==db and Fingerprint(L.Account())==account)
             assert(L.TotalPoints()==points and earned==0 and #calls==0)
-            assert(#soundCalls==1 and soundCalls[1][1]==12891 and soundCalls[1][2]=='Master')
+            assert(#soundCalls==1 and soundCalls[1][1]:find('AchievementEarned.ogg',1,true) and soundCalls[1][2]=='Master')
         ''')
 
     def test_uses_classic_crops_gold_frame_and_distinct_preview_marker(self):
@@ -131,15 +132,16 @@ class AchievementAlertTests(unittest.TestCase):
             SOUNDKIT.LEVELUP=nil
             local ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('unavailable',1,true))
             assert(#soundCalls==2) -- no unrelated fallback chime
-            PlaySound=function() return false end; L.Settings().soundName='UI_ACHIEVEMENT_AWARDED'
+            PlaySound=function() return false end; L.Settings().soundName='LAR_ACHIEVEMENT_KIT'
             ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('declined',1,true))
             PlaySound=function() error('Playback error') end
             ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('Playback error',1,true))
         ''')
 
-    def test_achievement_chime_works_without_exported_sound_constant(self):
+    def test_explicit_client_kit_probe_works_without_exported_sound_constant(self):
         self.check('''
             local A=ns.AchievementAlerts
+            ns.LAR.Settings().soundName='LAR_ACHIEVEMENT_KIT'
             SOUNDKIT.UI_ACHIEVEMENT_AWARDED=nil
             local ok,reason=A.PlaySelectedSound()
             assert(ok and reason:find('12891',1,true))
@@ -159,7 +161,7 @@ class AchievementAlertTests(unittest.TestCase):
 
     def test_client_achievement_sound_mapping_takes_priority(self):
         self.check('''
-            SOUNDKIT.UI_ACHIEVEMENT_AWARDED=654321
+            ns.LAR.Settings().soundName='LEVELUP'; SOUNDKIT.LEVELUP=654321
             local ok,reason=ns.AchievementAlerts.PlaySelectedSound()
             assert(ok and soundCalls[1][1]==654321 and reason:find('654321',1,true))
             ns.LAR.Settings().soundName='UnknownClientSound'
@@ -267,6 +269,30 @@ class AchievementAlertTests(unittest.TestCase):
             CoreEvent('PLAYER_LEVEL_UP'); FlushTimers(); assert(played==1)
         ''')
 
+    def test_supplied_recording_plays_for_preview_and_natural_unlock_without_native_kit(self):
+        self.check('''
+            local L,A=ns.LAR,ns.AchievementAlerts
+            SelectAchievements('lvl10'); CoreEvent('PLAYER_LOGIN'); FlushTimers()
+            SOUNDKIT=nil; local played=0
+            PlaySound=function() error('Do not use a client sound kit for the recording') end
+            PlaySoundFile=function(path,channel)
+                assert(path=='Interface\\\\AddOns\\\\LegacyAchievementsReforged\\\\Media\\\\AchievementEarned.ogg')
+                assert(channel=='Master'); played=played+1; return true,123
+            end
+            local before=Fingerprint(L.DB())
+            assert(A.Preview()); assert(played==1 and Fingerprint(L.DB())==before)
+            assert(A.StopPreview())
+            function UnitLevel() return 10 end
+            CoreEvent('PLAYER_LEVEL_UP'); FlushTimers()
+            assert(L.DB().done.lvl10 and A.active and not A.active.record.preview and played==2)
+            CoreEvent('PLAYER_LEVEL_UP'); FlushTimers(); assert(played==2)
+            L.Settings().sound=false; A.Finish(); A.Preview(); assert(played==2)
+            assert(A.PlaySelectedSound() and played==3)
+            PlaySoundFile=function() return false end
+            local ok,reason=A.PlaySelectedSound()
+            assert(not ok and reason:find('declined',1,true) and reason:find('AchievementEarned.ogg',1,true))
+        ''')
+
     def test_combat_preview_touches_only_owned_frames_and_malformed_settings_are_bounded(self):
         self.check('''
             inCombat=true
@@ -335,6 +361,25 @@ class AlertSettingsTests(unittest.TestCase):
             assert(U.panel.sound:GetText():find('bundled',1,true) and U.panel.status:GetText():find('file',1,true))
             assert(not A.active and Fingerprint(L.DB())==before)
             U.panel.test:Fire('OnClick'); assert(played==2 and A.active.record.preview)
+        ''')
+
+    def test_recording_selected_once_on_upgrade_without_changing_mute_or_progress(self):
+        self.check('''
+            local L,U,A=ns.LAR,ns.AddonSettings,ns.AchievementAlerts
+            local before=Fingerprint(L.DB())
+            L.Settings().soundName='LAR_REFORGED_CHIME'; L.Settings().sound=false
+            L.Settings().alertSoundChannel='SFX'
+            U.events:Fire('OnEvent','PLAYER_LOGIN')
+            assert(L.Settings().soundName=='UI_ACHIEVEMENT_AWARDED')
+            assert(L.Settings().bundledAchievementSoundVersion==1 and L.Settings().sound==false)
+            assert(L.Settings().alertSoundChannel=='SFX' and #soundCalls==0 and Fingerprint(L.DB())==before)
+            L.Settings().soundName='LEVELUP'
+            U.events:Fire('OnEvent','PLAYER_LOGIN'); U.Sync()
+            assert(L.Settings().soundName=='LEVELUP') -- later deliberate selections persist
+            U.panel.achievementSound:Fire('OnClick')
+            assert(L.Settings().soundName=='UI_ACHIEVEMENT_AWARDED' and #soundCalls==1)
+            assert(soundCalls[1][1]:find('AchievementEarned.ogg',1,true) and soundCalls[1][2]=='SFX')
+            assert(not A.active and Fingerprint(L.DB())==before)
         ''')
 
     def test_registration_and_settings_open_defer_once_until_combat_ends(self):

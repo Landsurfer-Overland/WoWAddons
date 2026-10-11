@@ -34,9 +34,10 @@ Feats of Strength contains **Legacy Point Achievements**, a searchable view of
 confirmed Legacy Point rewards. Original category assignments and totals remain
 unchanged. Unverified progress is kept separate from verified completion.
 
-This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test5`).
+This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test6`).
 Its popup uses the classic gold banner, short fade-in, gold glow, sweeping shine,
-timed fade-out and selected client sound. The settings page is available through
+timed fade-out and the supplied achievement chime played from a bundled OGG.
+Other sounds remain selectable. The settings page is available through
 the client's AddOns settings or `/lar settings`; the quarantined alpha window
 is not needed. See the [alert testing guide](docs/achievement-alert-testing.md).
 Tracked custom achievements use the client's objective tracker under **Reforged
