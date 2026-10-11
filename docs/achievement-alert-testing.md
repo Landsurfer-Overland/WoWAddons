@@ -1,6 +1,6 @@
 # Achievement alert test build
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test2`.
+Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test3`.
 This branch can be installed for testing without changing `main` or creating a
 release tag. The existing workflow builds a downloadable branch artifact after
 checks; actual GitHub releases require a version tag. No CurseForge upload is
@@ -17,7 +17,15 @@ animation leaves a static banner for the chosen hold duration. Scale and top
 offset are adjustable. The preview has a separate visible PREVIEW label below
 the banner so it cannot be confused with a real unlock.
 
-The client sound selection defaults to `SOUNDKIT.UI_ACHIEVEMENT_AWARDED`. Other
+The client sound selection defaults to Achievement chime. The previous build
+incorrectly treated the absence of `SOUNDKIT.UI_ACHIEVEMENT_AWARDED` as proof
+the chime was unavailable. This build retains that saved selection key and
+requests the classic achievement sound kit **12891** when the constant is
+absent. This uses the client's own sound database, not a downloaded file. A
+successful request does not establish audible playback on WoW Forever; use
+**Play selected sound** to check it. Status text includes the requested kit.
+If the client rejects the request or remains silent with audio enabled, further
+client asset verification is needed before deciding to bundle an audio file. Other
 choices are Level up, Quest complete and Ready check. Master/SFX channel selection
 controls which client volume affects playback. The explicit sound-test button
 plays even if automatic achievement sounds are disabled; the popup follows the
@@ -86,10 +94,11 @@ Classic texture crops and alert geometry were checked against the Blizzard
 (observed source SHA256 `a70e6633301347f4948e63822dd4aa80b9b284c117f602feccb5560c8c91577a`).
 Only client-provided textures are used; its global alert scripts are not loaded.
 
-Validation: all **660 automated tests passed**, including 15 new alert/settings
+Validation: all **662 automated tests passed**, including 17 alert/settings
 cases using real Lua completion and input callbacks. They cover no preview
 progress writes, correct crop/geometry contracts, animation lifecycle, sound
-failure/mute/channel behavior, frame reuse, real-award routing/duplicate safety,
+failure/mute/channel behavior, missing sound constants, client sound overrides,
+shield-centered points, frame reuse, real-award routing/duplicate safety,
 bounded bursts, combat deferral and modern/legacy settings APIs. Lua 5.1 syntax
 passed for 30 files, all 31 TOC references and four XML dependencies passed,
 and the existing 322-definition initialization/14 behavior assertions passed.

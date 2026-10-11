@@ -1,5 +1,13 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha-alert-test3 — testing branch
+
+- Anchor popup points to the shield center and restore the classic shield crop.
+- Achievement chime can request the standard client sound kit 12891 even when
+  the client does not export the expected SOUNDKIT constant. Report playback
+  rejection with the kit number; audible playback still needs in-game testing.
+- No external sound downloads, native sound changes or progress changes.
+
 ## 0.5.1-alpha-alert-test2 — testing branch
 
 - Replace the inherited addon-list/minimap icon with an original gold hammer

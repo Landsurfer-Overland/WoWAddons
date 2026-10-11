@@ -79,8 +79,10 @@ class AchievementAlertTests(unittest.TestCase):
             assert(f.background.textureValue=='Interface\\\\AchievementFrame\\\\UI-Achievement-Alert-Background')
             assert(f.background.coords[2]==.605 and f.background.coords[4]==.703)
             assert(f.icon:GetWidth()==50 and f.iconFrame:GetWidth()==72)
-            assert(f.shield.coords[2]==.5 and f.shield.coords[4]==.5)
+            assert(f.shield.coords[2]==.5 and f.shield.coords[4]==.45)
             assert(f.preview:IsShown() and f.points:GetText()=='10')
+            local anchor,target,relative,x,y=f.points:GetPoint(1)
+            assert(anchor=='CENTER' and target==f.shield and relative=='CENTER' and x==0 and y==0)
             assert(f.name:GetText()=='Reforged Test Achievement' and not f:IsMouseEnabled())
             assert(f.glow:GetBlendMode()=='ADD' and f.shine:GetBlendMode()=='ADD')
         ''')
@@ -128,6 +130,35 @@ class AchievementAlertTests(unittest.TestCase):
             ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('declined',1,true))
             PlaySound=function() error('Playback error') end
             ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('Playback error',1,true))
+        ''')
+
+    def test_achievement_chime_works_without_exported_sound_constant(self):
+        self.check('''
+            local A=ns.AchievementAlerts
+            SOUNDKIT.UI_ACHIEVEMENT_AWARDED=nil
+            local ok,reason=A.PlaySelectedSound()
+            assert(ok and reason:find('12891',1,true))
+            assert(#soundCalls==1 and soundCalls[1][1]==12891)
+            SOUNDKIT=nil
+            ns.LAR.Settings().alertSoundChannel='SFX'
+            ok,reason=A.PlaySelectedSound()
+            assert(ok and soundCalls[2][1]==12891 and soundCalls[2][2]=='SFX')
+            local attempted=0
+            PlaySound=function(id) attempted=attempted+1; assert(id==12891); return false end
+            ok,reason=A.PlaySelectedSound()
+            assert(not ok and reason:find('declined',1,true) and reason:find('12891',1,true))
+            assert(attempted==1) -- no loops or substitution with a different chime
+            PlaySound=nil
+            assert(not A.PlaySelectedSound())
+        ''')
+
+    def test_client_achievement_sound_mapping_takes_priority(self):
+        self.check('''
+            SOUNDKIT.UI_ACHIEVEMENT_AWARDED=654321
+            local ok,reason=ns.AchievementAlerts.PlaySelectedSound()
+            assert(ok and soundCalls[1][1]==654321 and reason:find('654321',1,true))
+            ns.LAR.Settings().soundName='UnknownClientSound'
+            assert(not ns.AchievementAlerts.PlaySelectedSound() and #soundCalls==1)
         ''')
 
     def test_real_unlock_preempts_preview_queues_once_and_cannot_be_stopped_by_preview(self):

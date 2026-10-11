@@ -6,7 +6,9 @@ local A = { queue = {}, MAX_QUEUE = 32, overflow = 0 }
 ns.AchievementAlerts = A
 
 A.SOUNDS = {
-    { key = "UI_ACHIEVEMENT_AWARDED", name = "Achievement chime" },
+    -- The classic achievement sound kit can exist without an exported SOUNDKIT
+    -- constant. Keep the saved selection key and use its standard kit directly.
+    { key = "UI_ACHIEVEMENT_AWARDED", name = "Achievement chime", kit = 12891 },
     { key = "LEVELUP", name = "Level up" },
     { key = "IG_QUEST_LIST_COMPLETE", name = "Quest complete" },
     { key = "READY_CHECK", name = "Ready check" },
@@ -24,12 +26,13 @@ end
 function A.PlaySelectedSound()
     local choice = A.SoundChoice()
     local kit = SOUNDKIT and SOUNDKIT[choice.key]
+    if type(kit) ~= "number" then kit = choice.kit end
     if type(kit) ~= "number" or not PlaySound then return false, choice.name .. " is unavailable on this client." end
     local channel = LAR.Settings().alertSoundChannel == "SFX" and "SFX" or "Master"
     local ok, played = pcall(PlaySound, kit, channel)
     if not ok then return false, "Sound playback failed: " .. tostring(played) end
-    if played == false then return false, "The client declined this sound. Check audio settings." end
-    return true, choice.name .. " requested on " .. channel .. "."
+    if played == false then return false, "The client declined " .. choice.name .. " (kit " .. kit .. "). Check audio settings or client sound availability." end
+    return true, choice.name .. " requested on " .. channel .. " (kit " .. kit .. ")."
 end
 local function texture(parent, layer, file, width, height, point, relative, x, y, coords)
     local region = parent:CreateTexture(nil, layer)
@@ -57,12 +60,14 @@ function A.Create()
     f.iconFrame = texture(f, "OVERLAY", "Interface\\AchievementFrame\\UI-Achievement-IconFrame",
         72, 72, "TOPLEFT", "TOPLEFT", -1, -8, { 0, .5625, 0, .5625 })
     f.shield = texture(f, "ARTWORK", "Interface\\AchievementFrame\\UI-Achievement-Shields",
-        52, 48, "TOPRIGHT", "TOPRIGHT", -9, -19, { 0, .5, 0, .5 })
+        52, 48, "TOPRIGHT", "TOPRIGHT", -9, -19, { 0, .5, 0, .45 })
     f.heading = font(f, "GameFontBlackTiny", 200, 12, "TOP", 7, -23)
     f.heading:SetText(ACHIEVEMENT_UNLOCKED or "Achievement Earned")
     f.name = font(f, "GameFontHighlight", 168, 28, "TOPLEFT", 72, -38)
     f.name:SetWordWrap(true)
-    f.points = font(f, "GameFontNormal", 40, 20, "TOPRIGHT", -11, -35)
+    f.points = font(f, "GameFontNormal", 40, 20, "CENTER", 0, 0)
+    f.points:ClearAllPoints(); f.points:SetPoint("CENTER", f.shield, "CENTER", 0, 0)
+    f.points:SetJustifyV("MIDDLE")
     f.preview = font(f, "GameFontNormalSmall", 300, 16, "BOTTOM", 0, -12)
     f.preview:SetText("PREVIEW — no achievement awarded"); f.preview:Hide()
     f.glow = texture(f, "OVERLAY", "Interface\\AchievementFrame\\UI-Achievement-Alert-Glow",
