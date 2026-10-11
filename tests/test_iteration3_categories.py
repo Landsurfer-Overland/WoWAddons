@@ -178,7 +178,11 @@ class Iteration3CategoryTests(unittest.TestCase):
             assert(m.byCategory["quests:storylines"] and m.byCategory["quests:loremaster"])
             for _,cat in ipairs(m.categories) do
                 assert(not cat.name:lower():find("daily",1,true))
-                if cat.parent then assert(#ns.LegacyPresentation.Rows(m,cat.key)>0) end
+                -- The explicit reward selector remains available even when
+                -- native rewards cannot be verified in the current snapshot.
+                if cat.parent and cat.key~="feats:legacy-points" then
+                    assert(#ns.LegacyPresentation.Rows(m,cat.key)>0)
+                end
             end
         ''')
 

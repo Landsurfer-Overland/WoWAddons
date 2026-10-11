@@ -27,6 +27,7 @@ local ROOTS = {
     { "reputation", "Reputation" }, { "pvp", "PvP" }, { "classes", "Classes" },
     { "feats", "Feats of Strength" },
 }
+local LEGACY_POINTS_CATEGORY = "feats:legacy-points"
 -- Subjects are shared by both sources. Only subjects with actual records are
 -- inserted into navigation; this table defines their labels and ordering.
 local SUBJECTS = {
@@ -520,6 +521,10 @@ function P.Build(page, nativeCatalog)
     end
     category("summary", "Summary")
     for _, root in ipairs(ROOTS) do category(root[1], root[2]) end
+    -- A second way to browse existing canonical rows, not a reassignment to
+    -- Feats of Strength. Its totals must not inflate the parent or Summary.
+    local legacyPoints = category(LEGACY_POINTS_CATEGORY, "Legacy Point Achievements", model.byCategory.feats, 0)
+    legacyPoints.aliasRows = {}
     for i, definition in ipairs(classes.definitions) do
         category("classes:" .. definition[1], definition[2], model.byCategory.classes, i)
     end
@@ -716,6 +721,13 @@ function P.Build(page, nativeCatalog)
         while ancestor and not indexed[ancestor.key] do
             index(row, ancestor.key, indexed, ancestor ~= target)
             ancestor = model.byCategory[ancestor.parent]
+        end
+        local nativeReward = row.source == "combined" and row.native or row.source == "legacy" and row
+        local rewardPoints = nativeReward and R.Number(nativeReward.pointValue)
+        if nativeReward and nativeReward.pointType == "legacy" and rewardPoints and rewardPoints > 0 then
+            legacyPoints.aliasRows[row.key] = true
+            legacyPoints.records[#legacyPoints.records + 1] = row
+            index(row, LEGACY_POINTS_CATEGORY, indexed)
         end
         if row.navigationFallback then index(row, "unmapped", indexed) end
         local source = model.byCategory[row.source]
