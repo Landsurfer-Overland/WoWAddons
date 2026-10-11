@@ -1,0 +1,51 @@
+{
+  "version": "1.60.1.70338",
+  "files": [
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua",
+      "sha256": "dc89d9491b0cede19eaa951d2a95dc4a72b489a1bb4e864ef50859a5cf99cabf"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua",
+      "sha256": "e637368f36d153f8b432455cfa247d0c67c84996dce8d591bc1eb4d1cd7bc098"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/CurrencyInfoDocumentation.lua",
+      "sha256": "4469ef929c58223c45371876e4364478be0397578f72cc24415f31fa060b47a1"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ReputationInfoDocumentation.lua",
+      "sha256": "f59ca871c2ce55d3cd8e5d9534b307bfc5c1e3537a00459da2bc2c0e586d830a"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TotemDocumentation.lua",
+      "sha256": "4bec64ac75abc3825855b73aed64ac19f515c4eb4e0c83f57b749a97773c5814"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUIDocumentation.lua",
+      "sha256": "e3392e58403283ef5e307268ce51781ef25e7e0d955a199906b9b37278503fd2"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUITypesDocumentation.lua",
+      "sha256": "c1fcec130e314052873d0246311f1a554141b0cf5ace55ea849ad8c7275be29b"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/AchievementInfoDocumentation.lua",
+      "sha256": "991771384f644a439eed28251b896044cbe565a6fe9c4a85f99737d5cbcb1dce"
+    },
+    {
+      "pin": "943764493e6b16d63ded3ab304150d1f05e58b57",
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PetInfoDocumentation.lua",
+      "sha256": "e8b0903eff452d1076e56c67c6100da0f9bf15f1a05b95846f938832eef803d5"
+    }
+  ],
+  "retrieval_note": "Read-only Git source inspection; API source is not executed and no Forever client tests ran."
+}

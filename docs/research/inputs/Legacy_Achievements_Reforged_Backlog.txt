@@ -1,0 +1,1446 @@
+LEGACY ACHIEVEMENTS REFORGED — RUNNING ACHIEVEMENT BACKLOG
+Created: October 10, 2026
+Last updated: October 11, 2026
+Version: 4 — preliminary tracking feasibility for all 200 candidates
+
+PURPOSE AND SCOPE
+Target: approximately 200 new achievements. This draft contains exactly 200
+backlog entries, including the original nine. They are candidates, not implemented
+or approved additions. Existing custom achievements and native Legacy challenges
+must be checked before finalizing the number of genuinely new additions.
+All entries default to character scope. Backlog IDs are stable planning references,
+not in-game IDs. Titles are working titles. Points and icons remain TBD.
+Faction/class alternatives mean a character will see fewer than 200 eligible entries.
+Shared class entries require separate criteria for each supported class.
+
+CATEGORY ALLOCATION
+General: 25
+Quests: 30
+Exploration: 25
+Professions: 25
+Dungeons & Raids: 30
+Reputation: 20
+PvP: 20
+Classes: 20
+Feats of Strength: 5
+TOTAL: 200
+
+STATUS KEY
+Discussed: Raised by Matt; details still subject to refinement.
+Proposed: Candidate awaiting selection.
+Ready: Criteria, availability, and reliable tracking agreed.
+Implemented: Added and verified in game.
+Parked: Retained for possible later use.
+
+DESIGN RULES
+- Mix approachable milestones, long-term goals, exploration, and playful challenges.
+- Favor Forever-specific additions once verified; do not invent server mechanics.
+- Keep custom achievement points separate from native Legacy points.
+- Validate tracking before implementation; historical progress may be unavailable.
+- Preserve stable IDs when changing names or criteria.
+- Retire or replace duplicates and untrackable entries instead of inflating the total.
+- Use progression tiers where meaningful; avoid making every idea a counter grind.
+
+ACHIEVEMENT ENTRIES
+
+GENERAL
+Tracking/design review: Validate campfire recognition, sitting duration, session deduplication, transport completion, and mount/pet ownership. Distinct campfires versus sessions remains an open decision for ACH-002/003. The 200/500 thresholds are tentative.
+
+ACH-001 — A Warm Welcome
+Status: Discussed
+Criteria: Sit at your first qualifying campfire.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-002 — Fireside Regular
+Status: Discussed
+Criteria: Complete 200 qualifying campfire sessions.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-003 — Home Is Where the Hearth Is
+Status: Discussed
+Criteria: Complete 500 qualifying campfire sessions.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-007 — Fires Across Azeroth
+Status: Proposed
+Criteria: Complete a qualifying campfire session in 10 different zones.
+Flavor text: Same stars. Different stories.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-010 — Smoke Signals
+Status: Proposed
+Criteria: Complete 25 qualifying campfire sessions.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-011 — The Long Evening
+Status: Proposed
+Criteria: Accumulate 60 minutes sitting at qualifying campfires.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-012 — A Place for Everyone
+Status: Proposed
+Criteria: Share one campfire session with at least four other players.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-013 — Under the Stars
+Status: Proposed
+Criteria: Camp outdoors at night in five different zones.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-014 — Breakfast in the Wild
+Status: Proposed
+Criteria: Eat a meal during a qualifying campfire session.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-015 — Campground Critic
+Status: Proposed
+Criteria: Camp in a forest, desert, snowy region, and swamp.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-016 — Homeward Bound
+Status: Proposed
+Criteria: Use your hearthstone 25 times.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+Probe: Test successful Hearthstone spell completion plus arrival; exclude canceled casts and other teleport spells. No lifetime use count is established.
+
+ACH-017 — Well Traveled, Well Rested
+Status: Proposed
+Criteria: Record 10 distinct verified hearthstone bind locations while the addon is running; precise inn identity only if reliably distinguishable.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+Probe: Read GetBindLocation before and after binding at two different inns, rebinding at the same inn, and relogging. Test candidate HEARTHSTONE_BOUND event in this build; do not assume it fires. Location text may not uniquely identify an inn. No lifetime bind count is established.
+
+ACH-018 — Inn Good Company
+Status: Proposed
+Criteria: Visit a curated checklist of 15 inns.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-019 — Room Service
+Status: Proposed
+Criteria: Eat and drink at five different inns.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-020 — Frequent Flyer
+Status: Proposed
+Criteria: Complete 50 taxi flights.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-021 — Azeroth From Above
+Status: Proposed
+Criteria: Complete 250 taxi flights.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-022 — Sea Legs
+Status: Proposed
+Criteria: Complete a boat journey.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-023 — Across the Great Sea
+Status: Proposed
+Criteria: Ride three distinct boat routes.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-024 — First in Flight
+Status: Proposed
+Criteria: Ride a zeppelin route available to your faction.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-025 — All Aboard
+Status: Proposed
+Criteria: Complete a Deeprun Tram journey.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-026 — Giddy Up
+Status: Proposed
+Criteria: Obtain your first permanent riding mount.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-027 — Stable Foundations
+Status: Proposed
+Criteria: Collect five permanent riding mounts.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-028 — A Familiar Face
+Status: Proposed
+Criteria: Obtain your first permanent companion pet.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-029 — Small Army
+Status: Proposed
+Criteria: Collect 10 permanent companion pets.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-030 — Cheers to That
+Status: Proposed
+Criteria: Use a toast emote while sharing a drink with another player.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+
+QUESTS
+Tracking/design review: Build explicit quest-ID checklists from Forever data. Exclude unavailable faction/class branches. Validate completion credit and prerequisite handling; do not infer checklist completion from counts.
+
+ACH-006 — Leave No Story Untold
+Status: Proposed
+Criteria: Complete a verified eligible quest checklist for one starting zone.
+Flavor text: Even the little errands mattered.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-031 — Errand Runner
+Status: Proposed
+Criteria: Complete 50 distinct quests.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-032 — Problem Solver
+Status: Proposed
+Criteria: Complete 250 distinct quests.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-033 — Azeroth's Helping Hand
+Status: Proposed
+Criteria: Complete 500 distinct quests.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-034 — A Thousand Stories
+Status: Proposed
+Criteria: Complete 1,000 distinct quests, subject to verified eligible quest availability.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-035 — The Forest Remembers
+Status: Proposed
+Criteria: Complete the eligible Elwynn Forest quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-036 — Breadbasket Blues
+Status: Proposed
+Criteria: Complete the eligible Westfall quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-037 — Night Watch
+Status: Proposed
+Criteria: Complete the eligible Duskwood quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-038 — Redridge Regular
+Status: Proposed
+Criteria: Complete the eligible Redridge Mountains quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-039 — Roots of the World
+Status: Proposed
+Criteria: Complete the eligible Teldrassil quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-040 — Shadows on the Shore
+Status: Proposed
+Criteria: Complete the eligible Darkshore quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-041 — Ash and Ancients
+Status: Proposed
+Criteria: Complete the eligible Ashenvale quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-042 — Stone and Smoke
+Status: Proposed
+Criteria: Complete the eligible Stonetalon Mountains quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-043 — Cold Beginnings
+Status: Proposed
+Criteria: Complete the eligible Dun Morogh quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-044 — Loch and Load
+Status: Proposed
+Criteria: Complete the eligible Loch Modan quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-045 — Dust to Dust
+Status: Proposed
+Criteria: Complete the eligible Durotar quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-046 — Grassland Guardian
+Status: Proposed
+Criteria: Complete the eligible Mulgore quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-047 — The Long Barrens Road
+Status: Proposed
+Criteria: Complete the eligible Barrens quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-048 — Restless Dead
+Status: Proposed
+Criteria: Complete the eligible Tirisfal Glades quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-049 — Silverpine Secrets
+Status: Proposed
+Criteria: Complete the eligible Silverpine Forest quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-050 — Hillsbrad Historian
+Status: Proposed
+Criteria: Complete the eligible Hillsbrad Foothills quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-051 — Stranglethorn Stories
+Status: Proposed
+Criteria: Complete the eligible Stranglethorn Vale quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-052 — Desert Dispatches
+Status: Proposed
+Criteria: Complete the eligible Tanaris quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-053 — Un'Goro Uncovered
+Status: Proposed
+Criteria: Complete the eligible Un'Goro Crater quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-054 — Winter's Work
+Status: Proposed
+Criteria: Complete the eligible Winterspring quest checklist.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-055 — A Plague on Both Your Houses
+Status: Proposed
+Criteria: Complete the eligible Western and Eastern Plaguelands quest checklists.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-056 — Beyond the Starting Line
+Status: Proposed
+Criteria: Complete the eligible starting-zone checklists for every playable race of your faction.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-057 — An Honest Escort
+Status: Proposed
+Criteria: Complete five distinct escort quests.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-058 — Wanted: Adventurer
+Status: Proposed
+Criteria: Complete 10 distinct wanted-poster or bounty quests.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-059 — Your Own Legend
+Status: Proposed
+Criteria: Complete a verified major class quest chain for your class.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+
+EXPLORATION
+Tracking/design review: Verify map IDs, landmarks, and coordinates in Forever. Use sensible arrival radii. Flight-point and map discovery queries need validation.
+
+ACH-009 — The Scenic Route
+Status: Proposed
+Criteria: Visit a curated checklist of scenic locations across Azeroth.
+Flavor text: Some things are worth walking for.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-060 — Lighthouse Keeper
+Status: Proposed
+Criteria: Visit a verified checklist of five lighthouses or coastal signal towers.
+Review note: Replaces Eastern Horizons: duplicates native Explore Eastern Kingdoms (62353).
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-061 — Bridges Between Worlds
+Status: Proposed
+Criteria: Cross a curated checklist of 10 distinctive bridges in different zones.
+Review note: Replaces Kalimdor Calling: duplicates native Explore Kalimdor (62355).
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-062 — The Roadside Pilgrim
+Status: Proposed
+Criteria: Visit a curated checklist of 12 shrines, monuments, or roadside places of worship.
+Review note: Replaces Azeroth Unveiled: duplicates native Explore Azeroth (62053), also represented by Explorer (64015/62382).
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-063 — Capital Ideas
+Status: Proposed
+Criteria: Visit every friendly capital available to your faction.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-064 — Behind Enemy Lines
+Status: Proposed
+Criteria: Visit every opposing-faction capital on a verified location checklist.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-065 — Neutral Ground
+Status: Proposed
+Criteria: Visit Booty Bay, Gadgetzan, and Everlook.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-066 — The World's Wound
+Status: Proposed
+Criteria: Visit a curated viewpoint overlooking the Great Scar in the Barrens.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-067 — Where the World Began
+Status: Proposed
+Criteria: Visit a verified viewpoint overlooking the Well of Eternity ruins in Azshara.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-068 — At the Edge of the World
+Status: Proposed
+Criteria: Visit five curated remote coastal locations.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-069 — Waterfall Wanderer
+Status: Proposed
+Criteria: Visit five curated waterfalls.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-070 — Peak Curiosity
+Status: Proposed
+Criteria: Visit five curated mountain viewpoints.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-071 — Desert Footprints
+Status: Proposed
+Criteria: Visit curated landmarks in Tanaris, Silithus, and the Badlands.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-072 — Into the Green
+Status: Proposed
+Criteria: Visit curated landmarks in Ashenvale, Feralas, and Un'Goro Crater.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-073 — Winter Wanderer
+Status: Proposed
+Criteria: Visit curated snowy landmarks in Dun Morogh and Winterspring.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-074 — Swamp Thing
+Status: Proposed
+Criteria: Visit curated landmarks in the Wetlands, Swamp of Sorrows, and Dustwallow Marsh.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-075 — Below the Surface
+Status: Proposed
+Criteria: Visit five curated caves.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-076 — Ancient Footsteps
+Status: Proposed
+Criteria: Visit five curated ruins.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-077 — A Moment of Silence
+Status: Proposed
+Criteria: Visit five curated memorials or graveyards.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-078 — Road Less Traveled
+Status: Proposed
+Criteria: Visit 10 curated secluded locations away from quest hubs.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-079 — Cartographer's Apprenticeship
+Status: Proposed
+Criteria: Discover 50 eligible map areas.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-080 — Cartographer's Calling
+Status: Proposed
+Criteria: Discover 150 eligible map areas.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-081 — Flight Plan
+Status: Proposed
+Criteria: Unlock 10 eligible flight points.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-082 — Connected Continent
+Status: Proposed
+Criteria: Unlock every eligible flight point on one continent for your faction.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-083 — Forever Discoveries
+Status: Proposed
+Criteria: Visit a verified checklist of Forever-specific world additions.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+
+PROFESSIONS
+Tracking/design review: Validate skill caps and gathering/crafting/fishing events. Define junk and stack quantity rules for fishing; prevent ordinary loot from counting. Self-caught cooking requires a reliable provenance approach.
+
+ACH-004 — The One That Got Away
+Status: Discussed
+Criteria: Fish up 2,000 items; flavor text proposal: Still no Ashbringer.
+Flavor text: Still no Ashbringer. (proposed)
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-008 — Catch and Release
+Status: Proposed
+Criteria: Catch at least one qualifying fish in 10 different zones.
+Flavor text: The release part is optional.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-084 — First Cast
+Status: Proposed
+Criteria: Catch your first qualifying fish.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-085 — Hooked
+Status: Proposed
+Criteria: Fish up 100 items.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-086 — Reel Commitment
+Status: Proposed
+Criteria: Fish up 500 items.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-087 — Something Smells Fishy
+Status: Proposed
+Criteria: Catch 20 distinct eligible fish species.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-088 — One Person's Trash
+Status: Proposed
+Criteria: Fish up 25 qualifying junk items.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-089 — Pool Your Resources
+Status: Proposed
+Criteria: Catch 100 items from verified fishing pools.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-090 — Master Angler
+Status: Proposed
+Criteria: Reach the verified maximum base Fishing skill available in Forever.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-091 — Dinner Is Served
+Status: Proposed
+Criteria: Cook 25 items.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-092 — Short-Order Hero
+Status: Proposed
+Criteria: Cook 250 items.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-093 — Azeroth à la Carte
+Status: Proposed
+Criteria: Cook 25 distinct eligible recipes.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-094 — From Lake to Plate
+Status: Proposed
+Criteria: Cook five distinct dishes using fish you caught yourself.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-095 — Master of the Kitchen
+Status: Proposed
+Criteria: Reach the verified maximum base Cooking skill available in Forever.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-096 — Field Medic
+Status: Proposed
+Criteria: Craft 100 bandages.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-097 — Hands That Heal
+Status: Proposed
+Criteria: Successfully use bandages on 25 other players.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-098 — First Aid, First Class
+Status: Proposed
+Criteria: Reach the verified maximum base First Aid skill available in Forever.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-099 — Flowers for Everyone
+Status: Proposed
+Criteria: Gather 250 herb nodes.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-100 — Ore Else
+Status: Proposed
+Criteria: Mine 250 mineral nodes.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-101 — Waste Not
+Status: Proposed
+Criteria: Skin 250 eligible creatures.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-102 — Made by Hand
+Status: Proposed
+Criteria: Craft 100 items with primary professions.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-103 — Workshop Veteran
+Status: Proposed
+Criteria: Craft 1,000 items with primary professions.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-104 — A Favor Earned
+Status: Proposed
+Criteria: Earn 100 cumulative Merchant's Favor after tracking begins.
+Review note: Replaces Tools of the Trade: overlaps native Artisan primary-profession milestones. Count positive earned transactions, not current balance; exclude transfers/refunds if applicable.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+Probe: Verify currency ID and event payload for crate reward, purchase, refund, relog, and UI refresh. Quantity changes are not automatically earned credit.
+
+ACH-105 — Putting Favor to Work
+Status: Proposed
+Criteria: Spend 100 Merchant's Favor on verified merchant purchases after tracking begins.
+Review note: Replaces Double Major: combines existing native Artisan skill milestones rather than adding a distinct activity. Spending must be tied to a confirmed purchase, not inferred from any balance decrease.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-106 — Recipe Collector
+Status: Proposed
+Criteria: Learn 50 distinct eligible primary-profession recipes.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+
+DUNGEONS & RAIDS
+Tracking/design review: Verify available instances and boss rosters in Forever. Define party/raid participation, dead-player credit, and unique run reset rules. Named legacy bosses are conditional candidates.
+
+ACH-107 — Into the Depths
+Status: Proposed
+Criteria: Defeat the verified final boss of Blackfathom Deeps.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-108 — A Grave Mistake
+Status: Proposed
+Criteria: Defeat the verified final boss of Razorfen Downs.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-109 — Down in the Kraul
+Status: Proposed
+Criteria: Defeat the verified final boss of Razorfen Kraul.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-110 — Break the Stockade
+Status: Proposed
+Criteria: Defeat the verified final boss of the Stockade.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-111 — The Deadmines Are Alive
+Status: Proposed
+Criteria: Defeat the verified final boss of the Deadmines.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-112 — A Ragefire Beginning
+Status: Proposed
+Criteria: Defeat the verified final boss of Ragefire Chasm.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-113 — Wake the Dreamers
+Status: Proposed
+Criteria: Defeat the verified final boss of Wailing Caverns.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-114 — Mechanical Difficulties
+Status: Proposed
+Criteria: Defeat the verified final boss of Gnomeregan.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-115 — The Keep's Dark Secret
+Status: Proposed
+Criteria: Defeat the verified final boss of Shadowfang Keep.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-116 — Scarlet Letter
+Status: Proposed
+Criteria: Defeat the final boss of each verified Scarlet Monastery wing.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-117 — Unearthed
+Status: Proposed
+Criteria: Defeat the verified final boss of Uldaman.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-118 — Sand, Sweat, and Trolls
+Status: Proposed
+Criteria: Defeat the verified final boss of Zul'Farrak.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-119 — All Roads Lead to Maraudon
+Status: Proposed
+Criteria: Defeat the verified final boss of Maraudon.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-120 — Temple Trouble
+Status: Proposed
+Criteria: Defeat the verified final boss of the Sunken Temple.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-121 — Emperor's End
+Status: Proposed
+Criteria: Defeat Emperor Dagran Thaurissan in Blackrock Depths, if available.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-122 — Lower the Flag
+Status: Proposed
+Criteria: Defeat the verified final boss of Lower Blackrock Spire.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-123 — Upper Management
+Status: Proposed
+Criteria: Defeat the verified final boss of Upper Blackrock Spire.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-124 — Dire Consequences
+Status: Proposed
+Criteria: Defeat the final boss of each verified Dire Maul wing.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-125 — School's Out
+Status: Proposed
+Criteria: Defeat the verified final boss of Scholomance.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-126 — Stratholme Survivor
+Status: Proposed
+Criteria: Defeat the final bosses of both verified Stratholme routes.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-127 — Lair Apparent
+Status: Proposed
+Criteria: Defeat Onyxia after personally surviving a curated mechanic checklist during the same encounter; mechanics and eligibility TBD.
+Review note: Replaces Onyxia's End: duplicates Conqueror of the Lair (64030/684). New challenge is distinct but tracking remains unverified.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-128 — Heart of Fire
+Status: Proposed
+Criteria: Defeat Ragnaros, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-129 — Into the Blackwing
+Status: Proposed
+Criteria: Defeat Nefarian, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-130 — Blood and Loa
+Status: Proposed
+Criteria: Defeat Hakkar, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-131 — Ruins Reclaimed
+Status: Proposed
+Criteria: Defeat Ossirian the Unscarred, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-132 — Old God's End
+Status: Proposed
+Criteria: Defeat C'Thun, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-133 — A Chill in the Air
+Status: Proposed
+Criteria: Defeat Kel'Thuzad, subject to Forever availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-134 — Dungeon Regular
+Status: Proposed
+Criteria: Complete 25 qualifying dungeon runs with final-boss credit.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-135 — The Full Tour
+Status: Proposed
+Criteria: Complete every available dungeon on a verified Forever checklist.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-136 — Forever's Frontiers
+Status: Proposed
+Criteria: Defeat the final bosses of a verified checklist of Forever-specific instances.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+
+REPUTATION
+Tracking/design review: Verify faction IDs and availability. Filter by player faction; faction-only entries are alternatives. Compare with native Legacy challenges before retaining duplicates.
+
+ACH-005 — A Different Kind of Home
+Status: Proposed
+Criteria: Reach Exalted with a playable-race capital faction other than your own.
+Flavor text: They said I could stay.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-137 — Open for Business
+Status: Proposed
+Criteria: Reach the first verified positive reputation standing with your faction's supply organization.
+Review note: Merchant's Favor-related reputation candidate. Alliance: Azeroth Commerce Authority; Horde: Durotar Supply and Logistics. Exact faction IDs and standing labels require client verification.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-138 — A Trusted Supplier
+Status: Proposed
+Criteria: Reach a verified intermediate reputation milestone with your faction's supply organization.
+Review note: Threshold TBD; do not assume a particular crate turn-in gives reputation, or reuse currency totals as reputation progress.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-139 — Preferred Partner
+Status: Proposed
+Criteria: Reach the verified penultimate reputation standing with your faction's supply organization.
+Review note: Threshold TBD. Keep only if it is distinct from ACH-138 in the actual reputation ladder.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-140 — An Exalted Beginning
+Status: Proposed
+Criteria: Reach Exalted with one eligible faction.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-141 — A Respected Name
+Status: Proposed
+Criteria: Reach Exalted with five eligible factions.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-142 — Everyone Knows Your Name
+Status: Proposed
+Criteria: Reach Exalted with 10 eligible factions, subject to verified availability.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-143 — For the Lion
+Status: Proposed
+Criteria: Reach Exalted with Stormwind as an eligible Alliance character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-144 — Among the Ancients
+Status: Proposed
+Criteria: Reach Exalted with Darnassus as an eligible Alliance character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-145 — Heart of the Mountain
+Status: Proposed
+Criteria: Reach Exalted with Ironforge as an eligible Alliance character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-146 — Small Friends, Big Ideas
+Status: Proposed
+Criteria: Reach Exalted with Gnomeregan Exiles as an eligible Alliance character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-147 — For the Warchief
+Status: Proposed
+Criteria: Reach Exalted with Orgrimmar as an eligible Horde character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-148 — Spirit of the Plains
+Status: Proposed
+Criteria: Reach Exalted with Thunder Bluff as an eligible Horde character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-149 — A Place Among the Forsaken
+Status: Proposed
+Criteria: Reach Exalted with Undercity as an eligible Horde character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-150 — Troll Toll Paid
+Status: Proposed
+Criteria: Reach Exalted with Darkspear Trolls as an eligible Horde character.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-151 — United We Stand
+Status: Proposed
+Criteria: Reach Exalted with every eligible capital faction of your own faction.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-152 — The Argent Answer
+Status: Proposed
+Criteria: Reach Exalted with Argent Dawn, subject to Forever availability.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-153 — Circle of Trust
+Status: Proposed
+Criteria: Reach Exalted with Cenarion Circle, subject to Forever availability.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-154 — Timeless Allies
+Status: Proposed
+Criteria: Reach Exalted with the Brood of Nozdormu, subject to Forever availability.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-155 — The Merchant's Favor
+Status: Proposed
+Criteria: Reach the verified highest reputation standing with your faction's supply organization.
+Review note: Explicit replacement for generic Forever in Good Standing. Highest standing label and cap must be verified in Forever; currency balance does not satisfy reputation criteria.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+
+PVP
+Tracking/design review: Verify battleground availability and score/event access. Define personal objective credit, honorable-kill sources, and duel eligibility.
+
+ACH-156 — First Blood
+Status: Proposed
+Criteria: Earn your first honorable kill.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-157 — A Hundred Rivals
+Status: Proposed
+Criteria: Earn 100 honorable kills.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-158 — A Thousand Rivals
+Status: Proposed
+Criteria: Earn 1,000 honorable kills.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-159 — Veteran of the Conflict
+Status: Proposed
+Criteria: Earn 5,000 honorable kills.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-160 — The Long War
+Status: Proposed
+Criteria: Earn 10,000 honorable kills.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-161 — Warsong Welcome
+Status: Proposed
+Criteria: Win one Warsong Gulch match, subject to availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-162 — Warsong Regular
+Status: Proposed
+Criteria: Win 25 Warsong Gulch matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-163 — Warsong Veteran
+Status: Proposed
+Criteria: Win 100 Warsong Gulch matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-164 — The Long Way Home
+Status: Proposed
+Criteria: Capture a Warsong Gulch flag after personally carrying it continuously for at least 90 seconds.
+Review note: Replaces Bring It Home: same activity as Capture the Flag (captureFlag/199); changing the count alone is not a distinct challenge. Timer and capture attribution need validation.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-165 — Not On My Watch
+Status: Proposed
+Criteria: Return a Warsong Gulch flag within 10 seconds of personally interrupting its carrier's spellcast.
+Review note: Replaces Return to Sender: lower-count version of Persistent Defender (persistent/200). Carrier identification, interrupt and return attribution need validation; reject if unavailable.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-166 — Arathi Arrival
+Status: Proposed
+Criteria: Win one Arathi Basin match, subject to availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-167 — Arathi Regular
+Status: Proposed
+Criteria: Win 25 Arathi Basin matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-168 — Arathi Veteran
+Status: Proposed
+Criteria: Win 100 Arathi Basin matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-169 — Claim the Ground
+Status: Proposed
+Criteria: Personally assault 25 Arathi Basin bases.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-170 — Hold the Line
+Status: Proposed
+Criteria: Personally defend 25 Arathi Basin bases.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-171 — Alterac Awakening
+Status: Proposed
+Criteria: Win one Alterac Valley match, subject to availability.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-172 — Alterac Regular
+Status: Proposed
+Criteria: Win 25 Alterac Valley matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-173 — Alterac Veteran
+Status: Proposed
+Criteria: Win 100 Alterac Valley matches.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-174 — All Fronts
+Status: Proposed
+Criteria: Win at least one match in each verified available battleground.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-175 — Rivals Across Azeroth
+Status: Proposed
+Criteria: Win a duel against an eligible opponent in each of five distinct zones.
+Review note: Replaces An Honorable Rival: win-count extension of Duel-icious (duel/1157). Distinct-zone condition changes the challenge; full catalog still needed.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+
+CLASSES
+Tracking/design review: Show only eligible class entries. Build separate per-class criteria for shared entries. Verify ability availability and successful-use events; some designs may require replacement if reliable credit is unavailable.
+
+ACH-176 — A Light of Your Own
+Status: Proposed
+Criteria: Complete a verified signature Paladin class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-177 — The Unbroken Line
+Status: Proposed
+Criteria: Complete a verified signature Warrior class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-178 — Friends in Wild Places
+Status: Proposed
+Criteria: Complete a verified signature Hunter class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-179 — A Shadow's Education
+Status: Proposed
+Criteria: Complete a verified signature Rogue class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-180 — A Calling Answered
+Status: Proposed
+Criteria: Complete a verified signature Priest class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-181 — A Lesson in the Arcane
+Status: Proposed
+Criteria: Complete a verified signature Mage class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-182 — Terms and Conditions
+Status: Proposed
+Criteria: Complete a verified signature Warlock class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-183 — A Balance Found
+Status: Proposed
+Criteria: Complete a verified signature Druid class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-184 — The Elements Answer
+Status: Proposed
+Criteria: Complete a verified signature Shaman class quest chain.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-185 — Last-Second Light
+Status: Proposed
+Criteria: As a Paladin, save another player below 10% health with Lay on Hands.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-186 — You Shall Not Pass
+Status: Proposed
+Criteria: As a Warrior, interrupt 100 enemy spellcasts with eligible class abilities.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-187 — Best Friend Forever
+Status: Proposed
+Criteria: As a Hunter, reach the verified maximum pet loyalty with one pet, if supported.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-188 — A Quiet Entrance
+Status: Proposed
+Criteria: As a Rogue, successfully pickpocket 100 eligible enemies.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-189 — Back on Your Feet
+Status: Proposed
+Criteria: As a Priest, resurrect 25 other players.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-190 — Table for Twenty
+Status: Proposed
+Criteria: As a Mage, provide conjured food or water to 20 distinct players.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-191 — A Favor With Strings
+Status: Proposed
+Criteria: As a Warlock, successfully summon 25 other players.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-192 — One More Chance
+Status: Proposed
+Criteria: As a Druid, resurrect 10 other players during combat with Rebirth.
+Feasibility: FORWARD COUNTER CANDIDATE — verify successful-action signal
+Historical credit: Count only observed qualifying actions while the addon runs; lifetime backfill unproven.
+
+ACH-193 — Totemic Company
+Status: Proposed
+Criteria: As a Shaman, simultaneously maintain one totem from each of four elements, if supported.
+Feasibility: STATE QUERY CANDIDATE — verify Forever API and content IDs
+Historical credit: Potentially recoverable current/completed state; not a complete activity history.
+
+ACH-194 — Know Your Toolkit
+Status: Proposed
+Criteria: Use each ability on a verified class-specific utility checklist successfully.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-195 — Forever Classcraft
+Status: Proposed
+Criteria: Complete a verified class-specific challenge built around Forever's class additions.
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+
+FEATS OF STRENGTH
+Tracking/design review: Award zero achievement points. Never infer historic beta/event participation from addon installation or the current date. Requires authoritative evidence or a clearly defined prospective event; check native duplicates.
+
+ACH-196 — Before the Gates Opened
+Status: Proposed
+Criteria: Verify participation in the Forever beta through an authoritative client record.
+Points: 0
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-197 — There on Day One
+Status: Proposed
+Criteria: Log in during an officially defined launch window, if verifiable.
+Points: 0
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-198 — First Chapter Complete
+Status: Proposed
+Criteria: Complete a curated launch-era achievement set before a defined content cutoff.
+Points: 0
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-199 — A Moment in Forever
+Status: Proposed
+Criteria: Participate in a verified one-time official Forever world event.
+Points: 0
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+ACH-200 — A Legacy Preserved
+Status: Proposed
+Criteria: Earn an officially retired collectible while it is still obtainable, with verified criteria.
+Points: 0
+Feasibility: HOLD — essential signal or attribution unverified
+Historical credit: Unavailable unless an explicit authoritative record is found.
+
+IMPLEMENTATION REVIEW QUEUE
+1. Compare all 200 candidates with the existing addon catalog and native challenges.
+2. Validate each proposed mechanic and data source in the Forever client.
+3. Replace unavailable or unreliable candidates while preserving category coverage.
+4. Finalize faction/class visibility, thresholds, points, icons, and flavor text.
+   Separate Merchant's Favor currency credit from supply-faction reputation credit.
+5. Implement and verify in batches; mark individual entries Ready or Implemented.
+
+
+CROSS-REFERENCE REVIEW — OCTOBER 11, 2026
+Source: attached Pasted markdown.md. It begins with Capture the Flag and covers
+part of custom PvP, Feats of Strength, disabled records, and bundled native
+references. General, Quests, most custom Exploration/Professions/Dungeons,
+Reputation, and the beginning of custom PvP are absent. This is a partial review,
+not proof that the other candidates are new.
+
+Confirmed equivalent criteria replaced: ACH-060, ACH-061, ACH-062, ACH-127.
+Same-family or composite overlap replaced: ACH-104, ACH-105, ACH-164,
+ACH-165, ACH-175. These were not all exact duplicates; their underlying activity
+was already represented in the supplied catalog.
+Supply-faction reputation candidates added at ACH-137/138/139/155.
+Merchant's Favor earned/spent candidates added at ACH-104/105.
+All 200 planning IDs remain; category allocations are unchanged.
+
+Outstanding checks:
+- ACH-107 through ACH-126 and ACH-135: native Spelunker checklist members were
+  not exported, so dungeon overlap cannot be resolved from titles alone.
+- ACH-136: possible overlap with Conqueror of the Wilds/Deeps; exact instance
+  and encounter lists are required before retaining it.
+- ACH-176 and ACH-182: select class chains other than Charger and Dreadsteed,
+  which the supplied catalog already tracks.
+- ACH-059: must not duplicate the signature-class-chain entries; redesign or
+  replace once specific chains are chosen.
+- ACH-006: broad starting-zone completion overlaps individual zone checklists
+  within this draft; replace or make it an intentional meta without extra grind.
+- ACH-196: check against the existing Played in the WoW: Forever Beta record.
+- Win totals, honorable kills, pets/mounts, skill caps, quest counts, capital reps,
+  and boss kills need the missing custom sections before claiming novelty.
+- No daily-quest candidates: the export explicitly disables them for this project.
+- No new generic class-level milestones: native Novice/Experienced/Master
+  already cover these.
+
+MERCHANT'S FAVOR RESEARCH NOTES
+Database source: https://www.wowhead.com/forever/currency=3402/merchants-favor
+The currency description associates Merchant's Favor with Durotar Supply and
+Logistics and Azeroth Commerce Authority. Treat it as currency, separately from
+those organizations' reputations. Community comments discuss crate rewards,
+but exact rewards, repeatable reputation sources, standing caps, and API behavior
+are not verified here. Do not copy Season of Discovery reputation rules.
+Draft earned/spent thresholds are design choices, not claims about server rewards.
+Validate currency ID, faction IDs, earned-versus-held accounting, successful
+purchases, supply turn-ins, and any Legacy multipliers before implementation.
+
+
+TRACKING FEASIBILITY — PRELIMINARY, OCTOBER 11, 2026
+Every candidate has a feasibility field. No entry is client-verified by this
+review; no addon source or executable Forever client was available for testing.
+These are implementation hypotheses and triage priorities, not confirmed support.
+
+Three design paths:
+1. STATE QUERY CANDIDATE: Ask the client for existing current/completed state.
+   Examples: completed quest IDs, reputation standing, skill level, learned recipes.
+   Exact APIs, returned scope, content coverage and availability require testing.
+2. FORWARD COUNTER CANDIDATE: Count a reliable successful-action signal from
+   tracking start onward. SavedVariables preserves observed progress between
+   sessions, but cannot observe addon-disabled play or reconstruct missing history.
+3. HOLD: Essential detection, attribution, provenance or historical evidence is
+   unresolved. Redesign or replace if a reliable signal cannot be established.
+
+Hearthstone finding:
+Blizzard-generated API documentation mirrored in the live UI source defines
+GetBindLocation with a string result. It does not expose a lifetime bind counter
+in that function. ACH-017 now proposes distinct observed bind locations, rather
+than promising a historical count or unique inn identity. HEARTHSTONE_BOUND is
+only a candidate event to test; its presence and behavior are not verified here.
+Repeat binds, localized names and multiple inns sharing a location need testing.
+
+Other priority investigations:
+- Campfires: Find a specific detectable aura, event, or state that distinguishes
+  qualifying camping from ordinary sitting or rested state. Do not award from
+  proximity to a presumed campfire or from an attempted sit/emote alone.
+- Shared camping: Nearby players are not proof they share the same campfire.
+- Fishing: Attribute loot to the successful fishing interaction, including stacks,
+  junk, pools and interrupted casts. Ordinary loot chat is insufficient alone.
+- Self-caught cooking: Identical stackable ingredients can be purchased, traded,
+  banked or mixed. Provenance may be impractical; replace the condition if so.
+- Transport: Being near a dock or on a moving platform is not journey completion.
+- PvP: Team scores do not prove the player's personal flag/base action. Timed
+  carrier/interrupt chains must identify the same opponent and qualifying outcome.
+- Combat: A cast attempt or combat-log heal does not automatically prove a save,
+  resurrection, successful summon, or recipient delivery.
+- Merchant's Favor: Current balance is not lifetime earned or spent. Verify reward
+  and purchase attribution independently from supply-faction reputation.
+- Old beta/event feats: No historical proof means unknown, not automatic credit.
+
+SOURCE EVIDENCE AND LIMITS
+Research checked Blizzard-generated documentation mirrored at:
+https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerScriptDocumentation.lua
+https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua
+https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/CurrencyInfoDocumentation.lua
+PlayerScript lists GetBindLocation returning a string. QuestLog lists
+IsQuestFlaggedCompleted taking a quest ID and returning a boolean. CurrencyInfo
+lists CURRENCY_DISPLAY_UPDATE with optional quantity and change/source fields.
+These files describe the live branch, not verified Forever build behavior.
+Do not assume Retail payloads or APIs apply unchanged to Forever.
+
+CLIENT VERIFICATION GATE
+Record the exact Forever build, API/event name, payload, and one controlled
+successful action. Test cancellation/failure, duplicate events, reload, logout,
+addon-disabled play, faction/class restrictions, and any combat restrictions.
+Do not change achievement status to Ready until the exact criteria are observable.
+No secure gameplay action needs to be automated for this investigation.
+
+RELATED FEATURE NOTE
+The Alliance/Horde top emblem is a separate UI feature request.
+
+CHANGE LOG
+2026-10-10: Started with three camping milestones, The One That Got Away,
+and five proposed candidates.
+2026-10-10: Expanded to exactly 200 entries across all nine panel categories.
+Preserved ACH-001 through ACH-009 and their existing flavor text.
+
+2026-10-11: Replaced four confirmed equivalents and five same-family/composite
+overlaps; added six currency/reputation candidates. Partial-source limitations
+and unresolved overlaps recorded.
+
+2026-10-11: Added preliminary feasibility and historical-credit fields to all
+200 candidates. Revised hearthstone binding to distinct observed locations;
+recorded client probes and source/version limits.
+
+ENTRY TEMPLATE
+ACH-___ — Name
+Category:
+Status:
+Criteria:
+Scope: Character
+Points:
+Flavor text:
+Tracking source / unresolved decisions:

@@ -1,0 +1,69 @@
+title,group,reference_category,native_id_aliases,reference_criteria,retained_import_key,scope,legacy_points
+Novice Druid,Druid,CLASSES,"61502, 63972",Reach level 25 for the first time on a Druid.,fv61502,Client-read; not inferred,Client-read; not inferred
+Experienced Druid,Druid,CLASSES,"63973, 61503",Reach level 45 for the first time on a Druid.,fv63973,Client-read; not inferred,Client-read; not inferred
+Master Druid,Druid,CLASSES,"63974, 61504",Reach level 60 for the first time on a Druid.,fv63974,Client-read; not inferred,Client-read; not inferred
+Novice Hunter,Hunter,CLASSES,"61989, 63975",Reach level 25 for the first time on a Hunter.,fv61989,Client-read; not inferred,Client-read; not inferred
+Experienced Hunter,Hunter,CLASSES,"63976, 61992",Reach level 45 for the first time on a Hunter.,fv63976,Client-read; not inferred,Client-read; not inferred
+Master Hunter,Hunter,CLASSES,"63977, 61993",Reach level 60 for the first time on a Hunter.,fv63977,Client-read; not inferred,Client-read; not inferred
+Novice Mage,Mage,CLASSES,"61994, 63978",Reach level 25 for the first time on a Mage.,fv61994,Client-read; not inferred,Client-read; not inferred
+Experienced Mage,Mage,CLASSES,"63979, 61995",Reach level 45 for the first time on a Mage.,fv63979,Client-read; not inferred,Client-read; not inferred
+Master Mage,Mage,CLASSES,"63980, 61996",Reach level 60 for the first time on a Mage.,fv63980,Client-read; not inferred,Client-read; not inferred
+Novice Paladin,Paladin,CLASSES,"61997, 63981",Reach level 25 for the first time on a Paladin.,fv61997,Client-read; not inferred,Client-read; not inferred
+Experienced Paladin,Paladin,CLASSES,"63982, 61998",Reach level 45 for the first time on a Paladin.,fv63982,Client-read; not inferred,Client-read; not inferred
+Master Paladin,Paladin,CLASSES,"63983, 61999",Reach level 60 for the first time on a Paladin.,fv63983,Client-read; not inferred,Client-read; not inferred
+Novice Priest,Priest,CLASSES,"62000, 63984",Reach level 25 for the first time on a Priest.,fv62000,Client-read; not inferred,Client-read; not inferred
+Experienced Priest,Priest,CLASSES,"63985, 62001",Reach level 45 for the first time on a Priest.,fv63985,Client-read; not inferred,Client-read; not inferred
+Master Priest,Priest,CLASSES,"63986, 62002",Reach level 60 for the first time on a Priest.,fv63986,Client-read; not inferred,Client-read; not inferred
+Novice Rogue,Rogue,CLASSES,"63987, 62003",Reach level 25 for the first time on a Rogue.,fv63987,Client-read; not inferred,Client-read; not inferred
+Experienced Rogue,Rogue,CLASSES,"62004, 63988",Reach level 45 for the first time on a Rogue.,fv62004,Client-read; not inferred,Client-read; not inferred
+Master Rogue,Rogue,CLASSES,"63989, 62005",Reach level 60 for the first time on a Rogue.,fv63989,Client-read; not inferred,Client-read; not inferred
+Novice Shaman,Shaman,CLASSES,"62006, 63990",Reach level 25 for the first time on a Shaman.,fv62006,Client-read; not inferred,Client-read; not inferred
+Experienced Shaman,Shaman,CLASSES,"63991, 62007",Reach level 45 for the first time on a Shaman.,fv63991,Client-read; not inferred,Client-read; not inferred
+Master Shaman,Shaman,CLASSES,"63992, 62008",Reach level 60 for the first time on a Shaman.,fv63992,Client-read; not inferred,Client-read; not inferred
+Novice Warlock,Warlock,CLASSES,"62009, 63993",Reach level 25 for the first time on a Warlock.,fv62009,Client-read; not inferred,Client-read; not inferred
+Experienced Warlock,Warlock,CLASSES,"63994, 62010",Reach level 45 for the first time on a Warlock.,fv63994,Client-read; not inferred,Client-read; not inferred
+Master Warlock,Warlock,CLASSES,"63995, 62011",Reach level 60 for the first time on a Warlock.,fv63995,Client-read; not inferred,Client-read; not inferred
+Novice Warrior,Warrior,CLASSES,"61499, 63969",Reach level 25 for the first time on a Warrior.,fv61499,Client-read; not inferred,Client-read; not inferred
+Experienced Warrior,Warrior,CLASSES,"63970, 61500",Reach level 45 for the first time on a Warrior.,fv63970,Client-read; not inferred,Client-read; not inferred
+Master Warrior,Warrior,CLASSES,"63971, 61501",Reach level 60 for the first time on a Warrior.,fv63971,Client-read; not inferred,Client-read; not inferred
+Journeyman Alchemist,Alchemy,TRADESKILLS,"62012, 63996",Reach 150 skill in Alchemy for the first time.,fv62012,Client-read; not inferred,Client-read; not inferred
+Expert Alchemist,Alchemy,TRADESKILLS,"63997, 62013",Reach 225 skill in Alchemy for the first time.,fv63997,Client-read; not inferred,Client-read; not inferred
+Artisan Alchemist,Alchemy,TRADESKILLS,"63998, 62014",Reach 300 skill in Alchemy for the first time.,fv63998,Client-read; not inferred,Client-read; not inferred
+Journeyman Blacksmith,Blacksmithing,TRADESKILLS,"63999, 62015",Reach 150 skill in Blacksmithing for the first time.,fv63999,Client-read; not inferred,Client-read; not inferred
+Expert Blacksmith,Blacksmithing,TRADESKILLS,"62016, 64000",Reach 225 skill in Blacksmithing for the first time.,fv62016,Client-read; not inferred,Client-read; not inferred
+Artisan Blacksmith,Blacksmithing,TRADESKILLS,"64001, 62017",Reach 300 skill in Blacksmithing for the first time.,fv64001,Client-read; not inferred,Client-read; not inferred
+Journeyman Enchanter,Enchanting,TRADESKILLS,"62018, 64002",Reach 150 skill in Enchanting for the first time.,fv62018,Client-read; not inferred,Client-read; not inferred
+Expert Enchanter,Enchanting,TRADESKILLS,"64003, 62019",Reach 225 skill in Enchanting for the first time.,fv64003,Client-read; not inferred,Client-read; not inferred
+Artisan Enchanter,Enchanting,TRADESKILLS,"64004, 62020",Reach 300 skill in Enchanting for the first time.,fv64004,Client-read; not inferred,Client-read; not inferred
+Journeyman Engineer,Engineering,TRADESKILLS,"64005, 62021",Reach 150 skill in Engineering for the first time.,fv64005,Client-read; not inferred,Client-read; not inferred
+Expert Engineer,Engineering,TRADESKILLS,"62022, 64006",Reach 225 skill in Engineering for the first time.,fv62022,Client-read; not inferred,Client-read; not inferred
+Artisan Engineer,Engineering,TRADESKILLS,"64007, 62023",Reach 300 skill in Engineering for the first time.,fv64007,Client-read; not inferred,Client-read; not inferred
+Journeyman Leatherworker,Leatherworking,TRADESKILLS,"62024, 64008",Reach 150 skill in Leatherworking for the first time.,fv62024,Client-read; not inferred,Client-read; not inferred
+Expert Leatherworker,Leatherworking,TRADESKILLS,"64009, 62025",Reach 225 skill in Leatherworking for the first time.,fv64009,Client-read; not inferred,Client-read; not inferred
+Artisan Leatherworker,Leatherworking,TRADESKILLS,"64010, 62026",Reach 300 skill in Leatherworking for the first time.,fv64010,Client-read; not inferred,Client-read; not inferred
+Journeyman Tailor,Tailoring,TRADESKILLS,"62028, 64011",Reach 150 skill in Tailoring for the first time.,fv62028,Client-read; not inferred,Client-read; not inferred
+Expert Tailor,Tailoring,TRADESKILLS,"64012, 62029",Reach 225 skill in Tailoring for the first time.,fv64012,Client-read; not inferred,Client-read; not inferred
+Artisan Tailor,Tailoring,TRADESKILLS,"64013, 62030",Reach 300 skill in Tailoring for the first time.,fv64013,Client-read; not inferred,Client-read; not inferred
+Novice Spelunker,Dungeons,DUNGEONS,"62031, 64016",Complete the following dungeons.,fv62031,Client-read; not inferred,Client-read; not inferred
+Experienced Spelunker,Dungeons,DUNGEONS,"64017, 62032",Complete the following dungeons.,fv64017,Client-read; not inferred,Client-read; not inferred
+Master Spelunker,Dungeons,DUNGEONS,"64018, 62033",Complete the following dungeons.,fv64018,Client-read; not inferred,Client-read; not inferred
+Conqueror of the Wilds,Raids,RAIDS,"62034, 64019",Defeat the following encounters in Hyjal Summit.,fv62034,Client-read; not inferred,Client-read; not inferred
+Conqueror of the Deeps,Raids,RAIDS,"64020, 62035",Defeat the following encounters in the Barrow Deeps.,fv64020,Client-read; not inferred,Client-read; not inferred
+Conqueror of the Lair,Raids,RAIDS,"64030, 684",Defeat Onyxia.,,Client-read; not inferred,Client-read; not inferred
+Rank 3,Ranks,PLAYER VS. PLAYER,"62041, 64021",Reach the rank of Sergeant in the Player vs. Player Honor System.,fv62041,Client-read; not inferred,Client-read; not inferred
+Rank 7,Ranks,PLAYER VS. PLAYER,"62042, 64022",Reach the rank of Knight-Lieutenant or Blood Guard in the Player vs. Player Honor System.,fv62042,Client-read; not inferred,Client-read; not inferred
+Rank 10,Ranks,PLAYER VS. PLAYER,"62043, 64023",Reach the rank of Lieutenant-Commander or Champion in the Player vs. Player Honor System.,fv62043,Client-read; not inferred,Client-read; not inferred
+Rank 13,Ranks,PLAYER VS. PLAYER,"64024, 62044",Reach the rank of Field Marshal or Warlord in the Player vs. Player Honor System.,fv64024,Client-read; not inferred,Client-read; not inferred
+Rank 14,Ranks,PLAYER VS. PLAYER,"64025, 62045",Reach the rank of Grand Marshal or High Warlord in the Player vs. Player Honor System.,fv64025,Client-read; not inferred,Client-read; not inferred
+Master of Alterac Valley,Reputations,PLAYER VS. PLAYER,"62046, 64026",Reach exalted reputation with the Frostwolf Clan or Stormpike Guard.,,Client-read; not inferred,Client-read; not inferred
+Master of Arathi Basin,Reputations,PLAYER VS. PLAYER,"62047, 64027",Reach exalted reputation with the Defilers or League of Arathor.,,Client-read; not inferred,Client-read; not inferred
+Master of Warsong Gulch,Reputations,PLAYER VS. PLAYER,"64028, 62048",Reach exalted reputation with the Warsong Outriders or Silverwing Sentinels.,,Client-read; not inferred,Client-read; not inferred
+Master of Darkspear Islands,Reputations,PLAYER VS. PLAYER,"64029, 62049",Reach exalted reputation with the Darkspear Raiders or Theramore Expeditionary Force.,,Client-read; not inferred,Client-read; not inferred
+Field of Honor: Week 4,Season Journey,PLAYER VS. PLAYER,"63340, 64031",Complete Week 4 of the Field of Honor Journey.,fv63340,Client-read; not inferred,Client-read; not inferred
+Field of Honor: Week 7,Season Journey,PLAYER VS. PLAYER,"64032, 63341",Complete Week 7 of the Field of Honor Journey.,fv64032,Client-read; not inferred,Client-read; not inferred
+Field of Honor: Week 10,Season Journey,PLAYER VS. PLAYER,"64033, 63342",Complete Week 10 of the Field of Honor Journey.,fv64033,Client-read; not inferred,Client-read; not inferred
+Lord Valthalak Laid to Rest,Adventure,ADVENTURE,"64014, 62054","Complete the questline beginning with An Earnest Proposition, and ending with Saving the Best for Last.",fv64014,Client-read; not inferred,Client-read; not inferred
+Explorer,Adventure,ADVENTURE,"64015, 62382",Have a character with the Explore Azeroth achievement.,,Client-read; not inferred,Client-read; not inferred
+Explore Azeroth,Explorer,ADVENTURE,62053,Complete the zone map for all existing zones in Eastern Kingdoms and Kalimdor on a single character.,,Client-read; not inferred,Client-read; not inferred
+Explore Eastern Kingdoms,Explorer,ADVENTURE,62353,Complete the maps of Eastern Kingdoms on a single character:,,Client-read; not inferred,Client-read; not inferred
+Explore Kalimdor,Explorer,ADVENTURE,62355,Complete the maps of Kalimdor on a single character:,,Client-read; not inferred,Client-read; not inferred

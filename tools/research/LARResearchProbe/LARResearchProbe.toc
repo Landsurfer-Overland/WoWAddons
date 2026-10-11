@@ -1,0 +1,7 @@
+## Interface: 16001, 120100
+## Title: Legacy Achievements Reforged Research Probe
+## Notes: Optional manual read-only capability and historical-recovery diagnostic. Awards nothing and saves nothing.
+## Author: Landsurfer-Overland
+## Version: 1.0.0-research
+
+LARResearchProbe.lua

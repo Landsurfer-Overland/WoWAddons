@@ -1,0 +1,2 @@
+# Preserve the supplied Markdown source verbatim, including its hard breaks.
+Codex_Achievement_Research_Brief.md -whitespace
