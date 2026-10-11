@@ -1,6 +1,6 @@
 # Achievement alert testing
 
-Current build: `main`, version `0.5.1-alpha`, promoted from
+Current build: `main`, version `0.5.1-alpha.1`, promoted from
 `achievement-alerts-test` (`0.5.1-alpha-alert-test6`). The matching version tag
 publishes a GitHub prerelease after checks pass. No CurseForge upload is
 performed. Install one version of the addon at a time, using the same

@@ -1,6 +1,14 @@
 # Legacy Achievements Reforged
 
-## 0.5.1-alpha — current build
+## 0.5.1-alpha.1 — current build
+
+- Correct GitHub artifact uploading to include the hidden `.release` directory,
+  allowing the installable ZIP and checksum to reach the prerelease job.
+- Retain the promoted addon behavior from `0.5.1-alpha` unchanged. The initial
+  tag remains in history; its upload failed before any installable assets were
+  published.
+
+## 0.5.1-alpha — promotion
 
 - Promote the achievement-alert test build to the current alpha release.
 - Classic gold achievement popup with fade, glow and shine, centered title and

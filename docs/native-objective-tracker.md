@@ -1,6 +1,6 @@
 # Tracked achievements in client objectives
 
-Current build `0.5.1-alpha` on `main`, promoted from `achievement-alerts-test`.
+Current build `0.5.1-alpha.1` on `main`, promoted from `achievement-alerts-test`.
 The integration was introduced in `0.5.1-alpha-alert-test5` and is included in
 the tagged GitHub prerelease. No CurseForge upload is performed. The manual
 checks below remain necessary for live-client verification.
