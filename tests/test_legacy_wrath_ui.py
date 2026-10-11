@@ -292,7 +292,7 @@ function NativeFrame(name, parent)
     for _, method in ipairs({"SetScript","SetParent","SetPoint","ClearAllPoints","SetAllPoints","SetScale","SetFrameLevel",
         "SetSize","SetWidth","SetHeight","EnableMouse","EnableMouseWheel","SetAlpha","SetFrameStrata","SetDataProvider",
         "SelectCategory","SelectChallenge","GenerateDataProvider","ClaimReward"}) do
-        if not (mountable and presentation[method]) and not (name=="LegacySystemFrame" and method=="EnableMouse") then
+        if not (mountable and presentation[method]) and not (name=="LegacySystemFrame" and (method=="EnableMouse" or method=="SetAlpha")) then
             f[method]=poison(name .. ":" .. method)
         end
     end

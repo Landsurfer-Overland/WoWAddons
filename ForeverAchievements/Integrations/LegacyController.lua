@@ -55,14 +55,43 @@ function C:CancelQueuedWork()
     self.attachPending = false
     if self.ui and type(self.ui.CancelPending) == "function" then pcall(self.ui.CancelPending, self.ui) end
 end
+function C:BeginOpening(root)
+    if self.openingOpacity or self.restorePending or gamepad() then return end
+    assert(not combat() and not B.Blocked(root), "Native Legacy opening is restricted")
+    local alpha = R.Method(root, "GetAlpha")
+    alpha = alpha and R.Number(alpha[1])
+    assert(alpha and alpha >= 0 and alpha <= 1 and type(R.Field(root, "SetAlpha")) == "function",
+        "Native Legacy opening opacity is unavailable")
+    -- Native ShowChallenges selects its final page after root OnShow. Hide
+    -- drawing only, so those handlers/providers finish normally before Attach.
+    -- Record ownership before writing, allowing fallback to undo partial work.
+    self.openingOpacity = { root = root, alpha = alpha }
+    root:SetAlpha(0)
+end
+function C:RestoreOpening()
+    local opening = self.openingOpacity
+    if not opening then return true end
+    if B.Blocked(opening.root) then return false, "Native Legacy opening restore is restricted" end
+    local ok, err = pcall(opening.root.SetAlpha, opening.root, opening.alpha)
+    if ok then self.openingOpacity = nil end
+    return ok, err
+end
 function C:DeferCombat()
     self.pending = true
+    -- Combat can interrupt the one-frame opening handoff before a bridge
+    -- exists. Do not leave a concealed native window waiting indefinitely.
+    if self.openingOpacity and not B.Blocked(self.openingOpacity.root) then
+        self:Guard(function()
+            local ok, err = self:RestoreOpening()
+            assert(ok, err)
+        end)
+    end
     if self.restorePending then return end
     self.state = self.bridge and "Enabled; updates deferred during combat" or "Waiting for combat to end"
 end
 function C:Release(state)
     self:CancelQueuedWork()
-    if combat() and self.bridge then
+    if combat() and (self.bridge or self.openingOpacity) then
         -- Restoration changes native page geometry and visibility too. A real
         -- disable/fallback request waits for combat; entering combat never
         -- requests restoration in the first place.
@@ -83,6 +112,10 @@ function C:Release(state)
         local called, restored, reason = pcall(self.bridge.Restore, self.bridge)
         if called then ok, err = restored, reason else ok, err = false, restored end
     end
+    -- Opacity recovery is independent of native page geometry. A restricted
+    -- child must not leave an otherwise ordinary root concealed on fallback.
+    local restored, reason = self:RestoreOpening()
+    if not restored then ok, err = false, err and (tostring(err) .. "; " .. tostring(reason)) or reason end
     self.busy = false
     if ok then
         self.bridge = nil
@@ -263,6 +296,8 @@ function C:Refresh(reason)
         measured("native.mount", function() self.bridge:Mount(self.ui.tab, self.ui.nativeHost) end)
         self.mounting = false
         if not shown(self.cover) then self.cover:Show() end
+        local restored, reason = self:RestoreOpening()
+        assert(restored, reason)
         self.busy = false
         self.state, self.lastError, self.pending = "Enabled", nil, false
     end)
@@ -407,6 +442,7 @@ function C:Attach()
     local token = perfBegin("controller.attach")
     self:Guard(function()
         self.root, self.page = root, page
+        if shown(root) and not shown(self.cover) then self:BeginOpening(root) end
         if not self.cover then
             self.cover = CreateFrame("Frame", "FAWrathLegacyCover", UIParent)
             self.cover:Hide()
@@ -443,6 +479,8 @@ function C:Attach()
                         if self.bridge and not self.restorePending and self.cover and not B.Blocked(self.cover) then
                             self:Guard(function() self.cover:Show() end)
                         end
+                    elseif not B.Blocked(root) then
+                        if self:Guard(function() self:BeginOpening(root) end) then self:QueueAttach() end
                     else self:QueueAttach() end
                 end
             end)
@@ -494,6 +532,8 @@ function C:Attach()
             self.ui.tab = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
         end
         if not shown(root) then
+            local restored, reason = self:RestoreOpening()
+            assert(restored, reason)
             -- A cover which could not hide during lockdown must now follow
             -- the still-closed native root; do not reopen either window.
             if shown(self.cover) then self.cover:Hide() end
