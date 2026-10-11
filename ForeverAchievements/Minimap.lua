@@ -5,6 +5,10 @@
 local _, ns = ...
 local FA = ns.FA
 
+-- Retain the old launcher for research, without registering a minimap/broker
+-- object or changing the user's saved minimap preference while quarantined.
+if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
+
 local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
 local DBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
 if not (LDB and DBIcon) then return end

@@ -140,6 +140,7 @@ local function Build(fromHistory)
 end
 
 function FA.ShowWelcome(fromHistory)
+    if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return false end
     if not frame then frame = Build(fromHistory) end
     frame.UpdateTotals()
     if not frame:IsShown() then
@@ -168,9 +169,11 @@ end
 -- Waits for the intro to end, then opens; marked as seen only once the
 -- screen has really been on screen, so a skipped intro cannot eat it.
 function FA.OnReady(fromHistory)
+    if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
     if FA.DB().welcomeSeen then return end
     local waited, announced = 0, false
     local function Try()
+        if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
         if InterfaceBusy() then
             if not announced then
                 announced = true
@@ -189,6 +192,7 @@ function FA.OnReady(fromHistory)
         end
         -- Seen once it has stayed up for a moment.
         C_Timer.After(2, function()
+            if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
             if frame and frame:IsVisible() then
                 FA.DB().welcomeSeen = true
             else

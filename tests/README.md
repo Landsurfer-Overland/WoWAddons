@@ -146,6 +146,17 @@ native restoration, reentrancy, frame-pool and performance suites remain active.
 Follow the [Iteration 6 client checklist](../docs/iteration6-regression-plan.md)
 for actual artwork, mask alignment, input, native functionality and timing.
 
+## Original alpha UI quarantine
+
+`test_original_ui_quarantine.py` executes actual retained consumers with the
+source policy disabled. It covers central/local slash opening, missing policy,
+minimap/broker non-registration with preserved preferences, welcome retries and
+seen state, binding/tracker/social entry points, retained tracking and tooltips,
+real Legacy controller opening, and explicit developer recovery. The existing
+standalone consumer harness enables the policy deliberately to keep testing
+the archived implementation rather than silently skipping its regressions.
+Follow the [client checks](../docs/original-ui-quarantine.md) after installing.
+
 ## Limits
 
 These fixtures do not emulate actual game rendering, asset lookup, native protected

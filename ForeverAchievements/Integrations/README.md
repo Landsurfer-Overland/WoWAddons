@@ -31,8 +31,12 @@ size preference remains respected. The footer dropdown selects Compact, Standard
 or Large. Size presets enlarge
 usable content space while retaining fixed decorative corners and classic artwork;
 the window fits the available screen. Use the header to drag it and reset if needed
-after a resolution or UI-scale change. The existing standalone `/fach` window,
-character tracker, settings, social features, and original saved keys remain available.
+after a resolution or UI-scale change. The original standalone window, its minimap
+launcher, welcome popup and comparison menu are quarantined. Bare `/fa`, `/fach`
+and `/qa` report this rather than opening the alpha window. Their named commands
+still work. Character tracking, toasts, chat-link tooltips, comparison data and
+original saved keys remain; the old settings view is retained in source for later
+migration. See the [quarantine and recovery notes](../../docs/original-ui-quarantine.md).
 
 | Preset | Logical body dimensions |
 | --- | --- |

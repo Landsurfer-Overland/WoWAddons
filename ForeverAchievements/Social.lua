@@ -122,7 +122,8 @@ local function OnLink(link)
         local progress = FA.ProgressKnown(cur, need) and ("%s / %s"):format(cur, need) or "Unavailable"
         tt:AddLine("Your progress: " .. progress, 0.8, 0.8, 0.8)
     end
-    tt:AddLine("Shift-click the link to open Forever Achievements", 0.55, 0.55, 0.55, true)
+    tt:AddLine(ns.OriginalUI and ns.OriginalUI.IsEnabled() and "Shift-click the link to open Forever Achievements"
+        or "Open the Legacy panel to browse achievements.", 0.55, 0.55, 0.55, true)
     tt:Show()
 end
 if EventRegistry and EventRegistry.RegisterCallback then
@@ -270,7 +271,7 @@ FA.SLASH.compare = function(rest)
 end
 
 -- "Compare achievements" in the right-click menu of a player.
-if Menu and Menu.ModifyMenu then
+if ns.OriginalUI and ns.OriginalUI.IsEnabled() and Menu and Menu.ModifyMenu then
     for _, tag in ipairs({ "MENU_UNIT_PLAYER", "MENU_UNIT_PARTY", "MENU_UNIT_RAID_PLAYER", "MENU_UNIT_FRIEND",
         "MENU_UNIT_TARGET", "MENU_UNIT_GUILD" }) do
         pcall(Menu.ModifyMenu, tag, function(_, root, context)

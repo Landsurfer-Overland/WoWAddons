@@ -10,8 +10,11 @@ from test_legacy_wrath_ui import Harness
 
 
 class ConsumerHarness(Harness):
-    def __init__(self):
+    def __init__(self, original_ui=True):
         super().__init__()
+        self.load("UI/OriginalUIPolicy.lua")
+        # Archived UI regressions intentionally exercise the retained code.
+        self.g.ns.OriginalUI.enabled = original_ui
         self.execute('''
             SlashCmdList={}; UISpecialFrames={}; tinsert=table.insert
             testClock=1

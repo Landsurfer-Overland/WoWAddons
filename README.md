@@ -50,5 +50,6 @@ Header dragging and size selection persist; Statistics has its own category navi
 daily-quest definitions are inactive while their historical saved keys remain.
 
 Unmodified supplied Wrath sources live in References/WrathAchievementUI,
-outside the runtime addon. Existing saves, tracking, and the standalone addon
-window are retained. Actual in-game validation is still required.
+outside the runtime addon. Existing saves and tracking are retained. The original
+alpha window and launcher are [quarantined for later feature migration](docs/original-ui-quarantine.md);
+their source remains intact. Actual in-game validation is still required.

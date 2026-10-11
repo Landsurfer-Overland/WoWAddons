@@ -3158,6 +3158,12 @@ RefreshWindow = function()
 end
 
 local function Open()
+    -- Keep the original implementation intact for later feature migration.
+    -- Every old launcher (including local slash calls) passes this gate.
+    if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then
+        print(TAG .. " Original UI is quarantined. Open achievements through the Legacy panel (/fa legacyui on).")
+        return false
+    end
     if not win then
         local r, g, b = Accent()
         win = CreateFrame("Frame", "ForeverAchievementsWindow", UIParent)
@@ -3327,6 +3333,7 @@ local function Open()
         Kit.Tween("windowFade", 0.18, function(e) win:SetAlpha(e) end)
     end
     RefreshWindow()
+    return true
 end
 
 SLASH_FOREVERACHIEVEMENTS1 = "/fach"
@@ -3463,11 +3470,13 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
         local r, g, b = Kit.Accent()
         local accent = ("|cff%02x%02x%02x"):format(math.floor(r * 255), math.floor(g * 255), math.floor(b * 255))
         print(TAG .. " commands:")
+        local originalUI = ns.OriginalUI and ns.OriginalUI.IsEnabled()
         for _, line in ipairs({
-            { "/fach", "open the window" },
-            { "/fach compare Firstname Lastname", "compare with a player who runs the addon (or right-click them)" },
+            { "/fach", originalUI and "open the original window" or "original window quarantined; use the Legacy panel" },
+            { "/fach compare Firstname Lastname", originalUI and "compare with a player who runs the addon (or right-click them)"
+                or "retained comparison data command; original comparison window quarantined" },
             { "/fach compare off", "stop comparing" },
-            { "/fach welcome", "show the welcome screen again" },
+            { "/fach welcome", originalUI and "show the welcome screen again" or "original welcome screen quarantined" },
             { "/fa legacyui on|off", "enable or disable the unified Wrath Legacy interface" },
             { "/fa legacyui size compact|standard|large", "choose a saved window size" },
             { "/fa legacyui reset", "reset the Legacy window position without changing progress" },
@@ -3541,7 +3550,7 @@ ns.FA = {
     Refresh = function() if RefreshWindow then RefreshWindow() end end,
     -- Opens the window with the search box filled in.
     OpenSearch = function(text)
-        Open()
+        if not Open() then return false end
         if win.searchBox then win.searchBox:SetText(text or "") end
     end,
     -- Builds the window again (a new theme): reopened on the same tab.
@@ -3567,7 +3576,7 @@ ns.FA = {
     ResetToast = function() if not showing then toast = nil end end,
     -- Switches the window to a tab.
     ShowTab = function(key)
-        Open()
+        if not Open() then return false end
         win.cat = key
         DB().tab = key
         for _, t in ipairs(win.tabs) do t:SetActive(t.key == key) end
