@@ -75,16 +75,17 @@ class Iteration6ShellTests(unittest.TestCase):
             assert(saved.done.first==1730000000 and saved.history[1]=='keep' and refreshes==0 and #calls==0)
         """)
 
-    def test_size_dropdown_has_arrow_upward_owned_popup_and_tab_label_alignment(self):
+    def test_size_dropdown_has_arrow_upward_owned_popup_and_attached_tab_alignment(self):
         self.check("""
             assert(shell.sizeArrow.textureValue=='Interface\\\\ChatFrame\\\\UI-ChatIcon-ScrollDown-Up')
             assert(shell.sizeArrow:GetLeft()>shell.sizeButton.label:GetRight())
             assert(shell.sizeMenu:GetBottom()>shell.sizeButton:GetTop())
             assert(shell.sizeMenu:GetRight()==shell.sizeButton:GetRight())
             local _,labelY=shell.sizeButton.label:GetCenter()
-            local _,tabY=shell.tabs[1].text:GetCenter()
-            assert(labelY==tabY)
-            assert(shell.sizeButton:GetRight()<=shell.root:GetRight()-25)
+            local _,arrowY=shell.sizeArrow:GetCenter()
+            assert(labelY==arrowY)
+            assert(shell.sizeButton:GetTop()==shell.tabs[1]:GetTop())
+            assert(shell.sizeButton:GetRight()==shell.root:GetRight()-20)
             assert(shell.sizeMenu.backdrop.edgeFile==shell.filterMenu.backdrop.edgeFile)
             assert(shell.sizeMenu.backdrop.bgFile==shell.filterMenu.backdrop.bgFile)
         """)
@@ -164,7 +165,7 @@ class Iteration6ShellTests(unittest.TestCase):
             for _,name in ipairs({'Compact','Standard','Large'}) do
                 local preset=ns.WrathAchievementUI.PRESETS[name]
                 shellHost:SetSize(preset[1],preset[2]+140); shell:Fit(shellHost)
-                assert(shell.sizeButton:GetLeft()>shell.tabs[4]:GetRight()+20)
+                assert(shell.sizeButton:GetLeft()>=shell.tabs[4]:GetRight()+16)
                 assert(shell.filterButton:GetRight()==shell.root:GetLeft()+shell.contentLeft+shell.contentPanelWidth)
                 assert(shell.contentPanelWidth-shell.contentWidth==22)
                 assert(shell.contentScroll:GetRight()+22<=shell.root:GetRight()-38)

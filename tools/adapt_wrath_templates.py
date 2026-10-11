@@ -116,13 +116,7 @@ ET.SubElement(page, tag('TexCoords'), {'left': '0', 'right': '1', 'top': '0', 'b
 category_bg = window.find('.//' + tag('Texture') + "[@name='$parentCategoriesBG']")
 category_bg.set('file', 'Interface\\AchievementFrame\\UI-Achievement-AchievementBackground')
 ET.SubElement(category_bg, tag('TexCoords'), {'left': '0', 'right': '1', 'top': '0', 'bottom': '.5'})
-footer = ET.SubElement(body_background, tag('Texture'), {
-    'name': '$parentFooterBacking', 'file': 'Interface\\TutorialFrame\\TutorialFrameBackground'})
-anchors = ET.SubElement(footer, tag('Anchors'))
-ET.SubElement(ET.SubElement(anchors, tag('Anchor'), {'point': 'TOPLEFT', 'relativePoint': 'BOTTOMLEFT'}),
-              tag('Offset'), {'x': '13', 'y': '8'})
-ET.SubElement(ET.SubElement(anchors, tag('Anchor'), {'point': 'BOTTOMRIGHT', 'relativePoint': 'BOTTOMRIGHT'}),
-              tag('Offset'), {'x': '-13', 'y': '-57'})
+# Footer tabs retain their own artwork; no rectangular panel behind them.
 frames = ET.SubElement(window, tag('Frames'))
 header = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Frame') + "[@name='$parentHeader']"))
 for node in header.iter():

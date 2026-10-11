@@ -1108,16 +1108,6 @@
           </Anchors>
           <TexCoords left="0" right="1" top="0" bottom=".5" />
         </Texture>
-        <Texture name="$parentFooterBacking" file="Interface\TutorialFrame\TutorialFrameBackground">
-          <Anchors>
-            <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT">
-              <Offset x="13" y="8" />
-            </Anchor>
-            <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
-              <Offset x="-13" y="-57" />
-            </Anchor>
-          </Anchors>
-        </Texture>
       </Layer>
       <Layer level="ARTWORK">
         <Texture name="$parentMetalBorderLeft" file="Interface\AchievementFrame\UI-Achievement-MetalBorder-Left">

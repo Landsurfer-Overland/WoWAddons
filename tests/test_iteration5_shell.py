@@ -64,11 +64,22 @@ class Iteration5ShellTests(unittest.TestCase):
                 assert(searchCenter==filterCenter)
                 assert(view.searchHint:GetWidth()>0 and view.notice:GetHeight()==14)
                 assert(view.tabs[1]:GetLeft()==rootLeft+20)
+                for _,tab in ipairs(view.tabs) do
+                    assert(tab:GetWidth()==150 and tab:GetHeight()==32)
+                    for _,suffix in ipairs({'Left','Middle','Right'}) do
+                        local name=tab:GetName()..suffix
+                        assert(_G[name]:GetHeight()==49 and _G[name..'Disabled']:GetHeight()==49)
+                    end
+                    assert(_G[tab:GetName()..'Middle']:GetWidth()==111)
+                    assert(_G[tab:GetName()..'MiddleDisabled']:GetWidth()==111)
+                end
                 for i=2,#view.tabs do
-                    assert(view.tabs[i]:GetLeft()-view.tabs[i-1]:GetRight()==3)
+                    assert(view.tabs[i]:GetLeft()==view.tabs[i-1]:GetRight())
                     assert(view.tabs[i]:GetTop()==view.tabs[1]:GetTop())
                 end
-                assert(view.sizeButton:GetLeft()>view.tabs[4]:GetRight()+20)
+                assert(view.sizeButton:GetLeft()>=view.tabs[4]:GetRight()+16)
+                assert(view.sizeButton:GetRight()==view.root:GetRight()-20)
+                assert(view.sizeButton:GetTop()==view.tabs[1]:GetTop())
                 local _,_,_,_,offset=view.root:GetPoint(1)
                 assert(offset==-82 and view.sizeButton.label:GetText()==name)
                 assert(view.nativeHost:GetWidth()==preset[1]-50 and view.nativeHost:GetHeight()==preset[2]-46)
@@ -76,6 +87,31 @@ class Iteration5ShellTests(unittest.TestCase):
                 assert(FAWrathAchievementFrameCategoriesBG.coords[1]==0 and view.contentBackground.coords[2]==1)
             end
             assert(#calls==0 and refreshCalls==0)
+        """)
+
+    def test_size_dropdown_uses_smaller_attached_tab_and_reuses_its_options(self):
+        self.check("""
+            assert(view.sizeButton:GetWidth()==112 and view.sizeButton:GetHeight()==24)
+            assert(view.sizeButton.label==view.sizeButton.text)
+            assert(view.sizeButton.background==nil)
+            for _,suffix in ipairs({'Left','Middle','Right'}) do
+                local name=view.sizeButton:GetName()..suffix
+                assert(_G[name]:GetHeight()==36 and not _G[name]:IsShown())
+                assert(_G[name..'Disabled']:GetHeight()==36 and _G[name..'Disabled']:IsShown())
+            end
+            assert(view.sizeArrow:GetRight()<=view.sizeButton:GetRight())
+            assert(view.sizeButton.label:GetRight()<=view.sizeArrow:GetLeft())
+            local count=#frames
+            for _,name in ipairs({'Compact','Standard','Large'}) do
+                local preset=ns.WrathAchievementUI.PRESETS[name]
+                host:SetSize(preset[1],preset[2]+140); view:Fit(host)
+                view.sizeButton:Fire('OnClick')
+                assert(view.sizeMenu:IsShown() and view.sizeDismiss:IsShown())
+                assert(view.sizeMenu:GetRight()==view.sizeButton:GetRight())
+                view.sizeDismiss:Fire('OnClick')
+                assert(not view.sizeMenu:IsShown() and not view.sizeDismiss:IsShown())
+            end
+            assert(#frames==count and refreshCalls==0 and resizeCalls==0 and #calls==0)
         """)
 
     def test_open_close_reuses_five_owned_options_without_refresh_or_model_rebuild(self):
@@ -178,7 +214,7 @@ class Iteration5ShellTests(unittest.TestCase):
         self.assertEqual(crest.find(URI + 'TexCoords').attrib,
                          {'left': '0', 'right': '.5', 'top': '0', 'bottom': '.5'})
 
-    def test_page_backgrounds_share_a_parchment_source_and_footer_has_real_backing(self):
+    def test_page_backgrounds_share_a_parchment_source_without_footer_backing(self):
         xml = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
         window = next(element for element in xml if element.get('name') == 'FAWrathWindowTemplate')
         page = window.find('.//' + URI + 'Texture[@name="$parentPageParchment"]')
@@ -187,9 +223,7 @@ class Iteration5ShellTests(unittest.TestCase):
         self.assertEqual(page.find(URI + 'TexCoords').attrib, categories.find(URI + 'TexCoords').attrib)
         self.assertEqual(page.get('file'), r'Interface\AchievementFrame\UI-Achievement-AchievementBackground')
         footer = window.find('.//' + URI + 'Texture[@name="$parentFooterBacking"]')
-        anchors = footer.find(URI + 'Anchors')
-        self.assertEqual(anchors[0].get('relativePoint'), 'BOTTOMLEFT')
-        self.assertEqual(anchors[1].find(URI + 'Offset').get('y'), '-57')
+        self.assertIsNone(footer)
 
     def test_template_generator_reproduces_committed_xml_and_leaves_reference_unchanged(self):
         output = ADDON / 'UI/WrathAchievementUI.xml'

@@ -88,6 +88,18 @@ function U.TabOnLoad(self)
     region(self, "LeftDisabled"):SetPoint("TOPLEFT", 0, 0)
     self.text:ClearAllPoints(); self.text:SetPoint("CENTER", 0, -8)
 end
+local function sizeTab(tab, width, height, artworkHeight)
+    tab:SetSize(width, height)
+    -- Selected and inactive tabs share one outline; only their tint changes.
+    for _, suffix in ipairs({ "Left", "Middle", "Right" }) do
+        for _, state in ipairs({ "", "Disabled" }) do
+            local texture = region(tab, suffix .. state)
+            texture:SetHeight(artworkHeight)
+            if suffix == "Middle" then texture:SetWidth(width - 39) end
+        end
+        region(tab, suffix .. "Highlight"):SetHeight(artworkHeight)
+    end
+end
 function U.CardOnLoad(self)
     bind(self, { "Label", "Description", "HiddenDescription", "Reward", "RewardBackground", "Icon", "Shield",
         "Objectives", "Highlight", "DateCompleted", "Tracked", "Check", "PlusMinus", "Background", "Glow", "TitleBackground" })
@@ -623,18 +635,17 @@ function U.Create(cover, guard, refresh, callbacks)
     end)
     self.tabs = {}
     local tabDefinitions = {
-        { "achievements", "Achievements", 142 }, { "rewards", "Legacy Rewards", 151 },
-        { "trees", "Legacy Trees", 135 }, { "statistics", "Statistics", 123 },
+        { "achievements", "Achievements" }, { "rewards", "Legacy Rewards" },
+        { "trees", "Legacy Trees" }, { "statistics", "Statistics" },
     }
     local x = 20
     for i, definition in ipairs(tabDefinitions) do
-        local view, label, width = unpack(definition)
+        local view, label = unpack(definition)
         local tab = CreateFrame("Button", "FAWrathTab" .. i, self.root, "FAWrathTabTemplate")
         tab:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", x, 2)
-        tab:SetSize(width, 32); tab:SetText(label)
-        for _, suffix in ipairs({ "Middle", "MiddleDisabled" }) do region(tab, suffix):SetWidth(width - 39) end
+        sizeTab(tab, 150, 32, 49); tab:SetText(label)
         tab.owner, tab.view = self, view; self.tabs[i] = tab
-        x = x + width + 3
+        x = x + 150
     end
     self.nativePoints = region(self.root, "HeaderLegacyPoints")
     region(self.root, "HeaderLegacyShield"):SetVertexColor(.63, .79, 1)
@@ -657,15 +668,19 @@ function U.Create(cover, guard, refresh, callbacks)
             crest:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints")
         end
     end
-    self.sizeButton = CreateFrame("Button", "FAWrathSizePreset", self.root, "FAWrathCategoryTemplate")
-    self.sizeButton:SetSize(128, 24); self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -25, -10)
-    self.sizeButton.background:SetAllPoints(self.sizeButton)
-    self.sizeButton.label:ClearAllPoints(); self.sizeButton.label:SetPoint("LEFT", 9, 0)
-    self.sizeButton.label:SetSize(94, 16); self.sizeButton.label:SetJustifyH("LEFT")
+    self.sizeButton = CreateFrame("Button", "FAWrathSizePreset", self.root, "FAWrathTabTemplate")
+    sizeTab(self.sizeButton, 112, 24, 36)
+    self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -20, 2)
+    self.sizeButton.label = self.sizeButton.text
+    self.sizeButton.label:ClearAllPoints(); self.sizeButton.label:SetPoint("LEFT", 12, -5)
+    self.sizeButton.label:SetSize(72, 16); self.sizeButton.label:SetJustifyH("LEFT")
     self.sizeButton.label:SetJustifyV("MIDDLE"); self.sizeButton.label:SetFontObject(GameFontNormalSmall)
+    for _, suffix in ipairs({ "Left", "Middle", "Right" }) do
+        region(self.sizeButton, suffix):Hide(); region(self.sizeButton, suffix .. "Disabled"):Show()
+    end
     self.sizeArrow = self.sizeButton:CreateTexture(nil, "OVERLAY")
     self.sizeArrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-    self.sizeArrow:SetSize(16, 16); self.sizeArrow:SetPoint("RIGHT", -5, 0)
+    self.sizeArrow:SetSize(16, 16); self.sizeArrow:SetPoint("RIGHT", -8, -5)
     -- Owned options are pooled for the life of the presentation. Selecting a
     -- preset changes geometry through the controller without rebuilding data.
     self.sizeDismiss = CreateFrame("Button", nil, self.root)
