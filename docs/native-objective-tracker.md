@@ -1,7 +1,9 @@
 # Tracked achievements in client objectives
 
-Test build `0.5.1-alpha-alert-test5` on `achievement-alerts-test`. Published `main`
-is unchanged; no release tag or CurseForge upload is created.
+Current build `0.5.1-alpha` on `main`, promoted from `achievement-alerts-test`.
+The integration was introduced in `0.5.1-alpha-alert-test5` and is included in
+the tagged GitHub prerelease. No CurseForge upload is performed. The manual
+checks below remain necessary for live-client verification.
 
 The old `Tracker.lua` only created a separate movable alpha frame. It never
 registered watches with the client objective tracker. WoW Forever's in-game
@@ -57,7 +59,7 @@ reports the integration state; it does not silently recreate the floating box.
 
 ## Manual client checks
 
-1. Install the test ZIP over the addon folder, retain SavedVariables, `/reload`.
+1. Install the release ZIP over the addon folder, retain SavedVariables, `/reload`.
    Existing incomplete watches should appear in the client objective tracker.
 2. Track an incomplete quest-count or fishing achievement from the achievement
    window. Verify its name and current/required count beside normal quest entries.

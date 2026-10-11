@@ -1,17 +1,15 @@
 # Legacy Achievements Reforged publishing
 
 Addon identity: `LegacyAchievementsReforged`; title: **Legacy Achievements Reforged**.
-The renamed development branch is `legacy-achievements-reforged` in
-`Landsurfer-Overland/WoWAddons`. Its working tree contains the renamed source,
-documentation, tests and tools. The renamed build is also published on `main`,
-so the default repository tree reflects the new identity. Historical branches
-and commits are retained.
+The current build is `0.5.1-alpha` on `main` in
+`Landsurfer-Overland/WoWAddons`, promoted from `achievement-alerts-test`.
+The repository contains source, documentation, tests and tools; release ZIPs
+contain only the addon. Historical branches and commits are retained.
 
 ## CurseForge
 
 Create or select the CurseForge project with this title and connect the existing
-repository using `main`, or use `legacy-achievements-reforged` wherever the
-integration permits branch selection. The existing GitHub repository
+repository using `main`. The existing GitHub repository
 can also be renamed to `LegacyAchievementsReforged` in GitHub repository Settings;
 update connected integrations and the local Git remote after that owner action.
 
@@ -41,10 +39,11 @@ packager/uploader; this repository does not currently send CurseForge uploads.
 
 The workflow runs Lua 5.1 behavior/syntax/packaging checks on pushes and pull
 requests. It builds the installable ZIP plus SHA-256 checksum as a workflow
-artifact. Pushing a version tag such as `v0.5.0-alpha` additionally publishes a
+artifact. Pushing a version tag such as `v0.5.1-alpha` additionally publishes a
 GitHub prerelease using the workflow's built-in token, after checks pass.
-The tag version must match the TOC version. This change does not create a tag or
-publish a release on its own. New releases must be tested in-game as well.
+The tag version must match the TOC version. Promotion to `main` alone does not
+publish a release; the matching tag is required. New releases must be tested
+in-game as well.
 
 Older save files need the [migration step](save-migration.md) before the new addon
 identity's first login. Include that link in the CurseForge description/release

@@ -1,11 +1,11 @@
-# Achievement alert test build
+# Achievement alert testing
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test6`.
-This branch can be installed for testing without changing `main` or creating a
-release tag. The existing workflow builds a downloadable branch artifact after
-checks; actual GitHub releases require a version tag. No CurseForge upload is
+Current build: `main`, version `0.5.1-alpha`, promoted from
+`achievement-alerts-test` (`0.5.1-alpha-alert-test6`). The matching version tag
+publishes a GitHub prerelease after checks pass. No CurseForge upload is
 performed. Install one version of the addon at a time, using the same
 `LegacyAchievementsReforged` folder. This build keeps the current save names.
+The checks below remain necessary for live-client verification.
 
 ## What to expect
 
@@ -51,7 +51,7 @@ events or create a second popup for those events.
 
 ## In-game procedure
 
-1. Install the test ZIP over the current `LegacyAchievementsReforged` folder.
+1. Install the release ZIP over the current `LegacyAchievementsReforged` folder.
    Retain your WTF/SavedVariables, then `/reload`. A player still on a previous
    addon identity should first use the existing [migration guide](save-migration.md).
    This build also replaces the inherited addon-list/minimap artwork with the
@@ -84,7 +84,8 @@ events or create a second popup for those events.
    once, plays one new popup, has no PREVIEW label, and retains normal tracking/
    chat behavior. Existing achievements at login should still complete quietly.
 9. Verify normal achievement navigation, native Rewards/Trees and native alerts
-   still work. To roll back, reinstall the `main` build; keep the same save files.
+   still work. To roll back, reinstall your previous working ZIP; keep the same
+   save files.
 
 ## Implementation and verification
 

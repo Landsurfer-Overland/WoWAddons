@@ -1,5 +1,22 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha — current build
+
+- Promote the achievement-alert test build to the current alpha release.
+- Classic gold achievement popup with fade, glow and shine, centered title and
+  shield points, plus addon settings and manual popup/sound previews.
+- Play the supplied achievement chime directly from bundled OGG audio; retain
+  selectable sound alternatives, mute/channel preferences and preview controls.
+- Use the project's original hammer-and-anvil addon-list/minimap icon.
+- Show tracked custom achievements in the client's objective tracker, with
+  cached watch snapshots and combat-deferred registration/layout operations.
+- Preserve achievement progress, point calculations, SavedVariables names,
+  unified Legacy navigation, Rewards/Trees and existing stability safeguards.
+- Retain the research reports and optional read-only probe in the repository;
+  they are excluded from the installable addon and add no new achievements.
+- Automated Lua and packaging checks pass. Audible playback, rendering and
+  protected-frame behavior still require verification in the Forever client.
+
 ## 0.5.1-alpha-alert-test6 — testing branch
 
 - Bundle the supplied achievement-earned OGG unchanged and play it directly

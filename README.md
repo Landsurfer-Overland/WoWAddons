@@ -34,7 +34,7 @@ Feats of Strength contains **Legacy Point Achievements**, a searchable view of
 confirmed Legacy Point rewards. Original category assignments and totals remain
 unchanged. Unverified progress is kept separate from verified completion.
 
-This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test6`).
+The current `main` build is **0.5.1-alpha**, promoted from `achievement-alerts-test`.
 Its popup uses the classic gold banner, short fade-in, gold glow, sweeping shine,
 timed fade-out and the supplied achievement chime played from a bundled OGG.
 Other sounds remain selectable. The settings page is available through
@@ -44,8 +44,10 @@ Tracked custom achievements use the client's objective tracker under **Reforged
 Achievements**, alongside quests. The former floating tracker stays hidden.
 See the [tracker testing guide](docs/native-objective-tracker.md) for client checks
 and combat deferral behavior.
-`main` remains the published `0.5.0-alpha` build. No release tag is pushed for
-this experiment, so it does not publish a GitHub/CurseForge release automatically.
+The matching `v0.5.1-alpha` release tag publishes an installable GitHub prerelease
+after the automated checks pass. CurseForge uploading is not configured in this
+repository. Research reports and the optional read-only probe remain outside
+the installable addon; no research proposals are implemented by this release.
 
 ## Development and publishing
 

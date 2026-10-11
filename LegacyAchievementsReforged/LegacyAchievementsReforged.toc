@@ -4,7 +4,7 @@
 ## Author: Landsurfer-Overland
 ## X-Original-Author: Piotr
 ## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
-## Version: 0.5.1-alpha-alert-test6
+## Version: 0.5.1-alpha
 ## SavedVariables: LegacyAchievementsReforgedDB
 ## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish

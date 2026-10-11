@@ -29,7 +29,7 @@ function U.Create()
     p.name = "Legacy Achievements Reforged"; p:SetSize(560, 560); p:Hide()
     U.panel = p
     label(p, p.name, 16, -16, 528, 28, "GameFontNormalLarge")
-    label(p, "Achievement Alerts — TEST BUILD\nPreviews never award progress or points. Client audio settings still apply.",
+    label(p, "Achievement Alerts\nPreviews never award progress or points. Client audio settings still apply.",
         16, -50, 528, 40, "GameFontHighlightSmall")
     p.checks, p.sliders = {}, {}
     local function check(text, key, y)
