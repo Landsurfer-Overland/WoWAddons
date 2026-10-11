@@ -26,6 +26,7 @@ two achievement controllers. Source saves and their backups remain intact.
 - `/lar legacyui size compact|standard|large` — choose a window size.
 - `/lar legacyui reset` — reset window position without changing progress.
 - `/lar perf on|report|off` — optional timing diagnostics.
+- `/lar tracker on|off|status` — show, hide or inspect tracked achievements.
 - `/lar help` — all commands; `/reforged` and `/legacyachievements` are aliases.
 - `/legacyinspect` — the optional read-only native Legacy inspector.
 
@@ -33,11 +34,15 @@ Feats of Strength contains **Legacy Point Achievements**, a searchable view of
 confirmed Legacy Point rewards. Original category assignments and totals remain
 unchanged. Unverified progress is kept separate from verified completion.
 
-This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test4`).
+This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test5`).
 Its popup uses the classic gold banner, short fade-in, gold glow, sweeping shine,
 timed fade-out and selected client sound. The settings page is available through
 the client's AddOns settings or `/lar settings`; the quarantined alpha window
 is not needed. See the [alert testing guide](docs/achievement-alert-testing.md).
+Tracked custom achievements use the client's objective tracker under **Reforged
+Achievements**, alongside quests. The former floating tracker stays hidden.
+See the [tracker testing guide](docs/native-objective-tracker.md) for client checks
+and combat deferral behavior.
 `main` remains the published `0.5.0-alpha` build. No release tag is pushed for
 this experiment, so it does not publish a GitHub/CurseForge release automatically.
 

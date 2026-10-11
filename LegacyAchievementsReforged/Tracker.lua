@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 --  Tracker: the achievements you right-clicked, with their progress, in a
---  small frame you can move (Settings locks it).
+--  native objective module. The movable alpha frame is retained for research.
 -------------------------------------------------------------------------------
 local _, ns = ...
 local LAR = ns.LAR
@@ -99,6 +99,11 @@ local function update()
         else d.tracked[key] = nil end
     end
     table.sort(list, function(p, q) return p.name < q.name end)
+    if ns.ObjectiveTrackerIntegration then
+        ns.ObjectiveTrackerIntegration:Update(list)
+        tracker:Hide() -- never show a second, floating tracker in normal builds
+        return
+    end
     if #list == 0 or LAR.Settings().trackerShown == false then
         tracker:Hide()
         return
@@ -155,4 +160,8 @@ ev:SetScript("OnEvent", function()
     Place()
     C_Timer.After(4, Update)
 end)
-C_Timer.NewTicker(3, function() if tracker:IsShown() then Update() end end)
+C_Timer.NewTicker(3, function()
+    if ns.ObjectiveTrackerIntegration then
+        if ns.ObjectiveTrackerIntegration:NeedsPolling() then Update() end
+    elseif tracker:IsShown() then Update() end
+end)

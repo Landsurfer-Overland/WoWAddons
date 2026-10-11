@@ -1,6 +1,6 @@
 # Achievement alert test build
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test4`.
+Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test5`.
 This branch can be installed for testing without changing `main` or creating a
 release tag. The existing workflow builds a downloadable branch artifact after
 checks; actual GitHub releases require a version tag. No CurseForge upload is
@@ -109,7 +109,7 @@ Classic texture crops and alert geometry were checked against the Blizzard
 (observed source SHA256 `a70e6633301347f4948e63822dd4aa80b9b284c117f602feccb5560c8c91577a`).
 Only client-provided textures are used; its global alert scripts are not loaded.
 
-Validation: all **666 automated tests passed**, including 21 alert/settings
+Validation: all **678 automated tests passed**, including 21 alert/settings
 cases using real Lua completion and input callbacks. They cover no preview
 progress writes, correct crop/geometry contracts, animation lifecycle, sound
 failure/mute/channel behavior, missing sound constants, client sound overrides,
@@ -117,6 +117,9 @@ shield-centered points, frame reuse, real-award routing/duplicate safety,
 title line/wrapping, explicit file playback, read-only audio diagnostics and
 bundled sound routing through a normal completion,
 bounded bursts, combat deferral and modern/legacy settings APIs. Lua 5.1 syntax
-passed for 30 files, all 31 TOC references and four XML dependencies passed,
+passed for 31 files, all 32 TOC references and four XML dependencies passed,
 and the existing 322-definition initialization/14 behavior assertions passed.
 Actual visuals, audio and client restrictions remain to be tested in-game.
+
+This build also includes objective-tracker integration and 12 associated tests;
+see [native objective tracker testing](native-objective-tracker.md).

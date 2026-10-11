@@ -3496,6 +3496,7 @@ SlashCmdList.LEGACYACHIEVEMENTSREFORGED = function(input)
             { "/lar correctachievement <key>", "preview a token-confirmed correction for this character only" },
             { "/lar money report", "inspect exact monetary sources, units and configured copper thresholds" },
             { "/lar settings", "open addon settings and achievement alert previews" },
+            { "/lar tracker on|off|status", "show tracked achievements in client objectives or report availability" },
             { "/lar alert test|sound|stop", "preview achievement effects without awarding progress" },
             { "/lar help", "this list" },
             { "/reforged or /legacyachievements", "aliases for /lar (work with every command above)" },

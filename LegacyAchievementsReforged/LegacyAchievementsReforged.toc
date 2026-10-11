@@ -4,7 +4,7 @@
 ## Author: Landsurfer-Overland
 ## X-Original-Author: Piotr
 ## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
-## Version: 0.5.1-alpha-alert-test4
+## Version: 0.5.1-alpha-alert-test5
 ## SavedVariables: LegacyAchievementsReforgedDB
 ## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish
@@ -25,6 +25,7 @@ MoneyTracking.lua
 LegacyAchievementsReforged.lua
 Social.lua
 Tooltips.lua
+Integrations\ObjectiveTracker.lua
 Tracker.lua
 Views.lua
 Minimap.lua

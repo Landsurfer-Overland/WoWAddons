@@ -119,7 +119,8 @@ are not fabricated. Expand cards for criteria and follow linked meta-achievement
 Click the expanded card again to collapse it; opening another card collapses the
 previous one. The icon, card height, surrounding rows, and valid scroll position update
 without selecting a native challenge just to collapse a card.
-Custom tracking delegates to the original tracker. Search and completion/source filters
+Custom tracking uses the client objective tracker under Reforged Achievements;
+the former floating tracker stays hidden. Search and completion/source filters
 operate locally within the selected subject; they do not change the native search state.
 Search includes titles, descriptions, category metadata, and criteria already loaded
 by expanding an entry. It does not scan every unloaded objective. The clear button
@@ -260,8 +261,8 @@ for testing.
 12. Check separate live header totals, compact Summary completion bars, partial/unknown
     labels, actual recent dates, and category bars. Scroll to the last entry; verify no
     clipped cards, overlapping header art, or redundant large point-total headings.
-13. Track/untrack a custom card and check the original tracker and standalone `/lar`
-    window. Compare saved history, dates, explored areas, point values, and tracked keys.
+13. Track/untrack a custom card and check the client objective tracker alongside quests.
+    Compare saved history, dates, explored areas, point values, and tracked keys.
     Check unavailable quest/Loremaster progress in cards, sorting, the tracker, and social
     tooltips: no Lua error or fabricated zero/fill. Confirm real zero remains visible
     and old daily tracked keys remain saved without appearing as active objectives.

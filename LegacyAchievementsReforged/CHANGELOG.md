@@ -1,5 +1,16 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha-alert-test5 — testing branch
+
+- Tracked custom achievements use a Reforged Achievements section inside the
+  client objective tracker, instead of the separate floating alpha box.
+- Native blocks supply formatting, height limits, pooling and section collapse.
+  Track/untrack, progress labels, unknown values and saved watch keys are retained.
+- Register/layout changes defer in combat. Refresh only changed watch snapshots;
+  native layouts do not rescan custom progress or rebuild achievement catalogs.
+- `/lar tracker on|off|status` controls visibility and reports integration state.
+  In-game appearance and taint behavior still require client verification.
+
 ## 0.5.1-alpha-alert-test4 — testing branch
 
 - Center title in the classic line area; align its heading horizontally and
