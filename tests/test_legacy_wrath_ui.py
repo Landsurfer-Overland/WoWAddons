@@ -102,7 +102,8 @@ function UIObject(kind, name, parent)
     function f:GetCenter()
         if self.centerX ~= nil and self.centerY ~= nil then return self.centerX,self.centerY end
         if not self.parent then return self.width/2,self.height/2 end
-        local anchor = self.points and self.points[1]
+        local anchors = self.points and self.points.kind and self.framePoints or self.points
+        local anchor = anchors and anchors[1]
         local relative = anchor and anchor[2] or self.allPoints or self.parent
         if not relative or relative==self then return self.width/2,self.height/2 end
         local x,y=relative:GetCenter()
@@ -129,6 +130,7 @@ function UIObject(kind, name, parent)
     function f:SetText(t) self.textValue=tostring(t or ""); if type(self.text)=="table" then self.text:SetText(t) end end
     function f:GetText() return self.textValue end
     function f:GetStringHeight() return math.max(12, math.ceil(#self.textValue / math.max(1,self.width/6)) * 12) end
+    function f:GetStringWidth() return #self.textValue * 6 end
     function f:SetTextColor(...) self.color={...} end
     function f:SetFontObject(object) self.fontObject=object end
     function f:GetFontObject() return self.fontObject end
@@ -144,12 +146,26 @@ function UIObject(kind, name, parent)
         end
         if type(relative)=="string" then relative=_G[relative] end
         relative=relative or self.parent
-        self.points=self.points or {}
-        table.insert(self.points,{point,relative,relativePoint or point,x or 0,y or 0})
+        -- ShieldOnLoad binds its points FontString to a public field. Native
+        -- anchor storage is separate and must not overwrite that child region.
+        local anchors
+        if self.points and self.points.kind then
+            self.framePoints=self.framePoints or {}; anchors=self.framePoints
+        else self.points=self.points or {}; anchors=self.points end
+        table.insert(anchors,{point,relative,relativePoint or point,x or 0,y or 0})
     end
-    function f:ClearAllPoints() self.points={}; self.allPoints=nil end
-    function f:GetNumPoints() return #(self.points or {}) end
-    function f:GetPoint(index) return unpack((self.points or {})[index or 1] or {}) end
+    function f:ClearAllPoints()
+        if self.points and self.points.kind then self.framePoints={} else self.points={} end
+        self.allPoints=nil
+    end
+    function f:GetNumPoints()
+        local anchors = self.points and self.points.kind and self.framePoints or self.points
+        return #(anchors or {})
+    end
+    function f:GetPoint(index)
+        local anchors = self.points and self.points.kind and self.framePoints or self.points
+        return unpack((anchors or {})[index or 1] or {})
+    end
     function f:SetAllPoints(relative) self.allPoints=relative or self.parent end
     function f:SetParent(p) self.parent=p end
     function f:SetScale(v) self.scale=v end

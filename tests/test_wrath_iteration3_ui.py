@@ -175,7 +175,9 @@ class Iteration3UITests(unittest.TestCase):
             end
             assert(recentHeadings==1 and view.cards[1].record.key==native.key)
             assert(cardFor('custom:first') and not cardFor(undated.key))
-            assert(view.bars[1].text:GetText()=='1/2' and view.bars[2].text:GetText()=='2/3')
+            assert(view.bars[1].text:GetText()=='3/5')
+            local source=ns.LegacyPresentation.Summary(view.model)
+            assert(source.custom.completed==1 and source.native.completed==2)
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10')
         """)
 

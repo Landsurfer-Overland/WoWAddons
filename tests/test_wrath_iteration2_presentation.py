@@ -117,17 +117,24 @@ class Iteration2PresentationTests(unittest.TestCase):
             assert(#calls == 0)
         """)
 
-    def test_summary_keeps_source_counts_and_reports_unknown_partial_data(self):
+    def test_summary_keeps_unified_counts_and_reports_unknown_partial_data(self):
         self.check("""
             view.model.byKey["legacy:62013"].completed = nil
             view.model.native.partial = true
             -- This fixture edits an already-built snapshot in place.
             ns.LegacyPresentation.Invalidate(view.model)
             view:Render()
-            assert(view.bars[1].label:GetText() == "Custom Achievements Earned")
-            assert(view.bars[1].text:GetText() == "1/2")
-            assert(view.bars[2].label:GetText() == "Native Legacy Challenges Earned")
-            assert(view.bars[2].text:GetText() == "0/3 shown (1 unknown)")
+            assert(view.bars[1].label:GetText() == "Achievements Earned")
+            assert(view.bars[1].text:GetText() == "1/5 shown (1 unknown)")
+            local source=ns.LegacyPresentation.Summary(view.model)
+            assert(source.custom.completed==1 and source.custom.total==2)
+            assert(source.native.completed==0 and source.native.total==3 and source.native.unknown==1)
+            assert(view.summaryNote:IsShown())
+            local foundUnknown=false
+            for _,bar in ipairs(view.bars) do
+                if bar.text:GetText():find('(?1)',1,true) then foundUnknown=true end
+            end
+            assert(foundUnknown)
             for _, heading in ipairs(view.headings) do
                 assert(heading:GetText()~="Character Achievement Points: 10")
                 assert(heading:GetText()~="Legacy Points: 16")
@@ -145,7 +152,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             ns.LegacyPresentation.Invalidate(view.model)
             view:Render()
             assert(#ns.LegacyPresentation.Recent(view.model, "legacy", 4) == 0)
-            assert(view.bars[2].text:GetText() == "1/3")
+            assert(view.bars[1].text:GetText() == "2/5")
             for _, card in ipairs(view.cards) do
                 assert(not card:IsShown() or card.record.source == "custom")
             end

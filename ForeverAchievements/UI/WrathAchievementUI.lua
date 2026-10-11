@@ -7,6 +7,8 @@ U.PRESETS = { Compact = { 768, 500 }, Standard = { 960, 620 }, Large = { 1024, 7
 ns.WrathAchievementUI = U
 ForeverAchievementsWrathUI = U -- only our XML callbacks, never Blizzard globals
 local P = ns.LegacyPresentation
+local SUMMARY_ORDER = { general = 1, quests = 2, exploration = 3, pvp = 4, dungeons = 5,
+    professions = 6, reputation = 7, ["world-events"] = 8, classes = 9, feats = 10 }
 local function perfBegin(name) local p = ns.LegacyPerf; return p and p.Begin and p.Begin(name) end
 local function perfFinish(token) local p = ns.LegacyPerf; if p and p.Finish then p.Finish(token) end end
 local function perfCount(name, count) local p = ns.LegacyPerf; if p and p.Count then p.Count(name, count) end end
@@ -125,6 +127,7 @@ function U.CardOnLoad(self)
     self.nativeStatus = font(self, "GameFontNormalSmall")
     self.nativeStatus:SetPoint("BOTTOMRIGHT", -90, 6); self.nativeStatus:SetHeight(16)
     self.nativeStatus:SetJustifyH("RIGHT"); self.nativeStatus:Hide()
+    self.compact = false
 end
 -- Select one presentation state before applying any artwork. The underlying
 -- character component owns a unified card's gold completion; Legacy completion
@@ -499,6 +502,8 @@ function U.Create(cover, guard, refresh, callbacks)
     self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27, guard)
     self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69, guard)
     self.measureFont = font(self.contentChild, "FAWrathAchievementDescriptionFont"); self.measureFont:Hide()
+    self.summaryNote = font(self.contentChild, "GameFontNormalSmall", "* Available records; ? Unknown completion")
+    self.summaryNote:SetJustifyH("CENTER"); self.summaryNote:SetHeight(18); self.summaryNote:Hide()
     self.contentScroll:HookScript("OnVerticalScroll", function()
         if self.rendering or self.scrollRendering or self.suppressScroll or not self.model then return end
         self.scrollRendering = true
@@ -1000,13 +1005,18 @@ function U.SummaryBar(self, key, label, y, column, summary)
     local done, total, unknown
     if summary then done, total, unknown = summary.completed, summary.total, summary.unknown or 0
     else done, total, unknown = P.Count(self.model, key) end
-    b.label:SetWidth(math.max(80, width - 145)); b.label:SetWordWrap(false)
-    b.text:SetWidth(142)
     local count = done .. "/" .. total
     if summary and summary.available == false then count = "Unavailable"
-    elseif summary and summary.partial then count = count .. " shown" end
-    if unknown > 0 then count = count .. " (" .. unknown .. " unknown)" end
+    elseif summary and summary.partial then count = count .. (column ~= nil and "*" or " shown") end
+    if unknown > 0 then count = count .. (column ~= nil and " (?" .. unknown .. ")" or " (" .. unknown .. " unknown)") end
+    b.text:SetFontObject(column ~= nil and GameFontHighlightSmall or GameFontHighlight)
+    b.text:SetJustifyH("RIGHT"); b.text:SetWordWrap(false)
     b.label:SetText(label); b.text:SetText(count)
+    local countWidth = math.min(width * .6, math.max(45, b.text:GetStringWidth() + 4))
+    b.text:SetWidth(countWidth)
+    b.label:SetWidth(width - countWidth - 16); b.label:SetWordWrap(false)
+    b.label:SetFontObject(GameFontNormal)
+    if b.label:GetStringWidth() > b.label:GetWidth() then b.label:SetFontObject(GameFontNormalSmall) end
     b:SetMinMaxValues(0, math.max(total, 1)); b:SetValue(done)
     -- Unknown records do not become zero-percent claims. Keep the count, and
     -- use an empty bar only for the observed completed portion of this catalog.
@@ -1014,20 +1024,38 @@ function U.SummaryBar(self, key, label, y, column, summary)
     b.button.owner, b.button.categoryKey = self, key
     b:Show(); return y + 34
 end
-function U.RenderCard(self, row, index, y)
+local function cardGeometry(card, compact)
+    if card.compact == compact then return end
+    card.compact = compact
+    card.icon:SetScale(compact and .6 or 1)
+    card.icon:ClearAllPoints(); card.icon:SetPoint("TOPLEFT", 8, compact and -10 or -9)
+    card.shield:SetScale(compact and .7 or 1)
+    card.shield:ClearAllPoints(); card.shield:SetPoint("TOPRIGHT", compact and -8 or -6, compact and -2 or 0)
+    card.titleBackground:SetHeight(compact and 20 or 24)
+    card.description:ClearAllPoints(); card.description:SetPoint("TOP", 0, compact and -26 or -30)
+    card.description:SetWordWrap(not compact)
+    card.dateCompleted:ClearAllPoints()
+    if compact then card.dateCompleted:SetPoint("TOPRIGHT", -54, -8)
+    else card.dateCompleted:SetPoint("TOP", card.shield, "BOTTOM", -3, 6) end
+    card.dateCompleted:SetWidth(compact and 82 or 78)
+end
+function U.RenderCard(self, row, index, y, summaryRow)
     local c = pool(self, "cards", index, "Button", self.contentChild, "FAWrathCardTemplate")
     local width = self.contentWidth - 6
-    local textWidth = width - 160
     local selected = self.selected == row.key
+    local compact = summaryRow == true and not selected
+    local textWidth = width - (compact and 116 or 160)
     local state, character, native = U.CardVisualState(row)
-    if self.scrollPass and c.record == row and c.selected == selected and c:GetWidth() == width
+    if self.scrollPass and c.record == row and c.selected == selected and c.compact == compact and c:GetWidth() == width
         and c.visualState == state and c.modelGeneration == self.modelGeneration and c.criteriaVersion == self.model.criteriaVersion then
         c:SetPoint("TOPLEFT", 0, -y); c:Show(); return y + c:GetHeight() + 4
     end
+    cardGeometry(c, compact)
     c:SetWidth(width); c:SetPoint("TOPLEFT", 0, -y)
     c.owner, c.record, c.selected = self, row, self.selected == row.key
     c.tracked.owner = self
-    c.label:SetWidth(width - 180); c.label:SetText(row.name)
+    -- Center Summary titles while reserving the date's upper-right column.
+    c.label:SetWidth(width - (compact and 282 or 180)); c.label:SetText(row.name)
     c.description:SetWidth(textWidth); c.hiddenDescription:SetWidth(textWidth)
     c.objectives:SetWidth(textWidth)
     c.icon.texture:SetTexture(row.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
@@ -1041,7 +1069,7 @@ function U.RenderCard(self, row, index, y)
     c.shield.icon:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
     c.shield.wreath:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
     c.description:SetText(row.description); c.hiddenDescription:SetText(row.description)
-    c.description:SetHeight(c.selected and math.max(36, c.hiddenDescription:GetStringHeight()) or 36)
+    c.description:SetHeight(compact and 16 or c.selected and math.max(36, c.hiddenDescription:GetStringHeight()) or 36)
     local dateRecord = state == "character-complete" and character or state == "native-complete" and native or nil
     c.dateCompleted:SetText(dateRecord and dateRecord.date or ""); show(c.dateCompleted, dateRecord and dateRecord.date)
     local reward = row.reward or ""
@@ -1049,7 +1077,7 @@ function U.RenderCard(self, row, index, y)
     -- The date occupies the shield column. Keep reward lettering within the
     -- description column while retaining the original full-width reward band.
     c.reward:SetWidth(textWidth); c.reward:SetHeight(20)
-    show(c.reward, reward ~= ""); show(c.rewardBackground, reward ~= "")
+    show(c.reward, not compact and reward ~= ""); show(c.rewardBackground, not compact and reward ~= "")
     saturate(c, state)
     local nativeDone = native and native.completed == true
     c.visualState = state
@@ -1060,20 +1088,20 @@ function U.RenderCard(self, row, index, y)
     c.nativeStatus:ClearAllPoints(); c.nativeStatus:SetPoint("BOTTOMRIGHT", -90, 6)
     c.nativeStatus:SetWidth(textWidth)
     c.nativeStatus:SetTextColor(.35, .65, .95)
-    if state == "legacy-complete" or state == "native-complete" then
+    if not compact and (state == "legacy-complete" or state == "native-complete") then
         c.nativeStatus:SetText("Completed via Legacy")
         c.nativeStatus:Show()
     end
     show(c.highlight, c.selected)
-    show(c.check, row.tracked)
-    show(c.tracked, (row.source == "custom" or row.source == "combined") and not row.completed and (c.selected or row.tracked))
+    show(c.check, not compact and row.tracked)
+    show(c.tracked, not compact and (row.source == "custom" or row.source == "combined") and not row.completed and (c.selected or row.tracked))
     c.tracked:SetChecked(row.tracked == true)
     -- Every card can expand a long description or its loaded criteria.
-    c.plusMinus:Show()
+    show(c.plusMinus, not compact)
     c.plusMinus:SetTexCoord(row.completed and 0 or .5, row.completed and .5 or 1, c.selected and .25 or 0, c.selected and .5 or .25)
     hidePool(c.criteriaPool); hidePool(c.progressPool); hidePool(c.metaPool)
     c.scopeText:Hide(); c.completionText:Hide()
-    local height, cy = 84, 0
+    local height, cy = compact and 48 or 84, 0
     if c.selected then
         local data = P.Criteria(row)
         local descHeight = c.description:GetHeight()
@@ -1142,6 +1170,7 @@ function U.RenderCard(self, row, index, y)
         height = math.max(110, 36 + descHeight + cy + 32)
     end
     c.objectives:SetHeight(math.max(cy, 1))
+    show(c.objectives, not compact)
     c:SetHeight(height)
     -- Original Collapse/Expand parchment and glow texture calculations.
     c.background:SetTexCoord(0, 1, math.max(0, 1 - height / 256), 1)
@@ -1414,6 +1443,7 @@ function U.RenderPass(self, reason)
         return
     end
     self:DismissMenus()
+    self.summaryNote:Hide()
     hidePool(self.cards); hidePool(self.bars); hidePool(self.stats); hidePool(self.headings)
     self.headingIndex, self.barIndex = 0, 0
     local achievements = self.tab == "achievements"
@@ -1472,28 +1502,44 @@ function U.RenderPass(self, reason)
         self.renderMode = "summary"
         local summaryToken = perfBegin("UI.SummaryRender")
         local summary = P.Summary(self.model)
-        y = self:Heading("Progress Overview", y)
-        y = self:SummaryBar("custom", "Custom Achievements Earned", y, nil, summary.custom)
-        y = self:SummaryBar("legacy", "Native Legacy Challenges Earned", y, nil, summary.native)
-        y = self:Heading("Recent Achievements", y + 8)
+        -- This is a small copied list of root categories, not the achievement
+        -- catalog. Pair the familiar Wrath groups without changing navigation.
+        table.sort(summary.categories, function(a, b)
+            local left, right = SUMMARY_ORDER[a.key] or 100, SUMMARY_ORDER[b.key] or 100
+            if left ~= right then return left < right end
+            return a.key < b.key
+        end)
+        y = self:Heading("Recent Achievements", y)
         local recent = mergedRecent(summary, self.model)
         local selectedRecent
-        for i = 1, math.min(6, #recent) do if recent[i].key == self.selected then selectedRecent = true; break end end
+        for i = 1, math.min(4, #recent) do if recent[i].key == self.selected then selectedRecent = true; break end end
         -- Summary shares the same expanded-card slot as category lists.
         -- Opening different recent records must not leave objective pools on
         -- each ordinary card in addition to the active expanded card.
         index = selectedRecent and 1 or 0
-        for i = 1, math.min(6, #recent) do
-            if recent[i].key == self.selected then y = self:RenderCard(recent[i], 1, y)
-            else index = index + 1; y = self:RenderCard(recent[i], index, y) end
+        for i = 1, math.min(4, #recent) do
+            if recent[i].key == self.selected then y = self:RenderCard(recent[i], 1, y, true)
+            else index = index + 1; y = self:RenderCard(recent[i], index, y, true) end
         end
         if #recent == 0 then y = self:Heading("No recorded completions yet", y) end
-        y = self:Heading("Category Progress Overview", y + 12)
-        -- Wide original summary bars accommodate merged category names and
-        -- explicit unknown counts without colliding with the value label.
-        for _, cat in ipairs(summary.categories) do
-            y = self:SummaryBar(cat.key, cat.name, y, nil, cat)
+        y = self:Heading("Progress Overview", y + 12)
+        local completed, total, unknown = P.Count(self.model, "summary")
+        y = self:SummaryBar("summary", "Achievements Earned", y, nil, {
+            completed = completed, total = total, unknown = unknown,
+            available = summary.custom.available or summary.native.available,
+            partial = summary.custom.partial or summary.native.partial,
+        })
+        local note = false
+        for _, cat in ipairs(summary.categories) do if cat.partial or cat.unknown > 0 then note = true; break end end
+        if note then
+            self.summaryNote:ClearAllPoints(); self.summaryNote:SetPoint("TOP", self.contentChild, "TOP", 0, -y)
+            self.summaryNote:SetWidth(self.contentWidth); self.summaryNote:Show(); y = y + 22
         end
+        y = y + 14
+        for i, cat in ipairs(summary.categories) do
+            self:SummaryBar(cat.key, cat.name, y + math.floor((i - 1) / 2) * 34, (i - 1) % 2, cat)
+        end
+        y = y + math.ceil(#summary.categories / 2) * 34
         perfFinish(summaryToken)
     else
         self.renderMode = "list"
