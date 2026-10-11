@@ -1,8 +1,16 @@
 package-as: LegacyAchievementsReforged
-manual-changelog: LegacyAchievementsReforged/CHANGELOG.md
+manual-changelog:
+  filename: LegacyAchievementsReforged/CHANGELOG.md
+  markup-type: markdown
+enable-nolib-creation: no
+plain-copy:
+  - LegacyAchievementsReforged/Libs
 ignore:
+  - .pkgmeta
   - .github
+  - .gitattributes
   - .gitignore
+  - .release
   - README.md
   - References
   - docs

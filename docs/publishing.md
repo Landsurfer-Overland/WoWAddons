@@ -8,15 +8,17 @@ contain only the addon. Historical branches and commits are retained.
 
 ## CurseForge
 
-Create or select the CurseForge project with this title and connect the existing
-repository using `main`. The existing GitHub repository
-can also be renamed to `LegacyAchievementsReforged` in GitHub repository Settings;
-update connected integrations and the local Git remote after that owner action.
+Use the existing [Legacy Achievements Reforged CurseForge project](https://www.curseforge.com/wow/addons/legacy-achivements-reforged)
+and connect `https://github.com/Landsurfer-Overland/WoWAddons` using `main` in its repository /
+automatic-packaging configuration. The repository does not need to be renamed
+to match the addon folder.
 
 The `.pkgmeta` sets `package-as: LegacyAchievementsReforged`, excludes development
-files, and moves the isolated runtime folder into the ZIP's addon root. It uses
-the maintained addon changelog rather than generating one from historical commit
-titles. The Python package tool provides the same single-addon directory layout
+files, and moves the isolated runtime folder into the ZIP's addon root. The
+changelog explicitly declares Markdown formatting. Vendored libraries are copied
+verbatim without keyword or line-ending transformations. No-library packages are
+disabled because this addon ships the libraries it needs. The Python package
+tool provides the same single-addon directory layout
 without requiring a third-party packager or any upload credentials:
 
 ```sh
@@ -30,10 +32,34 @@ the addon remains in testing. A GitHub source-download ZIP is a development
 checkout, not the installable release archive. Keep bundled library notices and
 the project credits in distributed files.
 
-No CurseForge project ID is fabricated and no upload token is committed. Remote
-publication is separate from packaging. To add automatic CurseForge uploads
-later, configure the actual project ID and a repository secret through the chosen
-packager/uploader; this repository does not currently send CurseForge uploads.
+### Automatic packaging checklist
+
+- Use the repository root containing `.pkgmeta`, not the addon subdirectory.
+  The `move-folders` entry accounts for the nested source layout and places
+  `LegacyAchievementsReforged.toc` directly inside the installed addon folder.
+- Keep `main` as the current-build branch. Preserve existing release tags;
+  packaging settings added later do not change those historical snapshots.
+- For each future release, update the TOC version and changelog, validate, then
+  create a matching annotated tag such as `v0.5.2-alpha`. Tags containing
+  `alpha` identify alpha packages; do not remove that marker while testing.
+- Verify the downloaded package contains a single `LegacyAchievementsReforged/`
+  addon root, its TOC, all vendored libraries, textures and both audio files.
+  Research reports, the separate research probe, references and tests are excluded.
+- Check CurseForge's packaging status and generated file after connecting the
+  project. A successful local package does not establish that the project is
+  connected or that a CurseForge upload has been accepted.
+
+See [CurseForge's automatic-packaging guide](https://support.curseforge.com/support/solutions/articles/9000197281-automatic-packaging)
+for the current project-side connection process. The repository configuration
+was exercised with the maintained [BigWigs addon packager](https://github.com/BigWigsMods/packager/tree/0f24d2169de3ceb3b79a981311b2ebab4c6160c7),
+with uploading disabled; that is a local compatibility check, not a test of
+CurseForge's hosted service.
+
+Project-side repository packaging and GitHub Actions API uploads are separate
+options. This repository's GitHub workflow publishes GitHub downloads only.
+An API uploader would require the actual CurseForge project ID and a GitHub
+repository secret such as `CF_API_TOKEN`; do not put a token in source files.
+Use one upload path for each release to avoid duplicate files.
 
 ## GitHub validation and releases
 

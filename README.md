@@ -5,6 +5,8 @@ Landsurfer-Overland. Native Legacy Challenges and character achievements share
 one navigation hierarchy while retaining their separate progression and point
 calculations. Native Legacy Rewards and Legacy Trees remain available.
 
+[CurseForge project](https://www.curseforge.com/wow/addons/legacy-achivements-reforged)
+
 ## Installation
 
 Download the installable ZIP from a tagged release or build it with
@@ -45,8 +47,10 @@ Achievements**, alongside quests. The former floating tracker stays hidden.
 See the [tracker testing guide](docs/native-objective-tracker.md) for client checks
 and combat deferral behavior.
 The matching `v0.5.1-alpha.1` release tag publishes an installable GitHub prerelease
-after the automated checks pass. CurseForge uploading is not configured in this
-repository. Research reports and the optional read-only probe remain outside
+after the automated checks pass. The root `.pkgmeta` prepares this repository for
+CurseForge packaging. Automatic packaging requires a project-side repository connection.
+See the [automatic-packaging checklist](docs/publishing.md#automatic-packaging-checklist).
+Research reports and the optional read-only probe remain outside
 the installable addon; no research proposals are implemented by this release.
 
 ## Development and publishing
