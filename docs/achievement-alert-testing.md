@@ -1,6 +1,6 @@
 # Achievement alert test build
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test3`.
+Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test4`.
 This branch can be installed for testing without changing `main` or creating a
 release tag. The existing workflow builds a downloadable branch artifact after
 checks; actual GitHub releases require a version tag. No CurseForge upload is
@@ -24,9 +24,19 @@ requests the classic achievement sound kit **12891** when the constant is
 absent. This uses the client's own sound database, not a downloaded file. A
 successful request does not establish audible playback on WoW Forever; use
 **Play selected sound** to check it. Status text includes the requested kit.
-If the client rejects the request or remains silent with audio enabled, further
-client asset verification is needed before deciding to bundle an audio file. Other
-choices are Level up, Quest complete and Ready check. Master/SFX channel selection
+In-game testing confirmed that kit 12891 was accepted but remained inaudible
+on the reported WoW Forever client. This build adds separate **Classic chime
+(client WAV)** and **Classic chime (client OGG)** choices to probe legacy client
+paths. These are compatibility tests; those paths are not verified present on
+WoW Forever. Each click requests only the selected source, with no hidden retry
+or substitution. Status includes read-only client audio enable/volume values.
+
+**Use bundled Reforged chime** selects and tests the project's own bell chime
+via `PlaySoundFile`. This is a shipped PCM WAV independent of the client sound
+kit database. It is an original sound, not the original Wrath recording. The
+selection persists and applies to both previews and normal custom unlocks.
+The client's own native award notifications remain under its control.
+Other choices are Level up, Quest complete and Ready check. Master/SFX channel selection
 controls which client volume affects playback. The explicit sound-test button
 plays even if automatic achievement sounds are disabled; the popup follows the
 sound checkbox. If a sound is missing or playback is declined, the settings page
@@ -54,6 +64,11 @@ events or create a second popup for those events.
    title, PREVIEW label, fade/glow/shine and one chime. Note any missing textures
    or clipping; the isolated tests do not establish pixel rendering.
 4. Click **Play selected sound**; cycle **Sound** and **Channel** to compare.
+   Test **Use bundled Reforged chime**, then **Test popup** and a normal custom
+   completion. If silent, retain the exact status message with source/channel
+   and audio values; check client audio settings. Test client WAV/OGG separately
+   to determine whether a legacy asset path resolves. No external download is
+   required for the bundled chime. The addon does not change client volume/mute.
    Disable automatic sound and confirm popup preview is silent while the explicit
    sound button still works. Client audio settings still apply.
 5. Change hold time, top distance and scale; test again. Disable animation and
@@ -94,11 +109,13 @@ Classic texture crops and alert geometry were checked against the Blizzard
 (observed source SHA256 `a70e6633301347f4948e63822dd4aa80b9b284c117f602feccb5560c8c91577a`).
 Only client-provided textures are used; its global alert scripts are not loaded.
 
-Validation: all **662 automated tests passed**, including 17 alert/settings
+Validation: all **666 automated tests passed**, including 21 alert/settings
 cases using real Lua completion and input callbacks. They cover no preview
 progress writes, correct crop/geometry contracts, animation lifecycle, sound
 failure/mute/channel behavior, missing sound constants, client sound overrides,
 shield-centered points, frame reuse, real-award routing/duplicate safety,
+title line/wrapping, explicit file playback, read-only audio diagnostics and
+bundled sound routing through a normal completion,
 bounded bursts, combat deferral and modern/legacy settings APIs. Lua 5.1 syntax
 passed for 30 files, all 31 TOC references and four XML dependencies passed,
 and the existing 322-definition initialization/14 behavior assertions passed.

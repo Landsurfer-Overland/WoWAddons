@@ -12,6 +12,10 @@ A.SOUNDS = {
     { key = "LEVELUP", name = "Level up" },
     { key = "IG_QUEST_LIST_COMPLETE", name = "Quest complete" },
     { key = "READY_CHECK", name = "Ready check" },
+    -- Explicit probes: modern clients may no longer resolve these legacy paths.
+    { key = "LAR_CLASSIC_WAV", name = "Classic chime (client WAV)", file = "Sound\\Interface\\UI_Achievement_Toast_Alert.wav" },
+    { key = "LAR_CLASSIC_OGG", name = "Classic chime (client OGG)", file = "Sound\\Interface\\UI_Achievement_Toast_Alert.ogg" },
+    { key = "LAR_REFORGED_CHIME", name = "Reforged chime (bundled)", file = "Interface\\AddOns\\LegacyAchievementsReforged\\Media\\ReforgedChime.wav" },
 }
 local function number(value, fallback, low, high)
     if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return fallback end
@@ -23,16 +27,35 @@ function A.SoundChoice()
     for _, choice in ipairs(A.SOUNDS) do if choice.key == key then return choice end end
     return { key = key, name = tostring(key) } -- preserve an existing user's selection
 end
+function A.AudioStatus(channel)
+    if not GetCVar then return "" end
+    local fields = { { "Sound_EnableAllSound", "audio" }, { "Sound_MasterVolume", "master volume" } }
+    if channel == "SFX" then
+        fields[#fields + 1] = { "Sound_EnableSFX", "effects" }
+        fields[#fields + 1] = { "Sound_SFXVolume", "effects volume" }
+    end
+    local out = {}
+    for _, field in ipairs(fields) do
+        local ok, value = pcall(GetCVar, field[1])
+        value = ok and tonumber(value)
+        if value then out[#out + 1] = field[2] .. "=" .. value end
+    end
+    return #out > 0 and " [" .. table.concat(out, ", ") .. "]" or ""
+end
 function A.PlaySelectedSound()
     local choice = A.SoundChoice()
     local kit = SOUNDKIT and SOUNDKIT[choice.key]
     if type(kit) ~= "number" then kit = choice.kit end
-    if type(kit) ~= "number" or not PlaySound then return false, choice.name .. " is unavailable on this client." end
     local channel = LAR.Settings().alertSoundChannel == "SFX" and "SFX" or "Master"
-    local ok, played = pcall(PlaySound, kit, channel)
-    if not ok then return false, "Sound playback failed: " .. tostring(played) end
-    if played == false then return false, "The client declined " .. choice.name .. " (kit " .. kit .. "). Check audio settings or client sound availability." end
-    return true, choice.name .. " requested on " .. channel .. " (kit " .. kit .. ")."
+    local player, source, method
+    if choice.file then player, source, method = PlaySoundFile, choice.file, "file"
+    elseif type(kit) == "number" then player, source, method = PlaySound, kit, "kit" end
+    if not player then return false, choice.name .. " is unavailable on this client." end
+    local status = A.AudioStatus(channel)
+    local ok, played = pcall(player, source, channel)
+    if not ok then return false, "Sound playback failed: " .. tostring(played) .. status end
+    if played == false then return false, "Client declined " .. choice.name .. " (" .. method .. " " .. source .. ")." .. status end
+    return true, choice.name .. " requested on " .. channel .. " (" .. method .. " " .. source .. "). Audible playback unverified." .. status
 end
 local function texture(parent, layer, file, width, height, point, relative, x, y, coords)
     local region = parent:CreateTexture(nil, layer)
@@ -61,9 +84,12 @@ function A.Create()
         72, 72, "TOPLEFT", "TOPLEFT", -1, -8, { 0, .5625, 0, .5625 })
     f.shield = texture(f, "ARTWORK", "Interface\\AchievementFrame\\UI-Achievement-Shields",
         52, 48, "TOPRIGHT", "TOPRIGHT", -9, -19, { 0, .5, 0, .45 })
-    f.heading = font(f, "GameFontBlackTiny", 200, 12, "TOP", 7, -23)
+    f.heading = font(f, "GameFontBlackTiny", 168, 12, "TOPLEFT", 72, -23)
     f.heading:SetText(ACHIEVEMENT_UNLOCKED or "Achievement Earned")
-    f.name = font(f, "GameFontHighlight", 168, 28, "TOPLEFT", 72, -38)
+    -- The original title line occupies y=-36..-52, between icon and shield.
+    -- The previous 28-high box centered a single line eight units too low.
+    f.name = font(f, "GameFontHighlight", 168, 16, "TOPLEFT", 72, -36)
+    f.name:SetJustifyV("MIDDLE")
     f.name:SetWordWrap(true)
     f.points = font(f, "GameFontNormal", 40, 20, "CENTER", 0, 0)
     f.points:ClearAllPoints(); f.points:SetPoint("CENTER", f.shield, "CENTER", 0, 0)
@@ -119,7 +145,9 @@ function A.Start(record)
     local f, s = A.Create(), LAR.Settings()
     A.Reposition()
     f.icon:SetTexture(record.icon or ns.ICONS and ns.ICONS[record.id] or 236376)
+    f.name:SetHeight(28) -- retain room for wrapped names while measuring
     f.name:SetText(record.name or "Achievement")
+    f.name:SetHeight(math.max(16, math.min(28, f.name:GetStringHeight())))
     local points = record.pts
     f.points:SetText(type(points) == "number" and points == points and tostring(points) or "")
     f.preview:SetShown(record.preview == true)

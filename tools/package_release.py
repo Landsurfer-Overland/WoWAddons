@@ -27,7 +27,7 @@ def package(output_dir, root=ROOT):
             if element.tag.rsplit("}", 1)[-1] in ("Script", "Include") and "file" in element.attrib:
                 if not (path.parent / element.attrib["file"].replace("\\", "/")).is_file():
                     raise ValueError("Missing XML dependency in " + str(path))
-    allowed = {".lua", ".toc", ".xml", ".tga", ".md"}
+    allowed = {".lua", ".toc", ".xml", ".tga", ".wav", ".md"}
     files = sorted(p for p in addon.rglob("*") if p.is_file() and p.suffix.lower() in allowed)
     if any(p.is_symlink() for p in files):
         raise ValueError("Addon release files must not be symlinks")

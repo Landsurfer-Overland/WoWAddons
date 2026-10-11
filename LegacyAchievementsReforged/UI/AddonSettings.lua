@@ -80,8 +80,12 @@ function U.Create()
     p.test = button(p, "Test popup", 16, -426, 164, function() U.Status(Alerts.Preview()) end)
     p.soundTest = button(p, "Play selected sound", 194, -426, 172, function() U.Status(Alerts.PlaySelectedSound()) end)
     p.stop = button(p, "Stop preview", 380, -426, 164, function() U.Status(Alerts.StopPreview()) end)
+    p.bundledSound = button(p, "Use bundled Reforged chime", 16, -460, 250, function()
+        LAR.Settings().soundName = "LAR_REFORGED_CHIME"
+        U.Sync(); U.Status(Alerts.PlaySelectedSound())
+    end)
     p.status = label(p, "Change settings, then test the popup or sound. No achievement is awarded.",
-        16, -468, 528, 64, "GameFontHighlightSmall")
+        16, -494, 528, 54, "GameFontHighlightSmall")
     p:SetScript("OnShow", U.Sync)
     U.Sync()
     return p

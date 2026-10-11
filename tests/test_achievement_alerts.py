@@ -84,6 +84,11 @@ class AchievementAlertTests(unittest.TestCase):
             local anchor,target,relative,x,y=f.points:GetPoint(1)
             assert(anchor=='CENTER' and target==f.shield and relative=='CENTER' and x==0 and y==0)
             assert(f.name:GetText()=='Reforged Test Achievement' and not f:IsMouseEnabled())
+            local ha,ht,hr,hx,hy=f.heading:GetPoint(1)
+            local na,nt,nr,nx,ny=f.name:GetPoint(1)
+            assert(ha=='TOPLEFT' and na==ha and hx==72 and nx==hx)
+            assert(f.heading:GetWidth()==f.name:GetWidth() and hy==-23 and ny==-36)
+            assert(f.name:GetHeight()==16)
             assert(f.glow:GetBlendMode()=='ADD' and f.shine:GetBlendMode()=='ADD')
         ''')
 
@@ -161,6 +166,50 @@ class AchievementAlertTests(unittest.TestCase):
             assert(not ns.AchievementAlerts.PlaySelectedSound() and #soundCalls==1)
         ''')
 
+    def test_explicit_sound_files_play_once_and_report_real_source_and_audio_settings(self):
+        self.check('''
+            local L,A=ns.LAR,ns.AchievementAlerts
+            local files={}
+            local before=Fingerprint(L.Account())
+            GetCVar=function(key)
+                if key=='Sound_EnableAllSound' then return '0' end
+                if key=='Sound_MasterVolume' then return '0.5' end
+                if key=='Sound_EnableSFX' then return '1' end
+                if key=='Sound_SFXVolume' then return '0.25' end
+            end
+            SetCVar=function() error('Do not change client audio settings') end
+            PlaySoundFile=function(path,channel) files[#files+1]={path,channel}; return true,77 end
+            L.Settings().sound=false; L.Settings().soundName='LAR_REFORGED_CHIME'
+            local ok,reason=A.PlaySelectedSound()
+            assert(ok and #files==1 and #soundCalls==0)
+            assert(files[1][1]=='Interface\\\\AddOns\\\\LegacyAchievementsReforged\\\\Media\\\\ReforgedChime.wav')
+            assert(files[1][2]=='Master' and reason:find('audio=0',1,true))
+            assert(reason:find('master volume=0.5',1,true) and reason:find('Audible playback unverified',1,true))
+            L.Settings().soundName='LAR_CLASSIC_WAV'; L.Settings().alertSoundChannel='SFX'
+            ok,reason=A.PlaySelectedSound()
+            assert(ok and #files==2 and files[2][2]=='SFX')
+            assert(files[2][1]=='Sound\\\\Interface\\\\UI_Achievement_Toast_Alert.wav')
+            assert(reason:find('effects volume=0.25',1,true))
+            L.Settings().soundName='LAR_CLASSIC_OGG'
+            PlaySoundFile=function(path) files[#files+1]={path}; return false end
+            ok,reason=A.PlaySelectedSound()
+            assert(not ok and #files==3 and reason:find('.ogg',1,true) and reason:find('declined',1,true))
+            PlaySoundFile=function() error('File playback error') end
+            ok,reason=A.PlaySelectedSound(); assert(not ok and reason:find('File playback error',1,true))
+            GetCVar=function() error('CVar unavailable') end
+            assert(A.AudioStatus('Master')=='')
+            PlaySoundFile=nil
+            assert(not A.PlaySelectedSound() and #soundCalls==0)
+        ''')
+
+    def test_wrapped_titles_keep_bounded_space_and_short_titles_restore_classic_line(self):
+        self.check('''
+            local A=ns.AchievementAlerts
+            A.Start({name=string.rep('long title ',7),preview=true})
+            assert(A.frame.name:GetHeight()==28)
+            A.Preview(); assert(A.frame.name:GetHeight()==16)
+        ''')
+
     def test_real_unlock_preempts_preview_queues_once_and_cannot_be_stopped_by_preview(self):
         self.check('''
             local A=ns.AchievementAlerts; A.Preview()
@@ -199,6 +248,23 @@ class AchievementAlertTests(unittest.TestCase):
             for i=1,33 do StepAlert(20) end
             assert(#A.queue==0 and A.overflow==0 and A.active.record.name=='17 additional achievements earned')
             StepAlert(20); assert(not A.active and not A.frame:GetScript('OnUpdate'))
+        ''')
+
+    def test_natural_custom_completion_plays_selected_bundled_chime_once(self):
+        self.check('''
+            SelectAchievements('lvl10'); CoreEvent('PLAYER_LOGIN'); FlushTimers()
+            local L,A=ns.LAR,ns.AchievementAlerts
+            L.Settings().soundName='LAR_REFORGED_CHIME'
+            local played=0
+            PlaySoundFile=function(path,channel)
+                assert(path:find('ReforgedChime.wav',1,true) and channel=='Master')
+                played=played+1; return true,123
+            end
+            function UnitLevel() return 10 end
+            CoreEvent('PLAYER_LEVEL_UP'); FlushTimers()
+            assert(L.DB().done.lvl10 and A.active and not A.active.record.preview)
+            assert(played==1 and #soundCalls==0)
+            CoreEvent('PLAYER_LEVEL_UP'); FlushTimers(); assert(played==1)
         ''')
 
     def test_combat_preview_touches_only_owned_frames_and_malformed_settings_are_bounded(self):
@@ -254,6 +320,21 @@ class AlertSettingsTests(unittest.TestCase):
             assert(s.soundName=='LEVELUP' and s.alertSoundChannel=='SFX')
             U.Sync(); assert(not U.panel.checks.animations:GetChecked())
             assert(U.panel.sliders.toastTime:GetValue()==6 and U.panel.channel:GetText()=='Channel: SFX')
+        ''')
+
+    def test_bundled_chime_button_selects_file_without_progress_or_extra_preview(self):
+        self.check('''
+            local L,U,A=ns.LAR,ns.AddonSettings,ns.AchievementAlerts
+            U.Register(); local before=Fingerprint(L.DB()); local played=0
+            PlaySoundFile=function(path,channel)
+                assert(path:find('ReforgedChime.wav',1,true) and channel=='Master')
+                played=played+1; return true,17
+            end
+            U.panel.bundledSound:Fire('OnClick')
+            assert(played==1 and L.Settings().soundName=='LAR_REFORGED_CHIME')
+            assert(U.panel.sound:GetText():find('bundled',1,true) and U.panel.status:GetText():find('file',1,true))
+            assert(not A.active and Fingerprint(L.DB())==before)
+            U.panel.test:Fire('OnClick'); assert(played==2 and A.active.record.preview)
         ''')
 
     def test_registration_and_settings_open_defer_once_until_combat_ends(self):

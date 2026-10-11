@@ -1,5 +1,16 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha-alert-test4 — testing branch
+
+- Center title in the classic line area; align its heading horizontally and
+  retain bounded space for wrapped titles. Alert animation is unchanged.
+- Add explicit client WAV/OGG sound probes and an original bundled Reforged
+  bell chime, with a one-click selection/test button. The bundled chime is
+  independent artwork, not Blizzard's recording or an automatic substitution.
+- Selected file playback applies to previews and normal custom completions.
+  Sound status distinguishes kit/file requests and reports read-only audio
+  enable/volume values; accepted requests do not prove audible playback.
+
 ## 0.5.1-alpha-alert-test3 — testing branch
 
 - Anchor popup points to the shield center and restore the classic shield crop.
