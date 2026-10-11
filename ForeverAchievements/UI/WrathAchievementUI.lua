@@ -763,9 +763,9 @@ function U.Layout(self, width, height, suppressRender)
     self.contentWidth = self.contentPanelWidth - 22
     self.contentHeight = height - 98
     self.categoryHeight = height - 58
-    -- Preset geometry only: hierarchy never changes button size or spacing.
-    self.categoryRowHeight = width >= 900 and 40 or 36
-    self.categoryRowGap = height >= 650 and 12 or width >= 900 and 10 or 6
+    -- Original Wrath artwork fits a compact 24px row with its 32px backing.
+    -- Expand children by inserting rows, never by distributing spare height.
+    self.categoryRowHeight, self.categoryRowGap = 24, 1
     self.nativeHost:SetSize(width - 50, height - 46)
     self.categoryScroll:SetSize(self.sidebarWidth - 26, self.categoryHeight)
     self.categoryChild:SetWidth(self.sidebarWidth - 26)
@@ -856,7 +856,11 @@ function U.RenderCategories(self)
             b.selection = b:CreateTexture(nil, "ARTWORK")
             b.selection:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Category-Highlight")
             b.selection:SetTexCoord(0, .6640625, 0, 1); b.selection:SetDrawLayer("BACKGROUND", 1)
-            b.selection:SetAllPoints(b)
+            -- Match the template's additive hover highlight. Normal blending
+            -- draws this asset's black pixels as an opaque selection rectangle.
+            b.selection:SetBlendMode("ADD")
+            b.selection:SetPoint("TOPLEFT", 0, 0)
+            b.selection:SetPoint("BOTTOMRIGHT", -1, -7)
             b.connector = b:CreateTexture(nil, "ARTWORK")
             b.connector:SetColorTexture(.55, .4, .2, .55)
             b.connector:SetSize(7, 1); b.connector:SetPoint("LEFT", -10, 0)
@@ -881,7 +885,9 @@ function U.RenderCategories(self)
         b.label:SetFontObject(depth == 0 and GameFontNormal or GameFontNormalSmall)
         b.label:SetText(cat.name)
         b.label:SetTextColor(depth == 0 and 1 or .88, depth == 0 and .82 or .72, depth == 0 and 0 or .35)
-        b.background:SetAllPoints(b); b.background:SetVertexColor(depth == 0 and .65 or .4, depth == 0 and .55 or .36, .3, .9)
+        b.background:ClearAllPoints()
+        b.background:SetPoint("TOPLEFT"); b.background:SetPoint("TOPRIGHT"); b.background:SetHeight(32)
+        b.background:SetVertexColor(depth == 0 and .65 or .4, depth == 0 and .55 or .36, .3, .9)
         show(b.selection, selected == cat.key); show(b.connector, depth > 0)
         local hasChildren = #(cat.children or {}) > 0
         show(b.expandButton, hasChildren)

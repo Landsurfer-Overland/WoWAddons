@@ -90,12 +90,12 @@ class Iteration5CategoryTests(unittest.TestCase):
         self.check('''
             categoryButton('general'):Fire('OnClick')
             local parent,child=categoryButton('general'),categoryButton('general:progression')
-            assert(parent:GetHeight()==40 and child:GetHeight()==40)
+            assert(parent:GetHeight()==24 and child:GetHeight()==24)
             assert(child.depth==1 and child.points[1][4]==4)
             assert(child:GetWidth()==parent:GetWidth())
             assert(child.connector:IsShown() and not parent.connector:IsShown())
             assert(parent.label:GetFontObject()==GameFontNormal and child.label:GetFontObject()==GameFontNormalSmall)
-            assert(parent.expandButton:GetHeight()==36 and child.expandButton:GetHeight()==36)
+            assert(parent.expandButton:GetHeight()==20 and child.expandButton:GetHeight()==20)
             assert(child.label:GetWidth()>100 and child.label.wordWrap==false)
         ''')
 
@@ -126,7 +126,7 @@ class Iteration5CategoryTests(unittest.TestCase):
                 for _,button in ipairs(view.categories) do
                     if button:IsShown() then
                         assert(button:GetWidth()==view.categoryScroll:GetWidth()-8)
-                        assert(button:GetHeight()==view.categoryRowHeight and button:GetHeight()>=36)
+                        assert(button:GetHeight()==24 and view.categoryRowHeight==24 and view.categoryRowGap==1)
                         assert(button.points[1][4]==4)
                         assert(button.label.points[1][4]==21+math.min(button.depth,3)*14)
                         if previous then
@@ -151,6 +151,41 @@ class Iteration5CategoryTests(unittest.TestCase):
             end
             for i=1,30 do view:RenderCategories() end
             assert(#frames==count and refreshCalls==0 and #calls==0)
+        ''')
+
+    def test_selected_summary_uses_additive_original_wrath_artwork_without_black_backing(self):
+        self.create_view()
+        self.check('''
+            local summary=categoryButton('summary')
+            assert(summary.selection:IsShown() and summary.selection:GetBlendMode()=='ADD')
+            assert(summary.selection.textureValue=='Interface\\\\AchievementFrame\\\\UI-Achievement-Category-Highlight')
+            assert(summary.selection.allPoints==nil and #summary.selection.points==2)
+            assert(summary.selection.points[1][1]=='TOPLEFT' and summary.selection.points[2][1]=='BOTTOMRIGHT')
+            assert(summary.selection.points[2][4]==-1 and summary.selection.points[2][5]==-7)
+            assert(summary.background:GetHeight()==32 and summary.background.allPoints==nil)
+            assert(summary:GetHeight()==24 and #calls==0)
+        ''')
+
+    def test_expansion_inserts_compact_rows_and_pushes_following_stack_down(self):
+        self.create_view()
+        self.check('''
+            local parent=categoryButton('general')
+            local parentY=parent:GetTop()
+            local followingY=categoryButton('professions'):GetTop()
+            parent.expandButton:Fire('OnClick')
+            local childCount=0
+            for _,button in ipairs(view.categories) do
+                if button:IsShown() and button.depth>0 and button.category.key:find('^general:') then
+                    childCount=childCount+1
+                end
+            end
+            assert(childCount>0 and categoryButton('general'):GetTop()==parentY)
+            assert(categoryButton('professions'):GetTop()==followingY-childCount*25)
+            local framesBefore=#frames
+            categoryButton('general').expandButton:Fire('OnClick')
+            assert(categoryButton('professions'):GetTop()==followingY)
+            assert(categoryButton('general:progression')==nil and #frames==framesBefore)
+            assert(refreshCalls==0 and #timers==0 and #calls==0)
         ''')
 
     def test_statistics_parent_navigation_uses_its_independent_expansion_state(self):
