@@ -157,7 +157,9 @@ function C:Fit()
         self.cover:SetScale(math.min(1, (width - 20) / size[1], (height - 20) / (size[2] + 140)))
         self:RestorePosition()
         self.ui.sizePreset = name
-        self.ui:Fit(self.cover, true)
+        -- The preset is the logical layout contract. Client geometry reads can
+        -- round after scaling/anchoring; Compact must not become 767.9999px.
+        self.ui:Fit(self.cover, true, size[1], size[2])
         self.layoutState = { width = width, height = height, scale = UIParent:GetScale(), preset = name }
     end)
 end

@@ -724,11 +724,18 @@ function U.DismissMenus(self)
     if self.filterMenu then self.filterMenu:Hide() end
     if self.sizeMenu then self.sizeMenu:Hide() end
 end
-function U.Fit(self, page, suppressRender)
-    local width, height = page:GetWidth(), page:GetHeight()
-    assert(width > 0 and height > 0, "Legacy presentation host has no layout yet")
+function U.Fit(self, page, suppressRender, logicalWidth, logicalHeight)
+    local width, height
+    if logicalWidth ~= nil or logicalHeight ~= nil then
+        assert(type(logicalWidth) == "number" and type(logicalHeight) == "number", "Both logical dimensions are required")
+        width, height = logicalWidth, logicalHeight
+    else
+        width, height = page:GetWidth(), page:GetHeight()
+        assert(width > 0 and height > 0, "Legacy presentation host has no layout yet")
+        height = height - 140
+    end
     self.root:SetScale(1)
-    self:Layout(width, height - 140, suppressRender)
+    self:Layout(width, height, suppressRender)
     self.root:ClearAllPoints()
     -- Offsets use the scaled child's coordinate space.
     self.root:SetPoint("TOP", page, "TOP", 0, -82)
