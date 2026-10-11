@@ -85,15 +85,16 @@ class Iteration5CategoryTests(unittest.TestCase):
             assert(refreshCalls==0 and #calls==0)
         ''')
 
-    def test_sidebar_rows_are_thicker_without_erasing_child_distinction(self):
+    def test_compact_sidebar_indents_child_artwork_and_hit_bounds_without_dash(self):
         self.create_view()
         self.check('''
             categoryButton('general'):Fire('OnClick')
             local parent,child=categoryButton('general'),categoryButton('general:progression')
             assert(parent:GetHeight()==24 and child:GetHeight()==24)
-            assert(child.depth==1 and child.points[1][4]==4)
-            assert(child:GetWidth()==parent:GetWidth())
-            assert(child.connector:IsShown() and not parent.connector:IsShown())
+            assert(child.depth==1 and child.points[1][4]==16)
+            assert(child:GetLeft()==parent:GetLeft()+12 and child:GetRight()==parent:GetRight())
+            assert(child:GetWidth()==parent:GetWidth()-12)
+            assert(child.connector==nil and parent.connector==nil)
             assert(parent.label:GetFontObject()==GameFontNormal and child.label:GetFontObject()==GameFontNormalSmall)
             assert(parent.expandButton:GetHeight()==20 and child.expandButton:GetHeight()==20)
             assert(child.label:GetWidth()>100 and child.label.wordWrap==false)
@@ -125,10 +126,13 @@ class Iteration5CategoryTests(unittest.TestCase):
                 local previous,foundChild
                 for _,button in ipairs(view.categories) do
                     if button:IsShown() then
-                        assert(button:GetWidth()==view.categoryScroll:GetWidth()-8)
+                        local indent=math.min(button.depth,3)*12
+                        assert(button:GetWidth()==view.categoryScroll:GetWidth()-8-indent)
                         assert(button:GetHeight()==24 and view.categoryRowHeight==24 and view.categoryRowGap==1)
-                        assert(button.points[1][4]==4)
-                        assert(button.label.points[1][4]==21+math.min(button.depth,3)*14)
+                        assert(button.points[1][4]==4+indent)
+                        assert(button:GetRight()==view.categoryScroll:GetRight()-4)
+                        assert(button.label.points[1][4]==25 and button.label:GetWidth()==button:GetWidth()-29)
+                        assert(button.expandButton.points[1][4]==7 and button.connector==nil)
                         if previous then
                             assert(previous:GetBottom()-button:GetTop()==view.categoryRowGap)
                         end

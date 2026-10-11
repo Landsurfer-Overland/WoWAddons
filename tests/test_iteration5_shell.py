@@ -66,6 +66,7 @@ class Iteration5ShellTests(unittest.TestCase):
                 assert(view.tabs[1]:GetLeft()==rootLeft+20)
                 for _,tab in ipairs(view.tabs) do
                     assert(tab:GetWidth()==150 and tab:GetHeight()==32)
+                    assert(tab.text.points[1][1]=='CENTER' and tab.text.points[1][4]==0 and tab.text.points[1][5]==-4)
                     for _,suffix in ipairs({'Left','Middle','Right'}) do
                         local name=tab:GetName()..suffix
                         assert(_G[name]:GetHeight()==49 and _G[name..'Disabled']:GetHeight()==49)
@@ -93,6 +94,10 @@ class Iteration5ShellTests(unittest.TestCase):
         self.check("""
             assert(view.sizeButton:GetWidth()==112 and view.sizeButton:GetHeight()==24)
             assert(view.sizeButton.label==view.sizeButton.text)
+            assert(view.sizeButton.label.points[1][4]==18 and view.sizeButton.label.points[1][5]==-1)
+            assert(view.sizeButton.label:GetWidth()==62)
+            assert(view.sizeButton.label.justify=='CENTER')
+            assert(view.sizeArrow.points[1][4]==-14 and view.sizeArrow.points[1][5]==-1)
             assert(view.sizeButton.background==nil)
             for _,suffix in ipairs({'Left','Middle','Right'}) do
                 local name=view.sizeButton:GetName()..suffix

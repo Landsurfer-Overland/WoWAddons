@@ -86,7 +86,7 @@ function U.TabOnLoad(self)
     for _, suffix in ipairs({ "Left", "Middle", "Right" }) do region(self, suffix):SetVertexColor(.6, .6, .6) end
     region(self, "LeftDisabled"):ClearAllPoints()
     region(self, "LeftDisabled"):SetPoint("TOPLEFT", 0, 0)
-    self.text:ClearAllPoints(); self.text:SetPoint("CENTER", 0, -8)
+    self.text:ClearAllPoints(); self.text:SetPoint("CENTER", 0, -4)
 end
 local function sizeTab(tab, width, height, artworkHeight)
     tab:SetSize(width, height)
@@ -672,15 +672,15 @@ function U.Create(cover, guard, refresh, callbacks)
     sizeTab(self.sizeButton, 112, 24, 36)
     self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -20, 2)
     self.sizeButton.label = self.sizeButton.text
-    self.sizeButton.label:ClearAllPoints(); self.sizeButton.label:SetPoint("LEFT", 12, -5)
-    self.sizeButton.label:SetSize(72, 16); self.sizeButton.label:SetJustifyH("LEFT")
+    self.sizeButton.label:ClearAllPoints(); self.sizeButton.label:SetPoint("LEFT", 18, -1)
+    self.sizeButton.label:SetSize(62, 16); self.sizeButton.label:SetJustifyH("CENTER")
     self.sizeButton.label:SetJustifyV("MIDDLE"); self.sizeButton.label:SetFontObject(GameFontNormalSmall)
     for _, suffix in ipairs({ "Left", "Middle", "Right" }) do
         region(self.sizeButton, suffix):Hide(); region(self.sizeButton, suffix .. "Disabled"):Show()
     end
     self.sizeArrow = self.sizeButton:CreateTexture(nil, "OVERLAY")
     self.sizeArrow:SetTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-    self.sizeArrow:SetSize(16, 16); self.sizeArrow:SetPoint("RIGHT", -8, -5)
+    self.sizeArrow:SetSize(16, 16); self.sizeArrow:SetPoint("RIGHT", -14, -1)
     -- Owned options are pooled for the life of the presentation. Selecting a
     -- preset changes geometry through the controller without rebuilding data.
     self.sizeDismiss = CreateFrame("Button", nil, self.root)
@@ -876,34 +876,31 @@ function U.RenderCategories(self)
             b.selection:SetBlendMode("ADD")
             b.selection:SetPoint("TOPLEFT", 0, 0)
             b.selection:SetPoint("BOTTOMRIGHT", -1, -7)
-            b.connector = b:CreateTexture(nil, "ARTWORK")
-            b.connector:SetColorTexture(.55, .4, .2, .55)
-            b.connector:SetSize(7, 1); b.connector:SetPoint("LEFT", -10, 0)
             b.expandButton = CreateFrame("Button", b:GetName() .. "Expand", b)
-            b.expandButton:SetSize(16, 20); b.expandButton:SetPoint("LEFT", 3, 0)
             b.expandButton.label = font(b.expandButton, "GameFontNormalSmall")
             b.expandButton.label:SetPoint("CENTER")
             b.expandButton:SetScript("OnClick", U.CategoryExpand)
         end
-        local indent = math.min(depth, 3) * 14
+        -- Indent the whole child button, including artwork and click bounds.
+        -- Keep right edges aligned and use the inset instead of a dash marker.
+        local indent = math.min(depth, 3) * 12
         local height = self.categoryRowHeight
-        b:SetSize(self.categoryScroll:GetWidth() - 8, height)
-        b:SetPoint("TOPLEFT", 4, -y)
+        b:SetSize(self.categoryScroll:GetWidth() - 8 - indent, height)
+        b:SetPoint("TOPLEFT", 4 + indent, -y)
         b.owner, b.category, b.depth = self, cat, depth
         b.navigation = statistics and "statistics" or "achievements"
         b.expandButton.owner = self
         b.expandButton:SetSize(18, height - 4)
-        b.expandButton:ClearAllPoints(); b.expandButton:SetPoint("LEFT", 3 + indent, 0)
-        b.connector:ClearAllPoints(); b.connector:SetPoint("LEFT", 4 + indent, 0)
-        b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 21 + indent, 0)
-        b.label:SetWidth(b:GetWidth() - 25 - indent); b.label:SetWordWrap(false)
+        b.expandButton:ClearAllPoints(); b.expandButton:SetPoint("LEFT", 7, 0)
+        b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 25, 0)
+        b.label:SetWidth(b:GetWidth() - 29); b.label:SetWordWrap(false)
         b.label:SetFontObject(depth == 0 and GameFontNormal or GameFontNormalSmall)
         b.label:SetText(cat.name)
         b.label:SetTextColor(depth == 0 and 1 or .88, depth == 0 and .82 or .72, depth == 0 and 0 or .35)
         b.background:ClearAllPoints()
         b.background:SetPoint("TOPLEFT"); b.background:SetPoint("TOPRIGHT"); b.background:SetHeight(32)
         b.background:SetVertexColor(depth == 0 and .65 or .4, depth == 0 and .55 or .36, .3, .9)
-        show(b.selection, selected == cat.key); show(b.connector, depth > 0)
+        show(b.selection, selected == cat.key)
         local hasChildren = #(cat.children or {}) > 0
         show(b.expandButton, hasChildren)
         b.expandButton.label:SetText(expanded[cat.key] and "−" or "+")
