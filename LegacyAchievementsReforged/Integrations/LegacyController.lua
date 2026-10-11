@@ -1,13 +1,13 @@
 -- Opt-in full-window presentation. Original native lifecycle, pages, handlers,
 -- progression, and the standalone custom achievement window remain intact.
 local _, ns = ...
-local FA, R, B = ns.FA, ns.LegacyReadOnly, ns.LegacyWindowBridge
+local LAR, R, B = ns.LAR, ns.LegacyReadOnly, ns.LegacyWindowBridge
 local C = { hooked = setmetatable({}, { __mode = "k" }), state = "Disabled",
     dirtyData = true, dirtyLayout = true, dirtyMount = true, lifecycle = 0, refreshTicket = 0, nativeRevision = 0,
     NATIVE_MAX_AGE = 30, NATIVE_MAX_UNTIMED_REUSES = 8, nativeDataReuses = 0 }
 ns.LegacyUIController = C
-local function enabled() return FA.Settings().legacyUI == true end
-local function notify(message) print(FA.TAG .. " Legacy UI: " .. message) end
+local function enabled() return LAR.Settings().legacyUI == true end
+local function notify(message) print(LAR.TAG .. " Legacy UI: " .. message) end
 local function combat()
     local r = R.Call(InCombatLockdown)
     return r and r[1] == true
@@ -191,7 +191,7 @@ end
 local anchors = { TOPLEFT = { 0, 1 }, TOP = { .5, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, .5 },
     CENTER = { .5, .5 }, RIGHT = { 1, .5 }, BOTTOMLEFT = { 0, 0 }, BOTTOM = { .5, 0 }, BOTTOMRIGHT = { 1, 0 } }
 function C:Preset()
-    local name = R.Text(FA.Settings().legacyUISize)
+    local name = R.Text(LAR.Settings().legacyUISize)
     local sizes = ns.WrathAchievementUI.PRESETS
     if not name or not sizes[name] then name = "Standard" end
     return name, sizes[name]
@@ -199,7 +199,7 @@ end
 function C:RestorePosition()
     if combat() then self.positionPending = true; return end
     if not self.cover or self.dragging then return end
-    local saved = FA.Settings().legacyUIPosition
+    local saved = LAR.Settings().legacyUIPosition
     local point, relativePoint = R.Text(R.Field(saved, "point")), R.Text(R.Field(saved, "relativePoint"))
     local x, y = R.Number(R.Field(saved, "x")), R.Number(R.Field(saved, "y"))
     if not anchors[point] or not anchors[relativePoint] or not x or not y then
@@ -224,7 +224,7 @@ function C:SavePosition()
     if not r or r[2] ~= nil and r[2] ~= UIParent then return end
     local point, relativePoint, x, y = R.Text(r[1]), R.Text(r[3]), R.Number(r[4]), R.Number(r[5])
     if anchors[point] and anchors[relativePoint] and x and y then
-        FA.Settings().legacyUIPosition = { point = point, relativePoint = relativePoint, x = x, y = y }
+        LAR.Settings().legacyUIPosition = { point = point, relativePoint = relativePoint, x = x, y = y }
         self:RestorePosition()
     end
 end
@@ -266,8 +266,8 @@ function C:SetSizePreset(input)
     local normalized = type(input) == "string" and input:lower() or ""
     local name = normalized == "compact" and "Compact" or normalized == "standard" and "Standard" or
         normalized == "large" and "Large"
-    if not name then notify("Use /fa legacyui size compact|standard|large."); return false end
-    FA.Settings().legacyUISize = name
+    if not name then notify("Use /lar legacyui size compact|standard|large."); return false end
+    LAR.Settings().legacyUISize = name
     if self.ui and self.cover and not combat() then
         if enabled() and self.root and shown(self.root) then self:Refresh("layout")
         else self:Guard(function() self:Fit() end) end
@@ -279,7 +279,7 @@ function C:CycleSizePreset()
     self:SetSizePreset(name == "Compact" and "Standard" or name == "Standard" and "Large" or "Compact")
 end
 function C:ResetPosition()
-    FA.Settings().legacyUIPosition = nil
+    LAR.Settings().legacyUIPosition = nil
     if self.cover then
         if combat() then self.positionPending, self.positionResetPending = true, true; self:DeferCombat()
         else
@@ -508,7 +508,7 @@ function C:Attach()
         self.root, self.page = root, page
         if shown(root) and not shown(self.cover) then self:BeginOpening(root) end
         if not self.cover then
-            self.cover = CreateFrame("Frame", "FAWrathLegacyCover", UIParent)
+            self.cover = CreateFrame("Frame", "LARWrathLegacyCover", UIParent)
             self.cover:Hide()
             local _, size = self:Preset()
             self.cover:SetSize(size[1], size[2] + 140)
@@ -619,7 +619,7 @@ function C:Attach()
 end
 function C:SetEnabled(value)
     local previous = enabled()
-    FA.Settings().legacyUI = value == true
+    LAR.Settings().legacyUI = value == true
     if value then
         if not previous then self:Dirty("open") end
         self:Attach()
@@ -629,7 +629,7 @@ function C:SetEnabled(value)
     end
     notify(self.state)
 end
-FA.SLASH.legacyui = function(input)
+LAR.SLASH.legacyui = function(input)
     input = (input or ""):lower():match("^%s*(.-)%s*$")
     if input == "on" then C:SetEnabled(true)
     elseif input == "off" then C:SetEnabled(false)
@@ -637,9 +637,9 @@ FA.SLASH.legacyui = function(input)
     elseif input == "unmapped" then C:ReportUnmapped()
     elseif input:match("^size%s+") then
         if C:SetSizePreset(input:match("^size%s+(.+)$")) then notify("Window size: " .. C:Preset()) end
-    else notify(C.state .. ". Use /fa legacyui on|off, size compact|standard|large, reset, or unmapped.") end
+    else notify(C.state .. ". Use /lar legacyui on|off, size compact|standard|large, reset, or unmapped.") end
 end
-FA.SLASH.combatdebug = function(input)
+LAR.SLASH.combatdebug = function(input)
     input = R.Text(input) or ""
     input = input:lower():match("^%s*(.-)%s*$")
     if input == "on" then C.combatDiagnostics, C.combatSamples = true, {}; notify("Combat diagnostics on (session only).")
@@ -649,7 +649,7 @@ FA.SLASH.combatdebug = function(input)
         C:CombatSample("Report")
         notify("Combat diagnostics " .. (C.combatDiagnostics and "on" or "off") .. "; last 16 observations maximum.")
         for _, sample in ipairs(C.combatSamples or {}) do notify(sample) end
-    else notify("Use /fa combatdebug on|off|report|reset.") end
+    else notify("Use /lar combatdebug on|off|report|reset.") end
 end
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
@@ -689,6 +689,6 @@ events:SetScript("OnEvent", function(_, event, ...)
     elseif event == "UI_SCALE_CHANGED" or event == "DISPLAY_SIZE_CHANGED" then C:Schedule("layout")
     else C:Schedule("native") end
 end)
-FA.EARN_HOOKS[#FA.EARN_HOOKS + 1] = function() C:Schedule("custom") end
-FA.CHECK_HOOKS[#FA.CHECK_HOOKS + 1] = function() C:Schedule("custom") end
+LAR.EARN_HOOKS[#LAR.EARN_HOOKS + 1] = function() C:Schedule("custom") end
+LAR.CHECK_HOOKS[#LAR.CHECK_HOOKS + 1] = function() C:Schedule("custom") end
 -- File load does not open, load, hook or mutate the native Legacy window.

@@ -1,0 +1,60 @@
+name: Legacy Achievements Reforged
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python tools/validate.py
+      - run: python -B -m unittest discover -s tests
+      - name: Check release tag matches addon version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          toc = Path('LegacyAchievementsReforged/LegacyAchievementsReforged.toc').read_text()
+          version = next(line.split(': ', 1)[1] for line in toc.splitlines() if line.startswith('## Version: '))
+          assert os.environ['RELEASE_TAG'] == 'v' + version, 'Tag and TOC version must match'
+          PY
+      - run: python tools/package_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LegacyAchievementsReforged
+          path: .release/*
+          if-no-files-found: error
+
+  prerelease:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: LegacyAchievementsReforged
+          path: release
+      - name: Publish tested prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release/* --verify-tag --prerelease \
+            --title "Legacy Achievements Reforged $RELEASE_TAG" \
+            --notes "Alpha build. Existing players must migrate their saves before the first login; see docs/save-migration.md in the repository."

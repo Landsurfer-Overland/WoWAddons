@@ -7,12 +7,11 @@ python -B -m unittest discover -s tests
 ```
 
 The harness requires `lupa` with its Lua 5.1 runtime. Cloud setup already installs
-it under `/workspace/.cloud-tools/forever-achievements/python`; a normally installed
-`lupa` package works as well. Run Lua/XML/TOC packaging validation with the existing
-cloud validator where available:
+it under `/workspace/.cloud-tools/legacy-achievements-reforged/python`; a normally installed
+`lupa` package works as well. Run the repository's Lua/XML/TOC validator:
 
 ```sh
-PYTHONPATH=/workspace/.cloud-tools/forever-achievements/python python -B /workspace/.cloud-tools/forever-achievements/validate.py
+PYTHONPATH=/workspace/.cloud-tools/legacy-achievements-reforged/python python -B tools/validate.py
 ```
 
 ## Inspector checks
@@ -69,7 +68,7 @@ expand/collapse behavior independent of selection. Meta-child checks accept only
 positive character timestamps, validated dynamic
 map proofs preserve zone identity/dimensions, and standalone account/recent views reject
 ambiguous snapshots and malformed history without deleting the saved records.
-These remain controlled fixtures. The [two-character manual plan](../ForeverAchievements/Integrations/README.md#two-character-progression-regression)
+These remain controlled fixtures. The [two-character manual plan](../LegacyAchievementsReforged/Integrations/README.md#two-character-progression-regression)
 checks login, character switching, reload/logout persistence, real exploration/pet
 evidence, and genuine completion preservation in the client.
 
@@ -162,6 +161,6 @@ Follow the [client checks](../docs/original-ui-quarantine.md) after installing.
 These fixtures do not emulate actual game rendering, asset lookup, native protected
 frame behavior, input/gamepad focus, server reward or trait progression, animation
 timing, or SavedVariables disk writes. Passing them is not an in-game validation
-claim. Follow the [manual test plan](../ForeverAchievements/Integrations/README.md)
+claim. Follow the [manual test plan](../LegacyAchievementsReforged/Integrations/README.md)
 for texture fidelity, UI-scale/scroll alignment, native interactions, taint, staged
 tree edits, input transitions, and restoration in the actual Forever client.

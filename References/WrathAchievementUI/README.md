@@ -6,7 +6,7 @@ from filenames only. SOURCE_HASHES.json records their byte counts and SHA-256
 digests. Neither the original sources nor native Blizzard game files are modified.
 
 They are outside the runtime addon. Their TOC (Interface 30001, Secure,
-load-on-demand) is never loaded. The adapted runtime is in ForeverAchievements/UI.
+load-on-demand) is never loaded. The adapted runtime is in LegacyAchievementsReforged/UI.
 Its XML is generated from this XML by tools/adapt_wrath_templates.py; the
 generated result is committed and needs no Python at runtime. The runtime
 Lua ports selected presentation behavior with an addon-owned namespace.

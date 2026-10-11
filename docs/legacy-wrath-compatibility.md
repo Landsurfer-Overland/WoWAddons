@@ -17,8 +17,8 @@ No review of those missing images or pixel-for-pixel match is claimed.
 
 The current core contains 322 definitions, including older native imports.
 AlphaUI supplies the existing standalone interface. Data, DataQuests,
-DataProfDungeons and DataExtra load before ForeverAchievements, which exports
-ns.FA. Social, Tooltips, Tracker, Views, Minimap, Themes and Welcome build
+DataProfDungeons and DataExtra load before LegacyAchievementsReforged, which exports
+ns.LAR. Social, Tooltips, Tracker, Views, Minimap, Themes and Welcome build
 on it; Diagnostics/LegacyInspector loads afterwards and remains unchanged.
 
 Existing categories are General, Quests, Exploration, Professions, Dungeons
@@ -28,8 +28,8 @@ checks, series, history, completion timestamps, notifications and tracking.
 The standalone UI, verified character account overview, social comparison, chat links, titles,
 tracker, minimap, themes, settings and diagnostic remain available.
 
-ForeverAchievementsDB stores account settings and character snapshots.
-ForeverAchievementsCharDB stores done[key] timestamps, tracked keys, history
+LegacyAchievementsReforgedDB stores account settings and character snapshots.
+LegacyAchievementsReforgedCharDB stores done[key] timestamps, tracked keys, history
 and existing counters/sets. The presentation reads their original keys without
 native progress import. Addendum evidence and identity fields are additive;
 historical completion is not automatically deleted or revalidated into a grant.
@@ -71,7 +71,7 @@ filtering, localization, scrolling and tracking implementation was reviewed.
 
 | Original component | Adaptation |
 | --- | --- |
-| AchievementFrame layers and Header | Actual original wood, metal, parchment, watermark, joints, roof, point border and tiny shield in FAWrathWindowTemplate |
+| AchievementFrame layers and Header | Actual original wood, metal, parchment, watermark, joints, roof, point border and tiny shield in LARWrathWindowTemplate |
 | AchievementCategoryTemplate | Original art/label anchors with one native/custom category hierarchy |
 | AchievementTemplate | Original parchment/title/glow/reward textures, icon, shield, date, highlight and plus/minus; adapter records |
 | AchievementIconFrameTemplate / shield | Original borders, texture coordinates and saturation colors |
@@ -171,23 +171,23 @@ remains unknown and cannot establish a missing parent completion.
 New account snapshots prefer a verified GUID/realm identity and guarded native
 full-name/surname/realm fallback. Old first-name/realm snapshots are retained but
 cannot establish a reliable other-character attribution. No snapshot completion
-is imported into `ForeverAchievementsCharDB.done`.
+is imported into `LegacyAchievementsReforgedCharDB.done`.
 
-`/fa progressdebug on|off|status|dump` is opt-in diagnostic output, disabled by default.
+`/lar progressdebug on|off|status|dump` is opt-in diagnostic output, disabled by default.
 Enablement persists across reloads; the 64-record trace does not persist across sessions.
-`/fa inspectachievement KEY` inspects evidence without granting completion. A correction starts with
-`/fa correctachievement KEY`, then requires the displayed 60-second token through
-`/fa correctachievement KEY confirm TOKEN` for that same verified character and
+`/lar inspectachievement KEY` inspects evidence without granting completion. A correction starts with
+`/lar correctachievement KEY`, then requires the displayed 60-second token through
+`/lar correctachievement KEY confirm TOKEN` for that same verified character and
 unchanged record. The service archives only that key's old timestamp and identity in
 `correctionHistory`, clears `done[key]`, and adds `completionCorrections[key]` as a reaward
 hold. All source evidence/history and other completions remain intact. Separately
 confirmed `KEY resume` / `KEY resume confirm TOKEN` removes only that hold; later normal
 verified checks may award the key again. Native imports cannot be corrected through
-this flow, and `/fach reset` directs the user to it instead of wiping progress.
+this flow, and `/lar reset` directs the user to it instead of wiping progress.
 No correction runs automatically. See the
 [audit](iteration3-achievement-audit.md) for demonstrated unsafe paths versus
 unproven incident-specific explanations, and the
-[two-character manual plan](../ForeverAchievements/Integrations/README.md#two-character-progression-regression).
+[two-character manual plan](../LegacyAchievementsReforged/Integrations/README.md#two-character-progression-regression).
 
 ## Unified category mapping
 
@@ -232,7 +232,7 @@ subject category. There is no standalone Unmapped Challenges navigation root.
 The view model retains unknown mappings as `model.unmapped`, recording ID, name,
 original category and reason for later classification work. The original native
 challenge ID is retained even when its displayed navigation location changes.
-`/fa legacyui unmapped` reports the current observed list in chat, bounded to 30
+`/lar legacyui unmapped` reports the current observed list in chat, bounded to 30
 entries with a truncation notice; it does not enumerate unavailable native data.
 The full current list remains in the view model. See the
 [classification/overlap audit](iteration3-achievement-audit.md) for static records
@@ -397,8 +397,8 @@ are merged or migrated.
 `legacyUISize` records Compact, Standard or Large; absent/invalid preferences
 use Standard. `legacyUIPosition` contains `point`, `relativePoint`, `x` and `y`
 relative to UIParent. The controller validates values, fits the complete window
-to the current screen and clamps restored positions. `/fa legacyui reset`
-clears only that presentation preference; `/fa legacyui size ...` never changes
+to the current screen and clamps restored positions. `/lar legacyui reset`
+clears only that presentation preference; `/lar legacyui size ...` never changes
 achievement tracking or native progression. Size commands issued in combat
 save the preference and wait for safe layout work.
 
@@ -412,8 +412,8 @@ filters are selected one at a time and respect the current subject category.
 
 ### Native presentation restoration
 
-Disabled by default, the account option is controlled by `/fa legacyui on`
-and `/fa legacyui off`. The native registered root remains intact and owns
+Disabled by default, the account option is controlled by `/lar legacyui on`
+and `/lar legacyui off`. The native registered root remains intact and owns
 normal open/close and panel lifecycle. The addon temporarily hides its original
 regions and immediate presentation children, disables its invisible mouse
 rectangle, and displays the complete Wrath artwork at the replacement's own
@@ -471,7 +471,7 @@ combat taint or SavedVariables disk writes. Own labels currently use English;
 native text follows client localization. Native tracking/comparison setters
 are excluded; the standalone alpha features remain.
 
-Use the [manual plan](../ForeverAchievements/Integrations/README.md) for normal
+Use the [manual plan](../LegacyAchievementsReforged/Integrations/README.md) for normal
 opening/closing/dragging, all four tabs, mixed categories, search/filtering,
 criteria, native reward/tree interactions, UI scale, input transitions, reloads,
 character saves and complete restoration after disabling.

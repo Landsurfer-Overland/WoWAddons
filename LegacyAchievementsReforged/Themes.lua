@@ -3,8 +3,8 @@
 --  window opacity and the key binding.
 -------------------------------------------------------------------------------
 local _, ns = ...
-local FA = ns.FA
-local C = FA.Kit.COLORS
+local LAR = ns.LAR
+local C = LAR.Kit.COLORS
 
 local THEMES = {
     { key = "teal", label = "Sea Teal",
@@ -34,7 +34,7 @@ local THEMES = {
 }
 local BY_KEY = {}
 for _, t in ipairs(THEMES) do BY_KEY[t.key] = t end
-FA.THEMES = THEMES
+LAR.THEMES = THEMES
 
 local function Copy(dst, src, alpha)
     dst[1], dst[2], dst[3] = src[1], src[2], src[3]
@@ -43,9 +43,9 @@ end
 
 -- Puts a theme's colours in the shared palette; every frame built after
 -- this uses them, and the open ones are rebuilt.
-function FA.ApplyTheme(key, quiet)
+function LAR.ApplyTheme(key, quiet)
     local t = BY_KEY[key or ""] or THEMES[1]
-    local S = FA.Settings()
+    local S = LAR.Settings()
     Copy(C.bg, t.bg, S.opacity or 0.97)
     Copy(C.card, t.card, 0.92)
     Copy(C.cardHover, t.hover, 0.95)
@@ -53,30 +53,30 @@ function FA.ApplyTheme(key, quiet)
     Copy(C.text, t.text)
     Copy(C.dim, t.dim)
     if quiet then return end
-    FA.ResetToast()
-    if FA.StyleTracker then FA.StyleTracker() end
-    FA.RebuildWindow()
+    LAR.ResetToast()
+    if LAR.StyleTracker then LAR.StyleTracker() end
+    LAR.RebuildWindow()
 end
 
 -- Window background opacity, changed live.
-function FA.SetOpacity(v)
-    FA.Settings().opacity = v
+function LAR.SetOpacity(v)
+    LAR.Settings().opacity = v
     C.bg[4] = v
-    local win = _G.ForeverAchievementsWindow
+    local win = _G.LegacyAchievementsReforgedWindow
     if win and win.chromeBg then win.chromeBg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], v) end
 end
 
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()
-    FA.ApplyTheme(FA.Settings().theme, true)
-    FA.Kit.animate = FA.Settings().animations ~= false
-    if FA.StyleTracker then FA.StyleTracker() end
+    LAR.ApplyTheme(LAR.Settings().theme, true)
+    LAR.Kit.animate = LAR.Settings().animations ~= false
+    if LAR.StyleTracker then LAR.StyleTracker() end
 end)
 
--- Key binding (Key Bindings > AddOns > Forever Achievements).
-BINDING_HEADER_FOREVERACHIEVEMENTS = "Forever Achievements"
-BINDING_NAME_FOREVERACHIEVEMENTS_TOGGLE = "Open or close the window"
-function ForeverAchievements_Toggle()
-    if FA.IsShown() then FA.Hide() else FA.Open() end
+-- Key binding (Key Bindings > AddOns > Legacy Achievements Reforged).
+BINDING_HEADER_LEGACYACHIEVEMENTSREFORGED = "Legacy Achievements Reforged"
+BINDING_NAME_LEGACYACHIEVEMENTSREFORGED_TOGGLE = "Open or close the window"
+function LegacyAchievementsReforged_Toggle()
+    if LAR.IsShown() then LAR.Hide() else LAR.Open() end
 end

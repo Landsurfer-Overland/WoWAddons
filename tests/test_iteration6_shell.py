@@ -13,7 +13,7 @@ class CrestHarness(Harness):
     """Load header texture/font geometry omitted by the general client double."""
     def child(self, parent, element):
         child = super().child(parent, element)
-        if parent.GetName(parent) == 'FAWrathAchievementFrameHeader':
+        if parent.GetName(parent) == 'LARWrathAchievementFrameHeader':
             if element.get('file'): child.SetTexture(child, element.get('file'))
             size = element.find(URI + 'Size')
             if size is not None:
@@ -178,7 +178,7 @@ class Iteration6ShellTests(unittest.TestCase):
 
     def test_roof_and_plaque_ornaments_keep_native_dimensions_and_neutral_crest(self):
         xml = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
-        window = next(element for element in xml if element.get('name') == 'FAWrathWindowTemplate')
+        window = next(element for element in xml if element.get('name') == 'LARWrathWindowTemplate')
         header = window.find('.//' + URI + 'Frame[@name="$parentHeader"]')
         for suffix, width, height in [('Left', '147', '106'), ('Right', '147', '106'), ('RoofLeft', '216', '106'), ('RoofRight', '216', '106')]:
             roof = header.find('.//' + URI + f'Texture[@name="$parent{suffix}"]')
@@ -240,7 +240,7 @@ class Iteration6FactionCrestTests(unittest.TestCase):
         h.execute(api + """
             crestHost=CreateFrame('Frame','Iteration6CrestHost'); crestHost:SetSize(960,760)
             crestView=ns.WrathAchievementUI.Create(crestHost,function(fn) fn() end,function() error('Unexpected refresh') end,{})
-            crest=FAWrathAchievementFrameHeaderCrest
+            crest=LARWrathAchievementFrameHeaderCrest
         """)
         return h
 
@@ -254,7 +254,7 @@ class Iteration6FactionCrestTests(unittest.TestCase):
                     assert(crest.coords[1]==.0625 and crest.coords[2]==.9375)
                     assert(crest.coords[3]==.0625 and crest.coords[4]==.9375)
                     local point,parent,relative,x,y=crest:GetPoint(1)
-                    assert(point=='CENTER' and parent==FAWrathAchievementFrameHeaderCrestSurround and relative=='CENTER' and x==0 and y==0)
+                    assert(point=='CENTER' and parent==LARWrathAchievementFrameHeaderCrestSurround and relative=='CENTER' and x==0 and y==0)
                     assert(parent:IsShown())
                     local frameCount=#frames
                     crestView:Layout(1024,720); crestView:Layout(768,500)
@@ -278,7 +278,7 @@ class Iteration6FactionCrestTests(unittest.TestCase):
                     assert(crest:GetWidth()==80 and crest:GetHeight()==80)
                     assert(crest.coords[1]==0 and crest.coords[2]==.5 and crest.coords[3]==0 and crest.coords[4]==.5)
                     local point,parent,relative,x,y=crest:GetPoint(1)
-                    assert(point=='CENTER' and parent==FAWrathAchievementFrameHeaderCrestSurround and x==0 and y==0)
+                    assert(point=='CENTER' and parent==LARWrathAchievementFrameHeaderCrestSurround and x==0 and y==0)
                     assert(not parent:IsShown())
                     assert(#calls==0 and saved.done.first==1730000000)
                 """)

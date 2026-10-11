@@ -3,16 +3,16 @@
 --  Each draws into the scroll child and returns the height it used.
 -------------------------------------------------------------------------------
 local _, ns = ...
-local FA = ns.FA
-local Kit = FA.Kit
+local LAR = ns.LAR
+local Kit = LAR.Kit
 local W = Kit.W
 local C = Kit.COLORS
 
 local CLASS_COLORS = RAID_CLASS_COLORS or {}
 
 local function SnapshotSafe(value)
-    if type(FA.secret) ~= "function" then return true end
-    local ok, hidden = pcall(FA.secret, value)
+    if type(LAR.secret) ~= "function" then return true end
+    local ok, hidden = pcall(LAR.secret, value)
     return ok and not hidden
 end
 local function SnapshotField(object, key)
@@ -28,7 +28,7 @@ local function SnapshotNumber(value)
 end
 local function CharacterSnapshots()
     local entries, omitted = {}, 0
-    local chars = SnapshotField(FA.Account(), "chars")
+    local chars = SnapshotField(LAR.Account(), "chars")
     if type(chars) ~= "table" then return entries, omitted end
     for key, snapshot in pairs(chars) do
         local identity = SnapshotField(snapshot, "identity")
@@ -105,11 +105,11 @@ end
 -------------------------------------------------------------------------------
 local function CategoryCounts(key)
     local n, all = 0, 0
-    for _, sec in ipairs(FA.CATEGORY_SECTIONS[key]) do
+    for _, sec in ipairs(LAR.CATEGORY_SECTIONS[key]) do
         for _, a in ipairs(sec.list) do
-            if FA.Available(a) then
+            if LAR.Available(a) then
                 all = all + 1
-                if FA.Earned(a.key) then n = n + 1 end
+                if LAR.Earned(a.key) then n = n + 1 end
             end
         end
     end
@@ -121,8 +121,8 @@ end
 local function Suggestions()
     local out = {}
     local zone = GetRealZoneText()
-    local zoneAch = zone and FA.ZONE_ACH[zone]
-    if zoneAch and not FA.Earned(zoneAch.key) then
+    local zoneAch = zone and LAR.ZONE_ACH[zone]
+    if zoneAch and not LAR.Earned(zoneAch.key) then
         local missing = {}
         for _, n in ipairs(zoneAch.list) do if not zoneAch.has(n) then missing[#missing + 1] = n end end
         if #missing > 0 then out[#out + 1] = { zoneAch, "Unexplored: " .. table.concat(missing, ", ") } end
@@ -131,38 +131,38 @@ local function Suggestions()
     if inInstance then
         local name = GetInstanceInfo()
         for _, key in ipairs({ "dungeons" }) do
-            for _, sec in ipairs(FA.CATEGORY_SECTIONS[key]) do
+            for _, sec in ipairs(LAR.CATEGORY_SECTIONS[key]) do
                 for _, a in ipairs(sec.list) do
-                    if name and a.name and (name:find(a.name, 1, true) or a.name:find(name, 1, true)) and not FA.Earned(a.key) then
+                    if name and a.name and (name:find(a.name, 1, true) or a.name:find(name, 1, true)) and not LAR.Earned(a.key) then
                         out[#out + 1] = { a, a.desc }
                     end
                 end
             end
         end
     end
-    local crit = FA.BY_KEY.critters
-    if crit and not FA.Earned("critters") then
+    local crit = LAR.BY_KEY.critters
+    if crit and not LAR.Earned("critters") then
         local missing = {}
-        for _, n in ipairs(FA.CRITTERS) do if not FA.DB().critters[n] then missing[#missing + 1] = n end end
+        for _, n in ipairs(LAR.CRITTERS) do if not LAR.DB().critters[n] then missing[#missing + 1] = n end end
         out[#out + 1] = { crit, "Still to /love: " .. table.concat(missing, ", ") }
     end
-    local pests = FA.BY_KEY.pests
-    if pests and not FA.Earned("pests") then
+    local pests = LAR.BY_KEY.pests
+    if pests and not LAR.Earned("pests") then
         local missing = {}
-        for _, n in pairs(FA.PESTS) do if not FA.DB().pests[n] then missing[#missing + 1] = n end end
+        for _, n in pairs(LAR.PESTS) do if not LAR.DB().pests[n] then missing[#missing + 1] = n end end
         table.sort(missing)
         out[#out + 1] = { pests, "Still to slay: " .. table.concat(missing, ", ") }
     end
     return out, zone
 end
 
-FA.VIEWS.summary = function(child, width)
+LAR.VIEWS.summary = function(child, width)
     local r, g, b = Kit.Accent()
     local y = 0
     local _, h
 
     -- Title
-    local titles = FA.EarnedTitles()
+    local titles = LAR.EarnedTitles()
     local values, order = { none = "No title" }, { "none" }
     for _, a in ipairs(titles) do
         values[a.key] = a.title:format(UnitName("player"))
@@ -171,18 +171,18 @@ FA.VIEWS.summary = function(child, width)
     _, h = W:SectionHeader(child, "OVERVIEW", y)
     y = y - h
     _, h = W:Dropdown(child, "Title shown to other players with the addon", y, values,
-        function() return FA.CurrentTitle() and FA.DB().title or "none" end,
+        function() return LAR.CurrentTitle() and LAR.DB().title or "none" end,
         function(v)
-            FA.DB().title = (v ~= "none") and v or nil
-            if FA.SaveCharacter then FA.SaveCharacter() end
+            LAR.DB().title = (v ~= "none") and v or nil
+            if LAR.SaveCharacter then LAR.SaveCharacter() end
         end, order,
         #titles == 0 and "Earn achievements like The Loremaster, World Explorer or Insane in the Membrane for titles." or nil)
     y = y - h
 
     -- Recently earned
     local recent = {}
-    for key, t in pairs(FA.DB().done) do
-        local a = FA.BY_KEY[key]
+    for key, t in pairs(LAR.DB().done) do
+        local a = LAR.BY_KEY[key]
         local timestamp = SnapshotNumber(t)
         if a and timestamp and timestamp > 0 then recent[#recent + 1] = { a, timestamp } end
     end
@@ -207,7 +207,7 @@ FA.VIEWS.summary = function(child, width)
             local when = Kit.MakeFont(row, 12, nil, C.dim[1], C.dim[2], C.dim[3], 1)
             when:SetPoint("RIGHT", -12, 0)
             when:SetText(date("%d.%m.%Y", t))
-            row:SetScript("OnClick", function() FA.OpenSearch(a.name) end)
+            row:SetScript("OnClick", function() LAR.OpenSearch(a.name) end)
             y = y - 42
         end
         y = y - 6
@@ -216,8 +216,8 @@ FA.VIEWS.summary = function(child, width)
     -- Progress per category
     _, h = W:SectionHeader(child, "PROGRESS", y)
     y = y - h
-    for _, cat in ipairs(FA.CATEGORIES) do
-        if FA.CATEGORY_SECTIONS[cat.key] then
+    for _, cat in ipairs(LAR.CATEGORIES) do
+        if LAR.CATEGORY_SECTIONS[cat.key] then
             local n, all = CategoryCounts(cat.key)
             local row = CreateFrame("Button", nil, child)
             row:SetSize(width - 40, 30)
@@ -230,7 +230,7 @@ FA.VIEWS.summary = function(child, width)
             local v = Kit.MakeFont(row, 12, nil, C.dim[1], C.dim[2], C.dim[3], 1)
             v:SetPoint("RIGHT", -12, 0)
             v:SetText(n .. " / " .. all)
-            row:SetScript("OnClick", function() FA.ShowTab(cat.key) end)
+            row:SetScript("OnClick", function() LAR.ShowTab(cat.key) end)
             y = y - 36
         end
     end
@@ -256,7 +256,7 @@ FA.VIEWS.summary = function(child, width)
             desc:SetJustifyH("LEFT")
             desc:SetWordWrap(false)
             desc:SetText(text)
-            row:SetScript("OnClick", function() FA.OpenSearch(a.name) end)
+            row:SetScript("OnClick", function() LAR.OpenSearch(a.name) end)
             y = y - 52
         end
         y = y - 6
@@ -323,10 +323,10 @@ local function StatRows(child, width, y, title, rows)
     return y - 34
 end
 
-FA.VIEWS.statistics = function(child, width)
-    local d = FA.DB()
-    local Count = FA.Count
-    local y = StatRows(child, width, 0, "TRACKED BY FOREVER ACHIEVEMENTS", {
+LAR.VIEWS.statistics = function(child, width)
+    local d = LAR.DB()
+    local Count = LAR.Count
+    local y = StatRows(child, width, 0, "TRACKED BY LEGACY ACHIEVEMENTS REFORGED", {
         { "Critters loved", tostring(Count(d.critters)) },
         { "Pests slain", tostring(Count(d.pests)) },
         { "Books read", tostring(Count(d.books)) },
@@ -338,7 +338,7 @@ FA.VIEWS.statistics = function(child, width)
     })
     for _, sec in ipairs(ns.STATS) do
         local rows = {}
-        for _, s in ipairs(sec.list) do rows[#rows + 1] = { s[2], FA.StatText(s[1]) } end
+        for _, s in ipairs(sec.list) do rows[#rows + 1] = { s[2], LAR.StatText(s[1]) } end
         y = StatRows(child, width, y, sec.title, rows)
     end
     return -y
@@ -348,7 +348,7 @@ end
 --  Settings
 -------------------------------------------------------------------------------
 local function Toggle(child, y, text, key, default, tooltip, after)
-    local S = FA.Settings()
+    local S = LAR.Settings()
     local _, h = W:Toggle(child, text, y,
         function()
             if S[key] == nil then return default end
@@ -357,7 +357,7 @@ local function Toggle(child, y, text, key, default, tooltip, after)
         function(v)
             S[key] = v
             if after then after(v) end
-            for _, fn in ipairs(FA.CHECK_HOOKS) do pcall(fn) end
+            for _, fn in ipairs(LAR.CHECK_HOOKS) do pcall(fn) end
         end, tooltip)
     return y - h
 end
@@ -368,7 +368,7 @@ local function Slider(child, y, text, min, max, step, get, set, tooltip)
 end
 
 local function Choice(child, y, text, key, default, values, order, tooltip, after)
-    local S = FA.Settings()
+    local S = LAR.Settings()
     local _, h = W:Dropdown(child, text, y, values,
         function() return S[key] or default end,
         function(v)
@@ -378,28 +378,28 @@ local function Choice(child, y, text, key, default, values, order, tooltip, afte
     return y - h
 end
 
-FA.VIEWS.settings = function(child, width)
-    local S = FA.Settings()
+LAR.VIEWS.settings = function(child, width)
+    local S = LAR.Settings()
     local y = 0
     local _, h = W:SectionHeader(child, "APPEARANCE", y)
     y = y - h
     local themes, order = {}, {}
-    for _, t in ipairs(FA.THEMES) do
+    for _, t in ipairs(LAR.THEMES) do
         themes[t.key] = t.label
         order[#order + 1] = t.key
     end
     y = Choice(child, y, "Theme", "theme", "teal", themes, order, "Colours of the window, the toast and the tracker.",
-        function(v) FA.ApplyTheme(v) end)
+        function(v) LAR.ApplyTheme(v) end)
     y = Slider(child, y, "Window size (%)", 70, 130, 5,
         function() return (S.scale or 1) * 100 end,
-        function(v) S.scale = v / 100; FA.SetScale(v / 100) end)
+        function(v) S.scale = v / 100; LAR.SetScale(v / 100) end)
     y = Slider(child, y, "Window opacity (%)", 50, 100, 1,
         function() return (S.opacity or 0.97) * 100 end,
-        function(v) FA.SetOpacity(v / 100) end)
+        function(v) LAR.SetOpacity(v / 100) end)
     y = Toggle(child, y, "Animations", "animations", true, "Toasts sliding in, cards opening, bars filling.",
         function(on) Kit.animate = on end)
     y = Toggle(child, y, "Compact cards", "compact", false, "Lower achievement rows, more on screen.",
-        function() C_Timer.After(0, FA.Refresh) end)
+        function() C_Timer.After(0, LAR.Refresh) end)
     y = Choice(child, y, "Order inside a section", "sort", "default",
         { default = "As in WotLK", name = "By name", progress = "Closest to done first" }, { "default", "name", "progress" })
     y = y - 6
@@ -409,14 +409,14 @@ FA.VIEWS.settings = function(child, width)
     y = Slider(child, y, "Toast time on screen (s)", 2, 10, 1,
         function() return S.toastTime or 4 end, function(v) S.toastTime = v end)
     y = Slider(child, y, "Toast distance from the top", 60, 500, 10,
-        function() return S.toastY or 140 end, function(v) S.toastY = v; FA.ResetToast() end)
+        function() return S.toastY or 140 end, function(v) S.toastY = v; LAR.ResetToast() end)
     y = Choice(child, y, "Sound", "soundName", "UI_ACHIEVEMENT_AWARDED",
         { UI_ACHIEVEMENT_AWARDED = "Achievement", LEVELUP = "Level up", IG_QUEST_LIST_COMPLETE = "Quest complete",
           READY_CHECK = "Ready check", RAID_WARNING = "Raid warning", AUCTION_WINDOW_OPEN = "Auction house" },
         { "UI_ACHIEVEMENT_AWARDED", "LEVELUP", "IG_QUEST_LIST_COMPLETE", "READY_CHECK", "RAID_WARNING", "AUCTION_WINDOW_OPEN" })
     y = Toggle(child, y, "Take a screenshot when earning", "screenshot", false, "Like the old achievement screenshot addons.")
     _, h = W:WideDualButton(child, "Show a test toast", "Play the sound", y,
-        function() FA.PreviewToast() end,
+        function() LAR.PreviewToast() end,
         function()
             local kit = SOUNDKIT and SOUNDKIT[S.soundName or "UI_ACHIEVEMENT_AWARDED"]
             if kit then PlaySound(kit, "Master") end
@@ -427,10 +427,10 @@ FA.VIEWS.settings = function(child, width)
     y = y - h
     y = Slider(child, y, "Tracker size (%)", 70, 150, 5,
         function() return (S.trackerScale or 1) * 100 end,
-        function(v) S.trackerScale = v / 100; FA.StyleTracker() end)
+        function(v) S.trackerScale = v / 100; LAR.StyleTracker() end)
     y = Slider(child, y, "Tracker background (%)", 0, 100, 5,
         function() return (S.trackerAlpha or 0.72) * 100 end,
-        function(v) S.trackerAlpha = v / 100; FA.StyleTracker() end)
+        function(v) S.trackerAlpha = v / 100; LAR.StyleTracker() end)
     y = y - 6
 
     _, h = W:SectionHeader(child, "ON SCREEN", y)
@@ -442,7 +442,7 @@ FA.VIEWS.settings = function(child, width)
     y = Toggle(child, y, "Achievement hints in tooltips", "tooltips", true,
         "Critters to /love, pests and bosses to slay, food not yet tasted, books not yet read.")
     y = Toggle(child, y, "Minimap button", "minimapShown", true, nil, function(v)
-        if FA.SetMinimapShown then FA.SetMinimapShown(v) end
+        if LAR.SetMinimapShown then LAR.SetMinimapShown(v) end
     end)
     y = y - 6
     _, h = W:SectionHeader(child, "SHARING", y)
@@ -463,8 +463,8 @@ FA.VIEWS.settings = function(child, width)
     y = Toggle(child, y, "Show keys and IDs in tooltips", "showIDs", false, "For reporting a problem with an achievement.")
     y = y - 6
     _, h = W:WideDualButton(child, "Reset tracker position", "Stop comparing", y,
-        function() if FA.ResetTracker then FA.ResetTracker() end end,
-        function() if FA.StopCompare then FA.StopCompare() end end)
+        function() if LAR.ResetTracker then LAR.ResetTracker() end end,
+        function() if LAR.StopCompare then LAR.StopCompare() end end)
     y = y - h
     return -y + 10
 end

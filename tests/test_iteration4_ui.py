@@ -43,16 +43,16 @@ class Iteration4UITests(unittest.TestCase):
     def verified_zone(self):
         """Use both actual adapters and the real relationship proof."""
         self.check("""
-            local a=ns.FA.BY_KEY.second
+            local a=ns.LAR.BY_KEY.second
             a.key='explore802'; a.id=802; a.name='Explore Westfall'
             a.desc='Explore Westfall, revealing the covered areas of the world map.'
             a.list={'Sentinel Hill','Moonbrook'}; a.has=function() return false end
             a.progress=function() return 0,2 end
             ns.EXPLORE={{id=802,map=1436,zone='Westfall',cont='ek',areas={
                 {'Sentinel Hill',1,2},{'Moonbrook',3,4}}}}
-            ns.FA.CATEGORIES={{key='exploration',label='Exploration'}}
-            ns.FA.CATEGORY_ORDER={'exploration'}
-            ns.FA.CATEGORY_SECTIONS.exploration={{title='Eastern Kingdoms',list={a}}}
+            ns.LAR.CATEGORIES={{key='exploration',label='Exploration'}}
+            ns.LAR.CATEGORY_ORDER={'exploration'}
+            ns.LAR.CATEGORY_SECTIONS.exploration={{title='Eastern Kingdoms',list={a}}}
             function GetCategoryList() return {15607} end
             function GetCategoryInfo() return 'Exploration',-1,0 end
             function GetCategoryNumAchievements() return 2,0,2 end
@@ -259,7 +259,7 @@ class Iteration4UITests(unittest.TestCase):
             local data={available=true,complete=true,items={{name='Money looted',current=38,required=50000000,completed=false}}}
             ns.LegacyPresentation.Criteria=function() return data end
             local moneyCalls=0
-            ns.FA.Money=function(copper) moneyCalls=moneyCalls+1; return copper..' copper formatted' end
+            ns.LAR.Money=function(copper) moneyCalls=moneyCalls+1; return copper..' copper formatted' end
             view.selected=row.key; view:RenderCard(row,1,0)
             assert(view.cards[1].progressPool[1].text:GetText()=='38 copper formatted / 50000000 copper formatted')
             assert(moneyCalls==2)
@@ -269,7 +269,7 @@ class Iteration4UITests(unittest.TestCase):
             local native=view.model.byKey['legacy:62013']; native.name='Got My Mind on My Money'
             data.items[1].quantityText=nil; view.selected=native.key; view:RenderCard(native,1,0)
             assert(view.cards[1].progressPool[1].text:GetText()=='Money looted: 38 / 50000000' and moneyCalls==2)
-            ns.FA.Money=function() error('Formatter unavailable') end
+            ns.LAR.Money=function() error('Formatter unavailable') end
             view.selected=row.key; view:RenderCard(row,1,0)
             assert(view.cards[1].progressPool[1].text:GetText()=='38 copper / 50000000 copper')
             assert(#calls==0)
@@ -278,7 +278,7 @@ class Iteration4UITests(unittest.TestCase):
     def test_unsupported_money_retains_unknown_state_without_tracking_explanation(self):
         self.check("""
             local row=view.model.byKey['custom:second']; row.achievement.money=true
-            ns.FA.Money=function(value) assert(value==1000000); return '100g' end
+            ns.LAR.Money=function(value) assert(value==1000000); return '100g' end
             ns.LegacyPresentation.Criteria=function() return {available=false,complete=false,items={
                 {name='Quest earnings',current=nil,required=1000000,completed=nil,
                  quantityText='Unavailable / 100g (lifetime quest total unsupported)'}}} end

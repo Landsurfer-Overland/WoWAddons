@@ -19,7 +19,7 @@ class LegacyLogicalFitTests(unittest.TestCase):
             local original=UIObject
             UIObject=function(...)
                 local frame=original(...)
-                if frame:GetName()=='FAWrathLegacyCover' then
+                if frame:GetName()=='LARWrathLegacyCover' then
                     local width,height=frame.GetWidth,frame.GetHeight
                     frame.GetWidth=function(self) return width(self)+widthReadbackDelta end
                     frame.GetHeight=function(self) return height(self)+heightReadbackDelta end
@@ -33,7 +33,7 @@ class LegacyLogicalFitTests(unittest.TestCase):
         self.fractional_cover(767.99981689453-768, 640.00006103516-640)
         self.check('''
             settings.legacyUISize='Compact'
-            ns.FA.SLASH.legacyui('on'); DrainTimers()
+            ns.LAR.SLASH.legacyui('on'); DrainTimers()
             local c=ns.LegacyUIController
             assert(c.cover:IsVisible(),c.state)
             assert(c.state=='Enabled' and c.lastError==nil)
@@ -66,7 +66,7 @@ class LegacyLogicalFitTests(unittest.TestCase):
         self.fractional_cover()
         self.check('''
             UIParent:SetSize(640,480); UIParent:SetScale(.75)
-            settings.legacyUISize='Compact'; ns.FA.SLASH.legacyui('on'); DrainTimers()
+            settings.legacyUISize='Compact'; ns.LAR.SLASH.legacyui('on'); DrainTimers()
             local c=ns.LegacyUIController
             assert(c.cover:IsVisible() and c.cover:GetScale()<1,c.state)
             assert(c.ui.width==768 and c.ui.height==500 and c.ui.root:GetScale()==1)
@@ -80,7 +80,7 @@ class LegacyLogicalFitTests(unittest.TestCase):
     def test_exact_logical_fit_survives_combat_without_rebuilding_the_frame(self):
         self.fractional_cover()
         self.check('''
-            settings.legacyUISize='Compact'; ns.FA.SLASH.legacyui('on'); DrainTimers()
+            settings.legacyUISize='Compact'; ns.LAR.SLASH.legacyui('on'); DrainTimers()
             local c=ns.LegacyUIController; local framesBefore=#frames; local bridge=c.bridge
             assert(c.cover:IsVisible(),c.state)
             inCombat=true; ControllerEvent('PLAYER_REGEN_DISABLED'); DrainTimers()

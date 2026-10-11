@@ -1,5 +1,0 @@
-<Bindings>
-    <Binding name="FOREVERACHIEVEMENTS_TOGGLE" header="FOREVERACHIEVEMENTS" category="ADDONS">
-        ForeverAchievements_Toggle()
-    </Binding>
-</Bindings>

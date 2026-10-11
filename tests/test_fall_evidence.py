@@ -9,7 +9,7 @@ class MeasuredFallTests(unittest.TestCase):
         self.h = CoreHarness()
         self.h.execute('''
             SelectAchievements("fall")
-            fallFrame=ForeverAchievementsFallTracker
+            fallFrame=LegacyAchievementsReforgedFallTracker
             assert(fallFrame)
             testZ=120; testInstance=1; fallingValue=false; deadValue=false
             flyingValue=false; taxiValue=false; swimmingValue=false
@@ -148,10 +148,10 @@ class MeasuredFallTests(unittest.TestCase):
     def test_character_state_switch_invalidates_a_pending_fall(self):
         self.h.execute('''
             LandMeasuredFall(40)
-            local old=ForeverAchievementsCharDB
-            ForeverAchievementsCharDB={done={},tracked={},history={"other character"}}
+            local old=LegacyAchievementsReforgedCharDB
+            LegacyAchievementsReforgedCharDB={done={},tracked={},history={"other character"}}
             testClock=10.8;FlushTimers()
-            assert(ForeverAchievementsCharDB.done.fall==nil and ForeverAchievementsCharDB.fallEvidence==nil)
+            assert(LegacyAchievementsReforgedCharDB.done.fall==nil and LegacyAchievementsReforgedCharDB.fallEvidence==nil)
             assert(old.done.fall==nil and old.fallEvidence==nil)
             assert(old.done.first==1730000000 and old.history[1]=="keep" and #calls==0)
         ''')
@@ -202,11 +202,11 @@ class MeasuredFallTests(unittest.TestCase):
             LandMeasuredFall(40); assert(#timers==1)
             saved.done.fall=444444; local old=saved
             TickFall(10.4,40,false)
-            ForeverAchievementsCharDB={done={},tracked={},history={"new character"}}
+            LegacyAchievementsReforgedCharDB={done={},tracked={},history={"new character"}}
             testClock=10.8; FlushTimers()
             assert(old.done.fall==444444 and old.fallEvidence==nil)
             TickFall(11,120,true); TickFall(11.1,40,false); FlushTimers()
-            assert(ForeverAchievementsCharDB.done.fall==nil and ForeverAchievementsCharDB.fallEvidence==nil)
+            assert(LegacyAchievementsReforgedCharDB.done.fall==nil and LegacyAchievementsReforgedCharDB.fallEvidence==nil)
             assert(old.history[1]=="keep" and #calls==0)
         ''')
 

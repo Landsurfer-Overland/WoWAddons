@@ -62,9 +62,9 @@ class Iteration4CharacterAdapterTests(unittest.TestCase):
 
     def test_identity_mismatch_hides_current_authority_without_changing_history_or_reading_progress(self):
         self.h.execute('''
-            ns.FA.CharacterScope=function() return nil end
-            ns.FA.BY_KEY.first.progress=function() error("Foreign database must not be evaluated") end
-            ns.FA.BY_KEY.second.progress=function() error("Foreign database must not be evaluated") end
+            ns.LAR.CharacterScope=function() return nil end
+            ns.LAR.BY_KEY.first.progress=function() error("Foreign database must not be evaluated") end
+            ns.LAR.BY_KEY.second.progress=function() error("Foreign database must not be evaluated") end
             local original=saved.done
             local catalog=ns.CustomAchievementAdapter.Catalog()
             local row=catalog.byKey["custom:first"]
@@ -78,7 +78,7 @@ class Iteration4CharacterAdapterTests(unittest.TestCase):
     def test_scope_recovers_on_new_catalog_and_keeps_criterion_evaluation_read_only(self):
         self.h.execute('''
             local scope=nil
-            ns.FA.CharacterScope=function() return scope end
+            ns.LAR.CharacterScope=function() return scope end
             assert(ns.CustomAchievementAdapter.Catalog().byKey["custom:first"].completed==nil)
             scope=true
             local row=ns.CustomAchievementAdapter.Catalog().byKey["custom:first"]
@@ -90,11 +90,11 @@ class Iteration4CharacterAdapterTests(unittest.TestCase):
     def test_exploration_metadata_keeps_reference_ids_maps_and_saved_keys_independent(self):
         self.h.execute('''
             ns.EXPLORE={{id=802,map=1436,zone="Westfall",cont="ek",areas={{"Sentinel Hill",1,2}}}}
-            local a=ns.FA.BY_KEY.second
+            local a=ns.LAR.BY_KEY.second
             a.key="explore802"; a.id=802; a.name="Explore Westfall"
-            ns.FA.CATEGORIES={{key="exploration",label="Exploration"}}
-            ns.FA.CATEGORY_ORDER={"exploration"}
-            ns.FA.CATEGORY_SECTIONS.exploration={{title="EASTERN KINGDOMS",list={a}}}
+            ns.LAR.CATEGORIES={{key="exploration",label="Exploration"}}
+            ns.LAR.CATEGORY_ORDER={"exploration"}
+            ns.LAR.CATEGORY_SECTIONS.exploration={{title="EASTERN KINGDOMS",list={a}}}
             local row=ns.CustomAchievementAdapter.Catalog().byKey["custom:explore802"]
             assert(row.savedKey=="explore802" and row.source=="custom" and row.completed==false)
             assert(row.exploration.zoneID==802 and row.exploration.mapID==1436)
@@ -105,7 +105,7 @@ class Iteration4CharacterAdapterTests(unittest.TestCase):
 
     def test_unsupported_money_keeps_units_notice_and_never_fabricates_zero(self):
         self.h.execute('''
-            local a=ns.FA.BY_KEY.second
+            local a=ns.LAR.BY_KEY.second
             a.money=true; a.moneyMetric="quest"
             a.progress=function() return nil,1000000,"Unavailable lifetime quest earnings (100g target)" end
             local row=ns.CustomAchievementAdapter.Catalog().byKey["custom:second"]
@@ -121,23 +121,23 @@ class Iteration4SnapshotGuardTests(unittest.TestCase):
     def test_ambiguous_database_cannot_overwrite_known_account_snapshot(self):
         h = AdapterHarness()
         h.execute(IDENTITIES + '''
-            ns.FA.secret=function() return false end
-            ns.FA.LINK={}; ns.FA.COMPARE={}; ns.FA.CurrentTitle=function() return nil end
+            ns.LAR.secret=function() return false end
+            ns.LAR.LINK={}; ns.LAR.COMPARE={}; ns.LAR.CurrentTitle=function() return nil end
             UnitClass=function() return "Warrior","WARRIOR" end
             UnitLevel=function() return 21 end
             CreateFrame=function(kind,name,parent) return UIObject(kind,name,parent) end
-            ns.FA.CharacterScope=function() return nil end
+            ns.LAR.CharacterScope=function() return nil end
             original={name="Recorded Alt",done={second=99}}
             account.chars[currentIdentity.key]=original
         ''')
         h.load("Social.lua")
         h.execute('''
-            local ok,reason=ns.FA.SaveCharacter()
+            local ok,reason=ns.LAR.SaveCharacter()
             assert(ok==false and reason=="Character progress attribution unavailable")
             assert(account.chars[currentIdentity.key]==original and original.done.second==99)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep")
-            ns.FA.CharacterScope=function() return true end
-            assert(ns.FA.SaveCharacter())
+            ns.LAR.CharacterScope=function() return true end
+            assert(ns.LAR.SaveCharacter())
             assert(account.chars[currentIdentity.key]~=original)
             assert(account.characterSnapshotArchives[1].snapshot==original and #calls==0)
         ''')

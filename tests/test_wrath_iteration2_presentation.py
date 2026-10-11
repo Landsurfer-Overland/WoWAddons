@@ -62,7 +62,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             assert(shield.icon.coords[4] == .5 and shield.points:GetText() == "10")
         """)
         xml = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
-        card = next(e for e in xml if e.get("name") == "FAWrathCardTemplate")
+        card = next(e for e in xml if e.get("name") == "LARWrathCardTemplate")
         shields = [e for e in card.iter(URI + "Texture") if "UI-Achievement-Shields" in e.get("file", "")]
         self.assertEqual([texture.get("name") for texture in shields], ["$parentIcon", "$parentWreath"])
         self.assertEqual(shields[1].get("hidden"), "true")
@@ -83,15 +83,15 @@ class Iteration2PresentationTests(unittest.TestCase):
 
     def test_header_keeps_two_live_counters_in_matching_wrath_artwork(self):
         self.check("""
-            assert(FAWrathAchievementFrameHeaderPoints:GetText() == "10")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText() == "16")
+            assert(LARWrathAchievementFrameHeaderPoints:GetText() == "10")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText() == "16")
             view.model.custom.points, view.model.native.points = 345, nil
             view:SetModel(view.model)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText() == "345")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText() == "—")
+            assert(LARWrathAchievementFrameHeaderPoints:GetText() == "345")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText() == "—")
         """)
         xml = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
-        window = next(e for e in xml if e.get("name") == "FAWrathWindowTemplate")
+        window = next(e for e in xml if e.get("name") == "LARWrathWindowTemplate")
         borders = [e for e in window.iter(URI + "Texture") if e.get("name") in ("$parentPointBorder", "$parentLegacyPointBorder")]
         self.assertEqual(len(borders), 2)
         self.assertEqual(borders[0].get("file"), borders[1].get("file"))
@@ -107,7 +107,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             assert(view.nativeHost:IsShown() and not view.categoryScroll:IsShown())
             assert(not view.contentBackground:IsShown() and not view.nativeBackground:IsVisible())
             assert(not view.searchBox:IsShown() and not view.contentScroll:IsShown())
-            assert(FAWrathTab2LeftDisabled:IsShown() and not FAWrathTab2Left:IsShown())
+            assert(LARWrathTab2LeftDisabled:IsShown() and not LARWrathTab2Left:IsShown())
             view:SetTab("trees", false)
             assert(#selectedTabs == 1 and view.tab == "trees")
             view.tabs[4]:Fire("OnClick")
@@ -139,8 +139,8 @@ class Iteration2PresentationTests(unittest.TestCase):
                 assert(heading:GetText()~="Character Achievement Points: 10")
                 assert(heading:GetText()~="Legacy Points: 16")
             end
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="10")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=="16" and #calls==0)
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="10")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=="16" and #calls==0)
         """)
 
     def test_undated_native_completion_is_not_fabricated_as_recent(self):
@@ -160,12 +160,12 @@ class Iteration2PresentationTests(unittest.TestCase):
 
     def test_original_close_and_roof_drag_target_only_owner_host(self):
         self.check("""
-            FAWrathAchievementFrameCloseButton:Fire("OnClick")
+            LARWrathAchievementFrameCloseButton:Fire("OnClick")
             assert(closeCount == 1)
-            assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>view.nativeHost:GetFrameLevel()+10)
-            FAWrathAchievementFrameHeader:Fire("OnDragStart")
+            assert(LARWrathAchievementFrameCloseButton:GetFrameLevel()>view.nativeHost:GetFrameLevel()+10)
+            LARWrathAchievementFrameHeader:Fire("OnDragStart")
             assert(host.moving)
-            FAWrathAchievementFrameHeader:Fire("OnDragStop")
+            LARWrathAchievementFrameHeader:Fire("OnDragStop")
             assert(not host.moving and #calls == 0)
         """)
 

@@ -14,11 +14,11 @@ class UnifiedCategoryTests(unittest.TestCase):
 
     def test_roots_merge_native_and_custom_professions_without_source_sections(self):
         self.check('''
-            local a = ns.FA.BY_KEY.second
-            ns.FA.CATEGORIES[#ns.FA.CATEGORIES+1]={key="professions",label="Professions"}
-            ns.FA.CATEGORY_ORDER[#ns.FA.CATEGORY_ORDER+1]="professions"
-            ns.FA.CATEGORY_SECTIONS.general[1].list={ns.FA.BY_KEY.first}
-            ns.FA.CATEGORY_SECTIONS.professions={{list={a}}}
+            local a = ns.LAR.BY_KEY.second
+            ns.LAR.CATEGORIES[#ns.LAR.CATEGORIES+1]={key="professions",label="Professions"}
+            ns.LAR.CATEGORY_ORDER[#ns.LAR.CATEGORY_ORDER+1]="professions"
+            ns.LAR.CATEGORY_SECTIONS.general[1].list={ns.LAR.BY_KEY.first}
+            ns.LAR.CATEGORY_SECTIONS.professions={{list={a}}}
             local m=ns.LegacyPresentation.Build()
             local expected={"summary","general","quests","exploration","professions","dungeons","reputation","pvp","classes","feats"}
             assert(#m.roots==#expected)
@@ -142,7 +142,7 @@ class UnifiedCategoryTests(unittest.TestCase):
             assert(m.byKey[original.key]~=original)
             assert(original.category==originalCategory and original.unifiedRoot==nil)
             assert(catalog.categories[2].children==nil)
-            assert(ns.FA.BY_KEY.second.category==nil)
+            assert(ns.LAR.BY_KEY.second.category==nil)
             assert(saved.done.first==1730000000 and saved.done.second==nil)
             assert(saved.history[1]=="keep" and saved.explored.zone.old and next(saved.tracked)==nil)
             assert(#calls==0)
@@ -216,8 +216,8 @@ class UnifiedCategoryTests(unittest.TestCase):
 
     def test_repeated_custom_definition_does_not_duplicate_points_or_entries(self):
         self.check('''
-            local list=ns.FA.CATEGORY_SECTIONS.general[1].list
-            list[#list+1]=ns.FA.BY_KEY.first
+            local list=ns.LAR.CATEGORY_SECTIONS.general[1].list
+            list[#list+1]=ns.LAR.BY_KEY.first
             local m=ns.LegacyPresentation.Build()
             assert(#ns.LegacyPresentation.Rows(m,"custom")==2)
             assert(m.custom.points==10 and m.custom.possiblePoints==30)
@@ -234,7 +234,7 @@ class UnifiedCategoryTests(unittest.TestCase):
 
     def test_reward_area_uses_explicit_rewards_and_keeps_social_title_unchanged(self):
         self.check('''
-            local a=ns.FA.BY_KEY.first
+            local a=ns.LAR.BY_KEY.first
             a.title="%s the Tester"
             local without=ns.CustomAchievementAdapter.Catalog().byKey["custom:first"]
             assert(without.reward==nil and a.title=="%s the Tester")

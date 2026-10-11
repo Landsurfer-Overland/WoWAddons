@@ -1,11 +1,12 @@
 ## Interface: 16001, 120100
-## Title: Forever Achievements
+## Title: Legacy Achievements Reforged
 ## Notes: WotLK-style achievements for WoW Forever: quests, exploration, professions, dungeons, reputation, PvP, feats, tracker, chat links and comparing.
-## Author: Piotr
-## IconTexture: Interface\AddOns\ForeverAchievements\Media\icon
-## Version: 0.4.27-alpha-legacy-points1
-## SavedVariables: ForeverAchievementsDB
-## SavedVariablesPerCharacter: ForeverAchievementsCharDB
+## Author: Landsurfer-Overland
+## X-Original-Author: Piotr
+## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
+## Version: 0.5.0-alpha
+## SavedVariables: LegacyAchievementsReforgedDB
+## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish
 
 
@@ -21,7 +22,7 @@ DataQuests.lua
 DataProfDungeons.lua
 DataExtra.lua
 MoneyTracking.lua
-ForeverAchievements.lua
+LegacyAchievementsReforged.lua
 Social.lua
 Tooltips.lua
 Tracker.lua

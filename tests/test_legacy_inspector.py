@@ -13,12 +13,12 @@ import unittest
 try:
     from lupa.lua51 import LuaRuntime
 except ImportError:
-    sys.path.insert(0, "/workspace/.cloud-tools/forever-achievements/python")
+    sys.path.insert(0, "/workspace/.cloud-tools/legacy-achievements-reforged/python")
     from lupa.lua51 import LuaRuntime
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE = ROOT / "ForeverAchievements" / "Diagnostics" / "LegacyInspector.lua"
+MODULE = ROOT / "LegacyAchievementsReforged" / "Diagnostics" / "LegacyInspector.lua"
 
 
 BASE = r'''
@@ -199,7 +199,7 @@ class InspectorTests(unittest.TestCase):
         if fixture:
             lua.execute(fixture)
         chunk = lua.execute("return assert(loadstring(...))", MODULE.read_text(), "@LegacyInspector.lua")
-        chunk("ForeverAchievements", lua.globals().ns)
+        chunk("LegacyAchievementsReforged", lua.globals().ns)
         self.assertIsNotNone(lua.globals().ns.LegacyInspector)
         self.assertIsNotNone(lua.globals().ns.LegacyInspector.Inspect)
         return lua
@@ -227,7 +227,7 @@ class InspectorTests(unittest.TestCase):
         lua = self.make_runtime()
         report = self.inspect(lua)
         for heading in (
-            "FOREVER LEGACY INSPECTOR", "CLIENT", "FRAMES", "NAMESPACES",
+            "LEGACY ACHIEVEMENTS REFORGED INSPECTOR", "CLIENT", "FRAMES", "NAMESPACES",
             "CHALLENGE DATA", "REWARD TRACK", "LIMITATIONS", "RECOMMENDED INTEGRATION POINTS",
         ):
             self.assertIn(heading, report)
@@ -598,7 +598,7 @@ class InspectorTests(unittest.TestCase):
         self.assertIsNotNone(window.name)
         self.assertIn(window.name, list(lua.globals().UISpecialFrames.values()))
         buttons["Run Inspection"].scripts.OnClick(buttons["Run Inspection"])
-        self.assertIn("FOREVER LEGACY INSPECTOR", edit.text)
+        self.assertIn("LEGACY ACHIEVEMENTS REFORGED INSPECTOR", edit.text)
         self.assertIn("Explore Mock Kingdom", edit.text)
         self.assertLessEqual(len(edit.text), 60000)
         buttons["Clear Results"].scripts.OnClick(buttons["Clear Results"])
@@ -649,7 +649,7 @@ class InspectorTests(unittest.TestCase):
     def test_toc_loads_diagnostic_once(self):
         references = [
             line.strip().replace("\\", "/")
-            for line in (ROOT / "ForeverAchievements" / "ForeverAchievements.toc").read_text().splitlines()
+            for line in (ROOT / "LegacyAchievementsReforged" / "LegacyAchievementsReforged.toc").read_text().splitlines()
             if line.strip() and not line.lstrip().startswith("#")
         ]
         self.assertEqual(references.count("Diagnostics/LegacyInspector.lua"), 1)

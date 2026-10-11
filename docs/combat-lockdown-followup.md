@@ -62,12 +62,12 @@ XML/artwork/layout and the original alpha quarantine are unchanged.
 
 ## Optional diagnostics
 
-Use `/fa combatdebug on` before reproducing; `/fa combatdebug report` afterward.
+Use `/lar combatdebug on` before reproducing; `/lar combatdebug report` afterward.
 The bounded session-only log retains at most 16 observations, including combat
 transitions, close requests and `ADDON_ACTION_BLOCKED`/`ADDON_ACTION_FORBIDDEN`
 notifications. It records root/cover visibility, cover restrictions, pending close,
 Legacy counter visibility, and the addon/operation names supplied by those events.
-It does not write SavedVariables or emit per-event chat spam. `/fa combatdebug off`
+It does not write SavedVariables or emit per-event chat spam. `/lar combatdebug off`
 stops collection; `reset` clears it. Native blocked-action reporting remains intact;
 these notifications alone do not activate fallback or refresh the catalog.
 
@@ -75,7 +75,7 @@ these notifications alone do not activate fallback or refresh the catalog.
 
 Replace the full addon folder, keep WTF/SavedVariables, and `/reload`.
 
-1. Enable `/fa legacyui on` and diagnostics. Open outside combat. Note both point
+1. Enable `/lar legacyui on` and diagnostics. Open outside combat. Note both point
    counters, selected category/tab, expanded achievement and scroll positions.
 2. Gain aggro. Verify the displayed totals and custom presentation stay consistent.
    Try closing; it should close immediately where permitted, otherwise after regen.
@@ -86,9 +86,9 @@ Replace the full addon folder, keep WTF/SavedVariables, and `/reload`.
 5. Repeat on Rewards, Trees and Statistics. Test entering combat during a header
    drag, releasing the mouse and then leaving combat. New drags wait for regen.
 6. Reopen/close outside combat and check size presets, categories and scrolling.
-   Repeat with `/fa legacyui off` to confirm normal native behavior.
+   Repeat with `/lar legacyui off` to confirm normal native behavior.
 7. Check the built-in action-failed notification, Lua tracker, fallback messages
-   and `/fa combatdebug report`. If the counter still disappears, capture a report
+   and `/lar combatdebug report`. If the counter still disappears, capture a report
    while it is missing and another after combat, before disabling diagnostics.
 
 Tests simulate protected flags, restricted setters and a silent panel-manager

@@ -3,12 +3,12 @@
 --  small frame you can move (Settings locks it).
 -------------------------------------------------------------------------------
 local _, ns = ...
-local FA = ns.FA
-local Kit = FA.Kit
+local LAR = ns.LAR
+local Kit = LAR.Kit
 local C = Kit.COLORS
 
 local WIDTH, ROW = 250, 30
-local tracker = CreateFrame("Frame", "ForeverAchievementsTracker", UIParent)
+local tracker = CreateFrame("Frame", "LegacyAchievementsReforgedTracker", UIParent)
 tracker:SetSize(WIDTH, 30)
 tracker:SetFrameStrata("LOW")
 tracker:SetClampedToScreen(true)
@@ -29,19 +29,19 @@ local title = Kit.MakeFont(header, 12, nil, Kit.Accent())
 title:SetPoint("LEFT", 10, 0)
 title:SetText("Achievements")
 header:SetScript("OnDragStart", function()
-    if not FA.Settings().trackerLocked then tracker:StartMoving() end
+    if not LAR.Settings().trackerLocked then tracker:StartMoving() end
 end)
 header:SetScript("OnDragStop", function()
     tracker:StopMovingOrSizing()
     Kit.RealignBorders()
     local point, _, rel, x, y = tracker:GetPoint()
-    FA.Settings().trackerPos = { point, rel, x, y }
+    LAR.Settings().trackerPos = { point, rel, x, y }
 end)
-header:SetScript("OnClick", function() FA.Open() end)
+header:SetScript("OnClick", function() LAR.Open() end)
 
 local function Place()
     tracker:ClearAllPoints()
-    local pos = FA.Settings().trackerPos
+    local pos = LAR.Settings().trackerPos
     if pos then
         tracker:SetPoint(pos[1], UIParent, pos[2], pos[3], pos[4])
     else
@@ -49,8 +49,8 @@ local function Place()
     end
 end
 
-function FA.ResetTracker()
-    FA.Settings().trackerPos = nil
+function LAR.ResetTracker()
+    LAR.Settings().trackerPos = nil
     Place()
 end
 
@@ -80,18 +80,18 @@ local function Row(i)
     row.fill:SetPoint("LEFT", row.track, "LEFT")
     row:SetScript("OnClick", function(self, button)
         if not self.a then return end
-        if button == "RightButton" then FA.ToggleTrack(self.a) else FA.OpenSearch(self.a.name) end
+        if button == "RightButton" then LAR.ToggleTrack(self.a) else LAR.OpenSearch(self.a.name) end
     end)
     rows[i] = row
     return row
 end
 
 local function update()
-    local d = FA.DB()
+    local d = LAR.DB()
     local list = {}
     for key in pairs(d.tracked or {}) do
-        local a = FA.BY_KEY[key]
-        if a and not FA.Available(a) then
+        local a = LAR.BY_KEY[key]
+        if a and not LAR.Available(a) then
             -- Keep historical tracked keys while unsupported definitions are
             -- inactive, including earned daily records; never poll them.
         elseif a and not d.done[key] then
@@ -99,7 +99,7 @@ local function update()
         else d.tracked[key] = nil end
     end
     table.sort(list, function(p, q) return p.name < q.name end)
-    if #list == 0 or FA.Settings().trackerShown == false then
+    if #list == 0 or LAR.Settings().trackerShown == false then
         tracker:Hide()
         return
     end
@@ -108,7 +108,7 @@ local function update()
         local cur, need = a.progress()
         row.a = a
         row.name:SetText(a.name)
-        if not FA.ProgressKnown(cur, need) then
+        if not LAR.ProgressKnown(cur, need) then
             row.value:SetText("Unavailable")
             row.fill:Hide()
         elseif a.money then
@@ -116,7 +116,7 @@ local function update()
         else
             row.value:SetText(cur .. "/" .. need)
         end
-        if FA.ProgressKnown(cur, need) then
+        if LAR.ProgressKnown(cur, need) then
             row.fill:SetWidth(math.max(1, (WIDTH - 20) * math.min(1, cur / math.max(1, need))))
             row.fill:Show()
         end
@@ -129,14 +129,14 @@ end
 local function Update()
     -- Related tracked tiers share observations for this update only. A later
     -- ticker/event pass gets fresh data through the existing snapshot scope.
-    if FA.WithProgressSnapshot then return FA.WithProgressSnapshot(update) end
+    if LAR.WithProgressSnapshot then return LAR.WithProgressSnapshot(update) end
     return update()
 end
-FA.UpdateTracker = Update
+LAR.UpdateTracker = Update
 
 -- Theme colours, size and opacity from the settings.
-function FA.StyleTracker()
-    local S = FA.Settings()
+function LAR.StyleTracker()
+    local S = LAR.Settings()
     local r, g, b = Kit.Accent()
     bg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], S.trackerAlpha or 0.72)
     title:SetTextColor(r, g, b, 1)
@@ -148,7 +148,7 @@ function FA.StyleTracker()
     tracker:SetScale(S.trackerScale or 1)
 end
 
-table.insert(FA.CHECK_HOOKS, Update)
+table.insert(LAR.CHECK_HOOKS, Update)
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()

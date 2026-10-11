@@ -14,7 +14,7 @@ server progression, client timing, or SavedVariables disk persistence.
 New or invalid size preferences use Large (1024 × 720 logical body). Explicitly
 saved Compact/Standard/Large choices remain respected; no settings migration erases
 them. Header/footer space adds 140 logical pixels; the outer window still scales
-down to fit the screen. `/fa legacyui size large` selects the larger form when an
+down to fit the screen. `/lar legacyui size large` selects the larger form when an
 older explicitly chosen smaller preset remains saved.
 
 The frame restores the original achievement wood-border backdrop with native 64px
@@ -60,7 +60,7 @@ Money descriptions are plain requirements such as `Loot 5g.` or
 `2g 3s / 5g`, without repeating the achievement title or exposing tracker provenance.
 Unavailable earnings use a dash and goal, with no invented zero or filled bar.
 The copper tracker, configured thresholds, source checks, event deduplication and
-historical counters are unchanged. `/fa money report` retains the source audit.
+historical counters are unchanged. `/lar money report` retains the source audit.
 
 ## Exploration display corrections and limits
 
@@ -81,8 +81,8 @@ geography/overlay/character-proof requirements.
 
 No live SavedVariables or client trace was supplied for this iteration, so the
 specific player's original Moonglade award has not been independently reproduced
-in the client. `/fa inspectachievement explore855` reports retained history and
-verification; `/fa progressdebug on` and `/fa progressdebug dump` retain decision
+in the client. `/lar inspectachievement explore855` reports retained history and
+verification; `/lar progressdebug on` and `/lar progressdebug dump` retain decision
 diagnostics. Optional correction still requires explicit token confirmation.
 
 The existing custom `worldexplorer` key/ID 46 is now named Explore Azeroth. It keeps
@@ -129,7 +129,7 @@ generator reproduces the addon-owned XML.
 ## Manual client checklist
 
 1. Install the complete addon folder while retaining WTF data. Enable
-   `/fa legacyui on`. With no explicit size choice, confirm Large opens; check an
+   `/lar legacyui on`. With no explicit size choice, confirm Large opens; check an
    existing saved smaller preference remains respected. Test all three presets,
    screen resolutions/UI scales, dragging and position reset.
 2. Inspect frame corners, long borders, backing, parchment transition and footer
@@ -164,13 +164,13 @@ generator reproduces the addon-owned XML.
 10. Check all money tiers and quest income. Descriptions contain only the actual
     requirement; bars show formatted amounts/goals. Loot normal coins and observe
     one increase, then navigate/reload to confirm no extra earnings. Unknown quest
-    income must not display a fabricated zero. Compare `/fa money report` evidence.
+    income must not display a fabricated zero. Compare `/lar money report` evidence.
 11. In Large/Compact/Standard and at different UI scales, use actual native Reward
     controls and Tree interactions. Verify uniform sizing, centering, no distortion,
     no clipped controls, original data/progression, and restoration via
-    `/fa legacyui off`. Check Statistics values/navigation remain functional.
-12. Enable `/fa perf on`, repeatedly open/close, rapidly navigate, expand cards,
+    `/lar legacyui off`. Check Statistics values/navigation remain functional.
+12. Enable `/lar perf on`, repeatedly open/close, rapidly navigate, expand cards,
     scroll and search. Check all four tabs and combat/gamepad transitions. Preserve
-    any fallback/error text and `/fa perf report`; no script timeout may be claimed
+    any fallback/error text and `/lar perf report`; no script timeout may be claimed
     resolved until these checks run in-game. Turn diagnostics off and reload both
     characters to verify SavedVariables and genuine progress persist.

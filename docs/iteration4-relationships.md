@@ -40,7 +40,7 @@ When the budget is exhausted, remaining records stay separate and appear in
 `model.relationshipAudit`; a later normal refresh may establish those relationships.
 
 Metrics `relationship.verify` and `relationship.criteria_reads` are available
-through `/fa perf on` and `/fa perf report`. No relationship cache is persisted.
+through `/lar perf on` and `/lar perf report`. No relationship cache is persisted.
 
 ## Combined card contract
 

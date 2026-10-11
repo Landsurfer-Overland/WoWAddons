@@ -101,7 +101,7 @@ class LegacyCombatTests(unittest.TestCase):
             for i=1,40 do
                 ControllerEvent('CRITERIA_UPDATE'); ControllerEvent('UI_SCALE_CHANGED')
                 EventRegistry:TriggerEvent('Legacy.RefreshChallenges')
-                ns.FA.CHECK_HOOKS[1]()
+                ns.LAR.CHECK_HOOKS[1]()
                 c:Attach(); c:QueueAttach()
             end
             DrainTimers()
@@ -243,7 +243,7 @@ class LegacyCombatTests(unittest.TestCase):
         self.monitor()
         self.check('''
             local c=ns.LegacyUIController; local count=#frames
-            inCombat=true; ns.FA.SLASH.legacyui('on')
+            inCombat=true; ns.LAR.SLASH.legacyui('on')
             ControllerEvent('PLAYER_REGEN_DISABLED'); c:QueueAttach(); c:QueueRefresh(); DrainTimers()
             assert(c.cover==nil and c.bridge==nil and c.pending and #frames==count)
             assert(LegacySystemFrame.Background:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
@@ -271,7 +271,7 @@ class LegacyCombatTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController; c.ui:SetTab('rewards',true); DrainTimers()
             local bridge=c.bridge
-            inCombat=true; ControllerEvent('PLAYER_REGEN_DISABLED'); ns.FA.SLASH.legacyui('off')
+            inCombat=true; ControllerEvent('PLAYER_REGEN_DISABLED'); ns.LAR.SLASH.legacyui('off')
             assert(settings.legacyUI==false and c.restorePending and c.bridge==bridge and c.cover:IsVisible())
             assert(restoreCalls==0 and not LegacySystemFrame.NativeTabs:IsShown())
             for i=1,5 do c:Attach(); ControllerEvent('PLAYER_REGEN_DISABLED') end

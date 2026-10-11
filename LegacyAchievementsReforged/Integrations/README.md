@@ -1,6 +1,11 @@
 # Unified Wrath Legacy interface — iteration 6
 
-Install the complete `ForeverAchievements` folder in the active Forever client's
+**New addon identity:** before the first login after this rename, close WoW and
+follow the [save migration guide](../../docs/save-migration.md). Simply replacing
+the folder does not load saves filed under a previous addon name. Disable the
+previous addon after copying its saves.
+
+Install the complete `LegacyAchievementsReforged` folder in the active Forever client's
 `Interface/AddOns` directory, replacing the previous addon files. Keep your
 existing `WTF/SavedVariables` files. No progress reset is required.
 Original Wrath reference files belong in the repository, outside the installed
@@ -8,22 +13,22 @@ addon and the native Blizzard addon directories.
 
 ## Commands
 
-- `/fa legacyui on` enables the replacement for normal Legacy System opening.
-- `/fa legacyui off` restores the original presentation when safe.
-- `/fa legacyui size compact|standard|large` selects a saved size preset.
-- `/fa legacyui reset` resets the saved window position.
-- `/fa legacyui unmapped` reports observed IDs using the navigation fallback.
-- `/fa legacyui` shows status/help.
-- `/fach` and `/qa` also accept these `legacyui` commands.
+- `/lar legacyui on` enables the replacement for normal Legacy System opening.
+- `/lar legacyui off` restores the original presentation when safe.
+- `/lar legacyui size compact|standard|large` selects a saved size preset.
+- `/lar legacyui reset` resets the saved window position.
+- `/lar legacyui unmapped` reports observed IDs using the navigation fallback.
+- `/lar legacyui` shows status/help.
+- `/lar` and `/reforged` also accept these `legacyui` commands.
 - `/legacyinspect` remains the manual read-only inspector.
-- `/fa progressdebug on|off|status|dump` controls progression diagnostics, disabled by default.
-- `/fa perf on|off|report|reset` controls bounded session performance diagnostics, off by default.
-- `/fa money report` reports observed/lifetime money sources, units and the custom copper thresholds.
-- `/fa money threshold KEY COPPER` configures one custom money target; the loot tiers must stay increasing.
-- `/fa inspectachievement KEY` reports this character's saved state and current condition evidence.
-- `/fa correctachievement KEY` previews a correction and provides a short-lived confirmation token.
-- `/fa correctachievement KEY confirm TOKEN` corrects only that key on this character.
-- `/fa correctachievement KEY resume`, then `/fa correctachievement KEY resume confirm TOKEN`, explicitly permits future verified earning of that corrected key.
+- `/lar progressdebug on|off|status|dump` controls progression diagnostics, disabled by default.
+- `/lar perf on|off|report|reset` controls bounded session performance diagnostics, off by default.
+- `/lar money report` reports observed/lifetime money sources, units and the custom copper thresholds.
+- `/lar money threshold KEY COPPER` configures one custom money target; the loot tiers must stay increasing.
+- `/lar inspectachievement KEY` reports this character's saved state and current condition evidence.
+- `/lar correctachievement KEY` previews a correction and provides a short-lived confirmation token.
+- `/lar correctachievement KEY confirm TOKEN` corrects only that key on this character.
+- `/lar correctachievement KEY resume`, then `/lar correctachievement KEY resume confirm TOKEN`, explicitly permits future verified earning of that corrected key.
 
 The feature is disabled by default. The account option, selected size, and dragged
 position persist across reloads. Standard is the initial size; every valid saved
@@ -32,8 +37,8 @@ or Large. Size presets enlarge
 usable content space while retaining fixed decorative corners and classic artwork;
 the window fits the available screen. Use the header to drag it and reset if needed
 after a resolution or UI-scale change. The original standalone window, its minimap
-launcher, welcome popup and comparison menu are quarantined. Bare `/fa`, `/fach`
-and `/qa` report this rather than opening the alpha window. Their named commands
+launcher, welcome popup and comparison menu are quarantined. Bare `/lar`, `/lar`
+and `/reforged` report this rather than opening the alpha window. Their named commands
 still work. Character tracking, toasts, chat-link tooltips, comparison data and
 original saved keys remain; the old settings view is retained in source for later
 migration. See the [quarantine and recovery notes](../../docs/original-ui-quarantine.md).
@@ -166,7 +171,7 @@ quest history or a fabricated count. Standalone cards, sorting, the tracker, and
 tooltips show unavailable quest/Loremaster progress without a filled progress bar;
 confirmed zero remains zero. Unsupported daily tracked keys stay saved but hidden.
 Custom monetary targets now use configurable Forever defaults with explicit copper
-normalization. `/fa money report` distinguishes verified lifetime totals from dated
+normalization. `/lar money report` distinguishes verified lifetime totals from dated
 observations and retains the original raw source for diagnosis. Older unverified money
 counters remain saved but cannot fabricate a lifetime baseline.
 See [classification and data audit](../../docs/iteration3-achievement-audit.md) and
@@ -200,7 +205,7 @@ clears only that completion, and places that key on a reaward hold. All source e
 history, other achievements, and native progression stay intact. Use the separately
 confirmed `resume` form to lift only that hold; a later normal check may then earn the
 key from verified evidence. Correction is optional and never runs automatically.
-The older `/fach reset` directs you to this targeted flow instead of wiping progress.
+The older `/lar reset` directs you to this targeted flow instead of wiping progress.
 
 ## Manual in-game test plan
 
@@ -233,7 +238,7 @@ for testing.
    should remain stable, with only the selected row highlighted.
 6. Inspect Other Legacy Challenges under Feats. Confirm fallback entries retain their
    actual achievement type and point-system tooltip. Record ambiguous IDs/categories
-    for future mapping using `/fa legacyui unmapped` after opening the enabled window.
+    for future mapping using `/lar legacyui unmapped` after opening the enabled window.
     The report shows at most 30 IDs; the full observed list remains in the view model.
     No Daily Quests category or active daily achievements should appear.
 7. Inspect native Explore Azeroth `62053`: actual Legacy award or unavailable state,
@@ -255,7 +260,7 @@ for testing.
 12. Check separate live header totals, compact Summary completion bars, partial/unknown
     labels, actual recent dates, and category bars. Scroll to the last entry; verify no
     clipped cards, overlapping header art, or redundant large point-total headings.
-13. Track/untrack a custom card and check the original tracker and standalone `/fach`
+13. Track/untrack a custom card and check the original tracker and standalone `/lar`
     window. Compare saved history, dates, explored areas, point values, and tracked keys.
     Check unavailable quest/Loremaster progress in cards, sorting, the tracker, and social
     tooltips: no Lua error or fabricated zero/fill. Confirm real zero remains visible
@@ -308,11 +313,11 @@ custom accomplishment. Back up existing SavedVariables; do not reset them for te
 
 ## Reporting
 
-For intermittent timeouts, run `/fa perf on` before opening the window, then exercise
+For intermittent timeouts, run `/lar perf on` before opening the window, then exercise
 close/reopen, all four tabs, scrolling, search/filter changes, and size presets. Verify
 ordinary earned progress, zone/bag updates, native criteria, and Legacy currency still
 refresh live values. Test closing/disabling with pending work and combat/input-mode
-fallback. Capture `/fa perf report`, then `/fa perf off`. Reports contain bounded timing
+fallback. Capture `/lar perf report`, then `/lar perf off`. Reports contain bounded timing
 and count aggregates, with explicit unavailable clocks; they do not collect individual
 call traces or change saved progression. Collection is off after reload. See
 [stability findings and performance test steps](../../docs/legacy-ui-performance.md).

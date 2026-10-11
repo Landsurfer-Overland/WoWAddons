@@ -13,16 +13,16 @@ class StandaloneViewTests(unittest.TestCase):
         self.h.execute("""
             account={chars={}}; renderedFonts={}; renderedHeaders={}; controls={}
             settings.accountView=true
-            local FA=ns.FA
-            FA.secret=function(value) return value==HiddenSnapshotValue end
-            FA.Account=function() return account end
-            FA.VIEWS={}; FA.THEMES={{key='teal',label='Teal'}}
-            FA.EarnedTitles=function() return {} end; FA.CurrentTitle=function() return nil end
-            FA.ZONE_ACH={}; FA.CRITTERS={}; FA.PESTS={}
+            local LAR=ns.LAR
+            LAR.secret=function(value) return value==HiddenSnapshotValue end
+            LAR.Account=function() return account end
+            LAR.VIEWS={}; LAR.THEMES={{key='teal',label='Teal'}}
+            LAR.EarnedTitles=function() return {} end; LAR.CurrentTitle=function() return nil end
+            LAR.ZONE_ACH={}; LAR.CRITTERS={}; LAR.PESTS={}
             function GetRealZoneText() return nil end
             function IsInInstance() return false end
             local W={}
-            FA.Kit={W=W,COLORS={card={0,0,0,1},cardHover={.1,.1,.1,1},edge={.2,.2,.2,1},
+            LAR.Kit={W=W,COLORS={card={0,0,0,1},cardHover={.1,.1,.1,1},edge={.2,.2,.2,1},
                 dim={.7,.7,.7},text={1,1,1}},Accent=function() return 1,.82,0 end,
                 MakeBorder=function(frame) assert(frame:GetObjectType()=='Frame' or frame:GetObjectType()=='Button') end,
                 MakeFont=function(parent)
@@ -73,7 +73,7 @@ class StandaloneViewTests(unittest.TestCase):
             account.chars.Main=verifiedSnapshot('Main','Main','One','Forever','Player-Main',10,100)
             account.chars.Alt=verifiedSnapshot('Alt','Alt','One','Forever','Player-Alt',0,90)
             account.chars.Unknown=verifiedSnapshot('Unknown','Unknown','One','Forever','Player-Unknown',nil,80)
-            ns.FA.VIEWS.summary(child,1000)
+            ns.LAR.VIEWS.summary(child,1000)
             assert(renderedContains('Main One') and renderedContains('Alt One') and renderedContains('Unknown One'))
             assert(renderedContains('10 character points') and renderedContains('0 character points'))
             assert(renderedContains('Unavailable character points') and not renderedContains('900'))
@@ -87,7 +87,7 @@ class StandaloneViewTests(unittest.TestCase):
             account.chars.NameAlias=verifiedSnapshot('NameAlias','Main','One','Forever',nil,30,10)
             account.chars.GuidKey=verifiedSnapshot('GuidKey','Main','One','Forever','Player-Main',nil,20)
             account.chars.OtherRealm=verifiedSnapshot('OtherRealm','Main','One','Elsewhere','Player-Other',5,15)
-            ns.FA.VIEWS.summary(child,1000)
+            ns.LAR.VIEWS.summary(child,1000)
             assert(renderedCount('Main One')==2)
             assert(renderedContains('Unavailable character points') and renderedContains('5 character points'))
             assert(not renderedContains('30 character points'))
@@ -104,7 +104,7 @@ class StandaloneViewTests(unittest.TestCase):
             account.chars.WrongKey=verifiedSnapshot('ActualKey','Mismatched','One','Forever','Player-Wrong',5,10)
             account.chars.AccountScope=verifiedSnapshot('AccountScope','AccountScoped','One','Forever','Player-Account',5,10)
             account.chars.AccountScope.completionScope='account'
-            ns.FA.VIEWS.summary(child,1000)
+            ns.LAR.VIEWS.summary(child,1000)
             assert(renderedContains('Flagged One') and renderedContains('Unavailable earned'))
             assert(renderedContains('Unavailable character points') and not renderedContains('99 character points'))
             assert(not renderedContains('Mixed One') and not renderedContains('Mismatched One') and not renderedContains('AccountScoped One'))
@@ -114,7 +114,7 @@ class StandaloneViewTests(unittest.TestCase):
 
     def test_settings_no_longer_promises_account_union_and_preserves_saved_preference(self):
         self.check("""
-            ns.FA.VIEWS.settings(child,1000)
+            ns.LAR.VIEWS.settings(child,1000)
             assert(controls['Account-wide view']==nil)
             assert(renderedContains("Achievements and points use this character's progress"))
             assert(not renderedContains('Show an achievement as earned when any'))
@@ -126,7 +126,7 @@ class StandaloneViewTests(unittest.TestCase):
     def test_malformed_completion_records_remain_saved_without_recent_completion_claims(self):
         self.check("""
             saved.done.first=false; saved.done.second='unverified'
-            ns.FA.VIEWS.summary(child,1000)
+            ns.LAR.VIEWS.summary(child,1000)
             assert(not renderedContains('First custom') and not renderedContains('Second custom'))
             for _,header in ipairs(renderedHeaders) do assert(header~='RECENTLY EARNED') end
             assert(saved.done.first==false and saved.done.second=='unverified' and #calls==0)

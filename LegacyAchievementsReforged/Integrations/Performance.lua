@@ -1,7 +1,7 @@
 -- Optional session-only aggregates. No per-call history, SavedVariables or
 -- native progression changes; the disabled path does not read either clock.
 local _, ns = ...
-local FA, R = ns.FA, ns.LegacyReadOnly
+local LAR, R = ns.LAR, ns.LegacyReadOnly
 local P = { MAX_NAMES = 64, MAX_TOKENS = 128, MAX_NAME_LENGTH = 64, MAX_VALUE = 1e15 }
 ns.LegacyPerf = P
 
@@ -133,7 +133,7 @@ function P.Snapshot()
     return out
 end
 local function message(text)
-    if type(print) == "function" then pcall(print, (FA.TAG or "Forever Achievements") .. " Performance: " .. text) end
+    if type(print) == "function" then pcall(print, (LAR.TAG or "Legacy Achievements Reforged") .. " Performance: " .. text) end
 end
 function P.Report()
     local snapshot = P.Snapshot()
@@ -159,12 +159,12 @@ function P.Report()
     return snapshot
 end
 
-FA.SLASH.perf = function(input)
+LAR.SLASH.perf = function(input)
     local command = R.Text(input)
     command = command and command:lower():match("^%s*(.-)%s*$") or ""
     if command == "on" then P.Enable(true); message("on; session metrics reset.")
-    elseif command == "off" then P.Enable(false); message("off; retained metrics available with /fa perf report.")
+    elseif command == "off" then P.Enable(false); message("off; retained metrics available with /lar perf report.")
     elseif command == "report" or command == "" then P.Report()
     elseif command == "reset" then P.Reset(); message("session metrics reset.")
-    else message("Use /fa perf on|off|report|reset.") end
+    else message("Use /lar perf on|off|report|reset.") end
 end

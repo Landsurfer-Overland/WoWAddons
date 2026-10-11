@@ -1,4 +1,4 @@
-# Forever Legacy Inspector
+# Legacy Achievements Reforged Inspector
 
 This manual diagnostic discovers accessible Legacy frames, namespaces, challenge
 records, and reward fields. It does not implement native Legacy integration or
@@ -6,7 +6,7 @@ change the existing achievement interface or tracker.
 
 ## Run it in Forever
 
-1. Install the updated `ForeverAchievements` folder in the active client's
+1. Install the updated `LegacyAchievementsReforged` folder in the active client's
    `Interface/AddOns` directory. The TOC loads `Diagnostics/LegacyInspector.lua`.
 2. Log in or use `/reload`, and leave combat.
 3. Open the native Legacy **Challenges** page so its data can populate.
@@ -98,7 +98,7 @@ Any reached limit makes the snapshot partial.
 - The diagnostic makes no native frame changes, script hooks, category
   selections, scroll changes, provider replacements, or reward claims. Only
   its own window is changed.
-- Normal `ForeverAchievements` behavior remains active, including its existing
+- Normal `LegacyAchievementsReforged` behavior remains active, including its existing
   social addon messages. The diagnostic does not call or use that system.
 
 ## Existing project findings
@@ -127,7 +127,7 @@ From `/workspace/WoWAddons`, run:
 
 ```sh
 python3 -B -m unittest discover -s tests -v
-python3 /workspace/.cloud-tools/forever-achievements/validate.py
+python3 /workspace/.cloud-tools/legacy-achievements-reforged/validate.py
 ```
 
 The tests use Lua 5.1 with explicit frame/data-provider mocks to exercise

@@ -113,8 +113,8 @@ Unavailable character identity and malformed saved timestamps can also make
 completion unknown. The specific player's cause cannot be established without
 their current diagnostics/SavedVariables. This iteration preserves that distinction
 and does not substitute mockup totals or remove history. Use
-`/fa inspectachievement explore855`, related meta inspection and
-`/fa progressdebug on` / `/fa progressdebug dump` to identify the live evidence.
+`/lar inspectachievement explore855`, related meta inspection and
+`/lar progressdebug on` / `/lar progressdebug dump` to identify the live evidence.
 Correction commands are optional and are not needed for this UI update.
 
 ## Changed functions and files
@@ -139,8 +139,8 @@ committed output. Supplied reference files and progression/provider/native bridg
 sources remain unchanged.
 
 ```sh
-PYTHONPATH=/workspace/.cloud-tools/forever-achievements/python python -B -m unittest discover -s tests
-sh /workspace/.cloud-tools/forever-achievements/install.sh
+PYTHONPATH=/workspace/.cloud-tools/legacy-achievements-reforged/python python -B -m unittest discover -s tests
+sh /workspace/.cloud-tools/legacy-achievements-reforged/install.sh
 ```
 
 These commands use the environment's existing pinned Lupa 2.6/Lua 5.1 setup.
@@ -153,7 +153,7 @@ cannot validate rendering, real input, taint, live timing, server progression or
 SavedVariables disk persistence. These client checks remain pending.
 
 1. Replace the complete addon folder, keep existing WTF data, leave combat and
-   enable `/fa legacyui on`. A fresh preference opens Standard; an existing saved
+   enable `/lar legacyui on`. A fresh preference opens Standard; an existing saved
    preference remains selected. Test all three sizes and several UI scales and
    resolutions. Move, close/reopen and reload; confirm position persistence.
 2. Inspect roof, wood/metal borders, corners, parchment seam and footer. Check
@@ -181,10 +181,10 @@ SavedVariables disk persistence. These client checks remain pending.
    zeros, unknown values and unverified history retain their meanings. Compare
    both independent header totals with their actual source data.
 8. Use real native Reward and Tree controls in all presets; check aspect ratio,
-   centering and original progression. Restore `/fa legacyui off` and verify native
+   centering and original progression. Restore `/lar legacyui off` and verify native
    geometry, inputs and tabs return. Check combat and gamepad transitions.
-9. Enable `/fa perf on`; repeatedly open/close, switch tabs/categories, scroll,
-   expand and search. Keep any error/fallback text and `/fa perf report`. Confirm
+9. Enable `/lar perf on`; repeatedly open/close, switch tabs/categories, scroll,
+   expand and search. Keep any error/fallback text and `/lar perf report`. Confirm
    no script timeout in the client; automated tests alone cannot establish this.
 10. Turn diagnostics off and reload two characters. Verify SavedVariables and genuine
     character/native progression persist. Do not reset or correct valid progress

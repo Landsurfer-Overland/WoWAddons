@@ -49,7 +49,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
         self.check('''
             LegacySystemFrame:Hide()
             EventRegistry:TriggerEvent("Legacy.SelectPage",1)
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             local original=LegacySystemFrame:GetScript("OnShow")
             LegacySystemFrame.scripts.OnShow=function(self)
                 original(self); EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo",{quantity=17})
@@ -112,7 +112,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             end
             for i=1,30 do
                 ControllerEvent("CRITERIA_UPDATE")
-                ns.FA.CHECK_HOOKS[1]()
+                ns.LAR.CHECK_HOOKS[1]()
                 EventRegistry:TriggerEvent("Legacy.RefreshChallenges")
             end
             assert(#timers==1)
@@ -203,7 +203,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             GetCategoryNumAchievements=function() return nil end
             local reads=0; local categoryList=GetCategoryList
             GetCategoryList=function() reads=reads+1; return categoryList() end
-            ns.FA.SLASH.legacyui("on"); DrainTimers()
+            ns.LAR.SLASH.legacyui("on"); DrainTimers()
             local c=ns.LegacyUIController
             assert(c.nativeCatalog and c.nativeCatalog.partial and reads==1)
             for i=1,5 do c:Refresh("custom"); c.ui.tabs[2]:Fire("OnClick"); c.ui.tabs[1]:Fire("OnClick") end
@@ -268,7 +268,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             GetTime=function() return now end
             local categoryList=GetCategoryList
             GetCategoryList=function() reads=reads+1; return categoryList() end
-            ns.FA.SLASH.legacyui("on"); DrainTimers()
+            ns.LAR.SLASH.legacyui("on"); DrainTimers()
             local c=ns.LegacyUIController
             assert(reads==1 and c.nativeCatalogAt==0)
             now=29.9; c:Refresh("custom")
@@ -290,7 +290,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             GetTime=function() error("Clock unavailable") end
             local categoryList,reads=GetCategoryList,0
             GetCategoryList=function() reads=reads+1; return categoryList() end
-            ns.FA.SLASH.legacyui("on"); DrainTimers()
+            ns.LAR.SLASH.legacyui("on"); DrainTimers()
             local c=ns.LegacyUIController
             assert(reads==1 and c.nativeCatalogAt==nil)
             for i=1,c.NATIVE_MAX_UNTIMED_REUSES-1 do c:Refresh("custom") end
@@ -340,7 +340,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
     def test_repeated_unknown_currency_is_unchanged_but_known_transitions_refresh(self):
         self.check('''
             C_MajorFactions.GetCurrentRenownLevel=function() return nil end
-            ns.FA.SLASH.legacyui("on"); DrainTimers()
+            ns.LAR.SLASH.legacyui("on"); DrainTimers()
             local c=ns.LegacyUIController
             local builds=buildCalls
             assert(c.currencyObserved and c.currencyValue==nil and c.ui.nativePoints:GetText()=="—")
@@ -362,7 +362,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             ns.LegacyPerf={Begin=function(name) names[name]=true; return {} end,
                 Finish=function(token) assert(type(token)=="table"); finished=finished+1 end,
                 Count=function(name,n) if name=="controller.refresh.coalesced" then coalesced=coalesced+n end end}
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             ns.LegacyUIController:Schedule("custom"); ns.LegacyUIController:Schedule("custom")
             DrainTimers()
             assert(names["controller.attach"] and names["controller.refresh"] and names["native.mount"] and names["window.fit"])

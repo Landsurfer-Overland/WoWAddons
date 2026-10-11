@@ -1,55 +1,50 @@
-# WoWAddons
+# Legacy Achievements Reforged
 
-ForeverAchievements iteration 6 refines the visible native Forever Legacy
-System window with an experimental original-Wrath interface, disabled by default.
-Native Legacy Challenges and custom achievements share one subject hierarchy;
-their points, completion authority, and character/account scopes stay separate.
-The four bottom tabs are **Achievements | Legacy Rewards | Legacy Trees | Statistics**.
+A unified Wrath-style achievement interface for **WoW Forever**, maintained by
+Landsurfer-Overland. Native Legacy Challenges and character achievements share
+one navigation hierarchy while retaining their separate progression and point
+calculations. Native Legacy Rewards and Legacy Trees remain available.
 
-- Enable: `/fa legacyui on`
-- Restore native UI: `/fa legacyui off`
-- Size presets: `/fa legacyui size compact|standard|large`
-- Reset position: `/fa legacyui reset`
+## Installation
 
-[Installation and manual tests](ForeverAchievements/Integrations/README.md) ·
-[Compatibility and API research](docs/legacy-wrath-compatibility.md) ·
-[Automated tests](tests/README.md)
+Download the installable ZIP from a tagged release or build it with
+`python tools/package_release.py`. Extract **LegacyAchievementsReforged** into
+your client's `Interface/AddOns` directory. Keep its folder and TOC basename
+unchanged. Enable the addon and run `/lar legacyui on`.
 
-Rewards and Trees use the existing native pages, original backgrounds, and interactions.
-Achievement Points and Legacy Points stay separate. Gamepad mode
-uses the original native interface; unsafe combat changes wait until combat ends.
+**Updating from an earlier addon identity:** close WoW and follow the
+[save migration guide](docs/save-migration.md) before the first login. The new
+addon uses new SavedVariables names; simply renaming its folder does not import
+earlier progress. Disable the previous addon after migration to avoid running
+two achievement controllers. Source saves and their backups remain intact.
 
-Iteration 4 adds character-attributed exploration and collection observations,
-known other-character names, restrained blue native completion accents, verified
-native/custom exploration card relationships, direct parent-category lists,
-individual class navigation, and configurable copper-normalized money tracking.
-Historical completion records remain saved. Unverifiable progress stays unavailable.
-See the [Iteration 4 audit and manual checks](docs/iteration4-regression-plan.md).
+## Commands
 
-Iteration 5 restores the original wood-frame backing, adds a central achievement
-seal, aligns header controls and footer tabs, and uses Large by default while
-preserving explicitly saved size choices. The filter opens an owned dropdown;
-whole parent rows select their direct list and expand/collapse. Card details omit
-routine scope/unknown filler and ordinary cross-character notes, with aligned
-criteria checks and plain currency progress. Native Rewards/Trees fit uniformly.
-The existing 50-point `worldexplorer` key is now named Explore Azeroth; uncertain
-native relationships remain separate. Historical Moonglade completion without
-verified character evidence remains saved but cannot supply gold artwork or points.
-See the [Iteration 5 changes and manual checks](docs/iteration5-regression-plan.md).
+- `/lar legacyui on|off` — enable the unified interface or restore native Legacy.
+- `/lar legacyui size compact|standard|large` — choose a window size.
+- `/lar legacyui reset` — reset window position without changing progress.
+- `/lar perf on|report|off` — optional timing diagnostics.
+- `/lar help` — all commands; `/reforged` and `/legacyachievements` are aliases.
+- `/legacyinspect` — the optional read-only native Legacy inspector.
 
-Iteration 6 defaults to Standard (960 × 620 body), preserving saved size choices.
-It adds ornamental parent/subcategory headings, inset proportional scrollbars and
-a size dropdown. Complementary masks separate the original shield and laurels:
-Legacy completion alone keeps the card/shield gray with blue laurels; verified
-character completion takes gold precedence. Native faction crests use compatible
-client textures with a neutral fallback. Tracking, categories and progress are
-unchanged. See the [Iteration 6 changes and client checklist](docs/iteration6-regression-plan.md),
-including artwork limitations and the investigated `Unavailable` total.
+Feats of Strength contains **Legacy Point Achievements**, a searchable view of
+confirmed Legacy Point rewards. Original category assignments and totals remain
+unchanged. Unverified progress is kept separate from verified completion.
 
-Header dragging and size selection persist; Statistics has its own category navigation. Unsupported
-daily-quest definitions are inactive while their historical saved keys remain.
+## Development and publishing
 
-Unmodified supplied Wrath sources live in References/WrathAchievementUI,
-outside the runtime addon. Existing saves and tracking are retained. The original
-alpha window and launcher are [quarantined for later feature migration](docs/original-ui-quarantine.md);
-their source remains intact. Actual in-game validation is still required.
+Python 3.11 and `pip install -r requirements-dev.txt` provide the Lua 5.1 test
+runtime. Run `python -B -m unittest discover -s tests` and
+`python tools/validate.py`, then `python tools/package_release.py`.
+
+[CurseForge/release setup](docs/publishing.md) ·
+[Installation and in-game checks](LegacyAchievementsReforged/Integrations/README.md) ·
+[Automated tests](tests/README.md) ·
+[Credits](LegacyAchievementsReforged/CREDITS.md)
+
+Runtime source is isolated in `LegacyAchievementsReforged/`. Development tests,
+reference sources, documentation and tools remain outside the release addon.
+The quarantined alpha presentation is retained for future feature migration;
+it does not register its old window or launcher in normal use. Supplied Blizzard
+reference sources retain their original hashes. Rendering, client protections,
+and actual game API behavior still require in-game verification.

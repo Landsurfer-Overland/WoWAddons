@@ -5,7 +5,7 @@ local _, ns = ...
 local U = {}
 U.PRESETS = { Compact = { 768, 500 }, Standard = { 960, 620 }, Large = { 1024, 720 } }
 ns.WrathAchievementUI = U
-ForeverAchievementsWrathUI = U -- only our XML callbacks, never Blizzard globals
+LegacyAchievementsReforgedWrathUI = U -- only our XML callbacks, never Blizzard globals
 local P = ns.LegacyPresentation
 local SUMMARY_ORDER = { general = 1, quests = 2, exploration = 3, pvp = 4, dungeons = 5,
     professions = 6, reputation = 7, ["world-events"] = 8, classes = 9, feats = 10 }
@@ -43,8 +43,8 @@ function U.ShieldOnLoad(self)
         local ok, reason = pcall(function()
             self.shieldMask = self:CreateMaskTexture(nil, "BACKGROUND")
             self.wreathMask = self:CreateMaskTexture(nil, "BACKGROUND")
-            local shieldReady = self.shieldMask:SetTexture("Interface\\AddOns\\ForeverAchievements\\Media\\Achievement-Shield-Mask")
-            local wreathReady = self.wreathMask:SetTexture("Interface\\AddOns\\ForeverAchievements\\Media\\Achievement-Wreath-Mask")
+            local shieldReady = self.shieldMask:SetTexture("Interface\\AddOns\\LegacyAchievementsReforged\\Media\\Achievement-Shield-Mask")
+            local wreathReady = self.wreathMask:SetTexture("Interface\\AddOns\\LegacyAchievementsReforged\\Media\\Achievement-Wreath-Mask")
             if shieldReady == false or wreathReady == false then error("Achievement mask texture unavailable") end
             self.shieldMask:SetAllPoints(self.icon); self.wreathMask:SetAllPoints(self.wreath)
             iconAttempted = true; self.icon:AddMaskTexture(self.shieldMask)
@@ -280,8 +280,8 @@ local function isMoney(row)
 end
 local function moneyText(copper)
     if type(copper) ~= "number" or copper < 0 then return end
-    if ns.FA and type(ns.FA.Money) == "function" then
-        local ok, result = pcall(ns.FA.Money, copper)
+    if ns.LAR and type(ns.LAR.Money) == "function" then
+        local ok, result = pcall(ns.LAR.Money, copper)
         if ok and type(result) == "string" then return result end
     end
     return copper .. " copper"
@@ -464,7 +464,7 @@ function U.Create(cover, guard, refresh, callbacks)
     local self = { guard = guard, onRefresh = refresh, category = "summary", tab = "achievements", filter = "All", search = "",
         expanded = {}, statisticsExpanded = {}, statisticsCategory = "stats:summary", scrollOffsets = {}, sidebarOffsets = {},
         categories = {}, cards = {}, bars = {}, stats = {}, headings = {}, callbacks = callbacks or {} }
-    self.root = CreateFrame("Frame", "FAWrathAchievementFrame", cover, "FAWrathWindowTemplate")
+    self.root = CreateFrame("Frame", "LARWrathAchievementFrame", cover, "LARWrathWindowTemplate")
     self.root:SetSize(U.PRESETS.Standard[1], U.PRESETS.Standard[2])
     self.root:SetPoint("TOP", cover, "TOP", 0, -82)
     -- This is the original BACKDROP_ACHIEVEMENTS_0_64 geometry. Corner art
@@ -474,7 +474,7 @@ function U.Create(cover, guard, refresh, callbacks)
     self.contentBackground:SetPoint("TOPLEFT", 219, -23); self.contentBackground:SetPoint("BOTTOMRIGHT", -25, 23)
     self.contentBackground:SetTexture("Interface\\AchievementFrame\\UI-Achievement-AchievementBackground")
     self.contentBackground:SetTexCoord(0, 1, 0, .5)
-    self.nativeHost = CreateFrame("Frame", "FAWrathNativePageHost", self.root)
+    self.nativeHost = CreateFrame("Frame", "LARWrathNativePageHost", self.root)
     self.nativeHost:SetSize(718, 454)
     self.nativeHost:SetPoint("TOPLEFT", 25, -23); self.nativeHost:SetPoint("BOTTOMRIGHT", -25, 23)
     if type(self.nativeHost.SetClipsChildren) == "function" then self.nativeHost:SetClipsChildren(true) end
@@ -499,9 +499,9 @@ function U.Create(cover, guard, refresh, callbacks)
         end
     end) end)
     close.owner = self
-    self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27, guard)
-    self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69, guard)
-    self.measureFont = font(self.contentChild, "FAWrathAchievementDescriptionFont"); self.measureFont:Hide()
+    self.categoryScroll, self.categoryChild = scroll(self.root, "LARWrathCategoryScroll", 169, 442, 28, -27, guard)
+    self.contentScroll, self.contentChild = scroll(self.root, "LARWrathContentScroll", 496, 402, 234, -69, guard)
+    self.measureFont = font(self.contentChild, "LARWrathAchievementDescriptionFont"); self.measureFont:Hide()
     self.summaryNote = font(self.contentChild, "GameFontNormalSmall", "* Available records; ? Unknown completion")
     self.summaryNote:SetJustifyH("CENTER"); self.summaryNote:SetHeight(18); self.summaryNote:Hide()
     self.contentScroll:HookScript("OnVerticalScroll", function()
@@ -513,7 +513,7 @@ function U.Create(cover, guard, refresh, callbacks)
     self.notice = font(self.root, "GameFontNormalSmall")
     self.notice:SetPoint("TOPLEFT", 238, -51); self.notice:SetWidth(491); self.notice:SetHeight(14)
     self.notice:SetJustifyH("LEFT")
-    self.searchBox = CreateFrame("EditBox", "FAWrathSearch", self.root, "InputBoxTemplate")
+    self.searchBox = CreateFrame("EditBox", "LARWrathSearch", self.root, "InputBoxTemplate")
     self.searchBox:SetSize(360, 24)
     if type(self.searchBox.SetTextInsets) == "function" then self.searchBox:SetTextInsets(23, 22, 0, 0) end
     self.searchBox:SetAutoFocus(false); self.searchBox:SetMaxLetters(100)
@@ -554,7 +554,7 @@ function U.Create(cover, guard, refresh, callbacks)
         GameTooltip:Show()
     end)
     self.searchBox:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-    self.searchClear = CreateFrame("Button", "FAWrathSearchClear", self.root)
+    self.searchClear = CreateFrame("Button", "LARWrathSearchClear", self.root)
     self.searchClear:SetSize(20, 20)
     self.searchClear.label = font(self.searchClear, "GameFontNormal", "×")
     self.searchClear.label:SetPoint("CENTER")
@@ -565,7 +565,7 @@ function U.Create(cover, guard, refresh, callbacks)
         self:DismissMenus()
         self.searchBox:ClearFocus(); resetScroll(self); self:Render()
     end) end)
-    self.filterButton = CreateFrame("Button", "FAWrathFilter", self.root, "FAWrathCategoryTemplate")
+    self.filterButton = CreateFrame("Button", "LARWrathFilter", self.root, "LARWrathCategoryTemplate")
     self.filterButton:SetSize(168, 24)
     self.filterButton.background:SetAllPoints(self.filterButton)
     self.filterButton.label:ClearAllPoints(); self.filterButton.label:SetPoint("LEFT", 9, 0)
@@ -580,7 +580,7 @@ function U.Create(cover, guard, refresh, callbacks)
     self.filterDismiss = CreateFrame("Button", nil, self.root)
     self.filterDismiss:SetAllPoints(cover); self.filterDismiss:SetFrameLevel(self.root:GetFrameLevel() + 100)
     self.filterDismiss:Hide()
-    self.filterMenu = CreateFrame("Frame", "FAWrathFilterMenu", self.root, "BackdropTemplate")
+    self.filterMenu = CreateFrame("Frame", "LARWrathFilterMenu", self.root, "BackdropTemplate")
     self.filterMenu:SetFrameLevel(self.filterDismiss:GetFrameLevel() + 1)
     self.filterMenu:SetSize(168, 142); self.filterMenu:SetPoint("TOPRIGHT", self.filterButton, "BOTTOMRIGHT", 0, -3)
     self.filterMenu:SetBackdrop({ bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
@@ -646,7 +646,7 @@ function U.Create(cover, guard, refresh, callbacks)
     local x = 20
     for i, definition in ipairs(tabDefinitions) do
         local view, label = unpack(definition)
-        local tab = CreateFrame("Button", "FAWrathTab" .. i, self.root, "FAWrathTabTemplate")
+        local tab = CreateFrame("Button", "LARWrathTab" .. i, self.root, "LARWrathTabTemplate")
         tab:SetPoint("TOPLEFT", self.root, "BOTTOMLEFT", x, 2)
         sizeTab(tab, 150, 32, 49); tab:SetText(label)
         tab.owner, tab.view = self, view; self.tabs[i] = tab
@@ -673,7 +673,7 @@ function U.Create(cover, guard, refresh, callbacks)
             crest:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints")
         end
     end
-    self.sizeButton = CreateFrame("Button", "FAWrathSizePreset", self.root, "FAWrathTabTemplate")
+    self.sizeButton = CreateFrame("Button", "LARWrathSizePreset", self.root, "LARWrathTabTemplate")
     sizeTab(self.sizeButton, 112, 24, 36)
     self.sizeButton:SetPoint("TOPRIGHT", self.root, "BOTTOMRIGHT", -20, 2)
     self.sizeButton.label = self.sizeButton.text
@@ -691,7 +691,7 @@ function U.Create(cover, guard, refresh, callbacks)
     self.sizeDismiss = CreateFrame("Button", nil, self.root)
     self.sizeDismiss:SetAllPoints(cover); self.sizeDismiss:SetFrameLevel(self.root:GetFrameLevel() + 100)
     self.sizeDismiss:Hide()
-    self.sizeMenu = CreateFrame("Frame", "FAWrathSizeMenu", self.root, "BackdropTemplate")
+    self.sizeMenu = CreateFrame("Frame", "LARWrathSizeMenu", self.root, "BackdropTemplate")
     self.sizeMenu:SetFrameLevel(self.sizeDismiss:GetFrameLevel() + 1)
     self.sizeMenu:SetSize(128, 90); self.sizeMenu:SetPoint("BOTTOMRIGHT", self.sizeButton, "TOPRIGHT", 0, 3)
     self.sizeMenu:SetBackdrop({ bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
@@ -871,7 +871,7 @@ function U.RenderCategories(self)
     local count, y = 0, 0
     local function visit(cat, depth)
         count = count + 1
-        local b = pool(self, "categories", count, "Button", self.categoryChild, "FAWrathCategoryTemplate")
+        local b = pool(self, "categories", count, "Button", self.categoryChild, "LARWrathCategoryTemplate")
         if not b.selection then
             b.selection = b:CreateTexture(nil, "ARTWORK")
             b.selection:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Category-Highlight")
@@ -1026,7 +1026,7 @@ function U.CategoryHeading(self, category)
 end
 function U.SummaryBar(self, key, label, y, column, summary)
     self.barIndex = self.barIndex + 1
-    local b = pool(self, "bars", self.barIndex, "StatusBar", self.contentChild, "FAWrathSummaryBarTemplate")
+    local b = pool(self, "bars", self.barIndex, "StatusBar", self.contentChild, "LARWrathSummaryBarTemplate")
     local width = column and (self.contentWidth - 48) / 2 or self.contentWidth - 30
     b:SetSize(width, 21); b:SetPoint("TOPLEFT", 15 + (column or 0) * (width + 18), -y)
     local done, total, unknown
@@ -1067,7 +1067,7 @@ local function cardGeometry(card, compact)
     card.dateCompleted:SetWidth(compact and 82 or 78)
 end
 function U.RenderCard(self, row, index, y, summaryRow)
-    local c = pool(self, "cards", index, "Button", self.contentChild, "FAWrathCardTemplate")
+    local c = pool(self, "cards", index, "Button", self.contentChild, "LARWrathCardTemplate")
     local width = self.contentWidth - 6
     local selected = self.selected == row.key
     local compact = summaryRow == true and not selected
@@ -1091,7 +1091,7 @@ function U.RenderCard(self, row, index, y, summaryRow)
     local feat = pointRecord.achievementType == "feat_of_strength"
     c.shield.points:SetText(feat and pointRecord.pointType == "none" and "" or points == nil and "?" or tostring(points))
     if type(c.shield.points.SetFontObject) == "function" then
-        c.shield.points:SetFontObject(points and points > 100 and GameFontHighlight or FAWrathAchievementPointsFont)
+        c.shield.points:SetFontObject(points and points > 100 and GameFontHighlight or LARWrathAchievementPointsFont)
     end
     c.shield.icon:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
     c.shield.wreath:SetTexture("Interface\\AchievementFrame\\UI-Achievement-Shields" .. (feat and "-NoPoints" or ""))
@@ -1142,7 +1142,7 @@ function U.RenderCard(self, row, index, y, summaryRow)
         local texts, bars, metas = 0, 0, 0
         local function textLine(text, color, lineHeight)
             texts = texts + 1
-            local f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
+            local f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "LARWrathCriterionTemplate")
             f:SetPoint("TOPLEFT", 0, -cy); f:SetSize(textWidth, lineHeight or 20)
             criterionLabel(f, textWidth, false); f.label:SetText(text)
             f.label:SetTextColor(unpack(color)); f.check:Hide(); f:Show(); cy = cy + (lineHeight or 20) + 4
@@ -1164,7 +1164,7 @@ function U.RenderCard(self, row, index, y, summaryRow)
                 local f
                 if item.link then
                     metas = metas + 1
-                    f = pool(c, "metaPool", metas, "Button", c.objectives, "FAWrathMetaTemplate")
+                    f = pool(c, "metaPool", metas, "Button", c.objectives, "LARWrathMetaTemplate")
                     local target = P.Resolve(self.model, item.link)
                     f.owner, f.link = self, item.link
                     f.icon:SetTexture(target and target.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
@@ -1177,14 +1177,14 @@ function U.RenderCard(self, row, index, y, summaryRow)
                     f:SetSize(textWidth, 30)
                 elseif item.current and item.required and item.required > 1 and item.current >= 0 then
                     bars = bars + 1
-                    f = pool(c, "progressPool", bars, "StatusBar", c.objectives, "FAWrathProgressTemplate")
+                    f = pool(c, "progressPool", bars, "StatusBar", c.objectives, "LARWrathProgressTemplate")
                     f:SetSize(textWidth - 2, 14); f:SetMinMaxValues(0, item.required); f:SetValue(item.current)
                     f:SetStatusBarColor(nativeSection and .25 or 0, nativeSection and .5 or .6, nativeSection and .85 or 0, 1)
                     f.text:SetText(criterionText(item, sectionRow))
                     f.text:SetWidth(textWidth - 7)
                 else
                     texts = texts + 1
-                    f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "FAWrathCriterionTemplate")
+                    f = pool(c, "criteriaPool", texts, "Frame", c.objectives, "LARWrathCriterionTemplate")
                     f:SetSize(textWidth, 18); criterionLabel(f, textWidth, true)
                     f.label:SetText(criterionText(item, sectionRow))
                     show(f.check, item.completed == true); colors(f.label, item.completed, sectionRow.completed)
@@ -1318,7 +1318,7 @@ function U.RenderStatistics(self, y)
     local function statRow(header, label, record)
         if y + 26 >= offset - 26 and y <= offset + viewport + 26 then
             index = index + 1
-            local f = pool(self, "stats", index, "Button", self.contentChild, "FAWrathStatTemplate")
+            local f = pool(self, "stats", index, "Button", self.contentChild, "LARWrathStatTemplate")
             f:SetSize(self.contentWidth - 6, 24); f:SetPoint("TOPLEFT", 0, -y)
             f.record, f.isHeader = record, header
             show(f.headerLeft, header); show(f.headerRight, header); show(f.headerMiddle, header)

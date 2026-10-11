@@ -17,7 +17,7 @@ class LegacyOpeningTests(unittest.TestCase):
             end
             LegacySystemFrame.alpha=.73
             LegacySystemFrame:Hide()
-            ns.FA.SLASH.legacyui('on'); DrainTimers()
+            ns.LAR.SLASH.legacyui('on'); DrainTimers()
             assert(buildCalls==0 and LegacySystemFrame:GetAlpha()==.73)
         ''')
 
@@ -77,7 +77,7 @@ class LegacyOpeningTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             LegacySystemFrame:Show(); assert(LegacySystemFrame:GetAlpha()==0)
-            ns.FA.SLASH.legacyui('off'); DrainTimers()
+            ns.LAR.SLASH.legacyui('off'); DrainTimers()
             assert(LegacySystemFrame:IsVisible() and LegacySystemFrame:GetAlpha()==.73)
             assert(LegacySystemFrame.Background:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
             assert(c.bridge==nil and not c.cover:IsShown() and buildCalls==0)

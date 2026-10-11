@@ -41,7 +41,7 @@ def generate():
             alpha = 255 if inside(x + .5, y + .5) else 0
             shield.extend((255, 255, 255, alpha))
             wreath.extend((255, 255, 255, 255 - alpha))
-    dest = ROOT / 'ForeverAchievements/Media'
+    dest = ROOT / 'LegacyAchievementsReforged/Media'
     dest.mkdir(parents=True, exist_ok=True)
     for name, pixels in [('Achievement-Shield-Mask.tga', shield), ('Achievement-Wreath-Mask.tga', wreath)]:
         (dest / name).write_bytes(header + pixels)

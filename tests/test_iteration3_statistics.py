@@ -36,7 +36,7 @@ class StatisticsAdapterTests(unittest.TestCase):
     def test_missing_statistic_function_never_uses_alpha_placeholder(self):
         self.check('''
             GetStatistic=nil
-            ns.FA.StatText=function() error("do not substitute an alpha statistic") end
+            ns.LAR.StatText=function() error("do not substitute an alpha statistic") end
             ns.STATS={{title="QUESTS",list={{98,"Quests completed"}}}}
             local m=ns.StatisticsAdapter.Catalog()
             local row=m.byKey["statistic:native:98"]
@@ -79,10 +79,10 @@ class StatisticsAdapterTests(unittest.TestCase):
 
     def test_existing_db_is_read_without_accessor_or_account_merge(self):
         self.check('''
-            ForeverAchievementsCharDB=saved
+            LegacyAchievementsReforgedCharDB=saved
             saved.critters={}; saved.fished=4
-            ns.FA.DB=function() error("statistics must not initialize state") end
-            ns.FA.Account=function() error("statistics must not merge account data") end
+            ns.LAR.DB=function() error("statistics must not initialize state") end
+            ns.LAR.Account=function() error("statistics must not merge account data") end
             local m=ns.StatisticsAdapter.Catalog()
             assert(m.byKey["statistic:tracked:fished"].value=="4")
             assert(saved.fished==4 and saved.done.first==1730000000 and saved.history[1]=="keep")
@@ -93,7 +93,7 @@ class StatisticsAdapterTests(unittest.TestCase):
     def test_collection_count_failures_do_not_become_zero(self):
         self.check('''
             saved.critters={}
-            ns.FA.Count=function() error("counter failed") end
+            ns.LAR.Count=function() error("counter failed") end
             local m=ns.StatisticsAdapter.Catalog()
             assert(m.byKey["statistic:tracked:critters"].value=="Unavailable")
             assert(not m.byKey["statistic:tracked:critters"].available)

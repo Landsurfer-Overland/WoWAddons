@@ -5,7 +5,7 @@ execute the production core in Lua 5.1; no live-client tests have been run.
 
 ## Findings
 
-The TOC already declares `ForeverAchievementsCharDB` as
+The TOC already declares `LegacyAchievementsReforgedCharDB` as
 `SavedVariablesPerCharacter`. `Earned`, custom zone definitions and custom
 point totals read that loaded character file. Account `chars` snapshots do not
 feed custom completion, and zone definitions do not call native Legacy
@@ -92,10 +92,10 @@ and Dreadsteed definitions now require PALADIN and WARLOCK respectively for
 availability and new awarding; historical timestamps and the Feats layout/type
 remain unchanged.
 
-`/fa correctachievement <key>` remains a preview followed by the generated
+`/lar correctachievement <key>` remains a preview followed by the generated
 explicit confirmation token. It affects one achievement on the verified current
 character, archives its timestamp and attribution, then holds automatic reaward.
-`/fa correctachievement <key> resume` requires a separate confirmation. A known
+`/lar correctachievement <key> resume` requires a separate confirmation. A known
 other-character database cannot be corrected through the current character.
 Account snapshots and source evidence remain saved.
 
@@ -127,7 +127,7 @@ remain intact. This introduces no new ticker, delayed batch loop or UI callback.
 
 1. Back up both account and per-character SavedVariables.
 2. On Character A, inspect `explore802`, `explore776`, `explore855` and `pet1`
-   with `/fa inspectachievement <key>`. Enable `/fa progressdebug on` before a
+   with `/lar inspectachievement <key>`. Enable `/lar progressdebug on` before a
    new observation. The report includes current player zone/subzone/map,
    confirmed/unknown areas, character key, required local proof and preserved
    historical completion status.
@@ -147,8 +147,8 @@ remain intact. This introduces no new ticker, delayed batch loop or UI callback.
 7. Historical false timestamps must remain until a targeted preview and token
    confirmation. Verify the correction hold, archived timestamp/attribution,
    separately confirmed resume and unaffected other characters/native Legacy.
-8. Repeat rapid navigation/open/close/search/expansion with `/fa perf on` and
-   capture `/fa perf report`. Re-run the Going Down? terrain/fence regression.
+8. Repeat rapid navigation/open/close/search/expansion with `/lar perf on` and
+   capture `/lar perf report`. Re-run the Going Down? terrain/fence regression.
 
 Automated tests include two isolated characters progressing through all authored
 Elwynn and Westfall criteria, globally revealed remote maps, Moonglade's single

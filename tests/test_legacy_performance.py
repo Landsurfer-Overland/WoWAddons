@@ -199,16 +199,16 @@ class PerformanceTests(unittest.TestCase):
 
     def test_slash_registry_changes_session_diagnostics_only(self):
         self.check('''
-            assert(type(ns.FA.SLASH.perf)=="function")
-            ns.FA.SLASH.perf("ON")
+            assert(type(ns.LAR.SLASH.perf)=="function")
+            ns.LAR.SLASH.perf("ON")
             assert(ns.LegacyPerf.IsEnabled())
             ns.LegacyPerf.Count("Rows",5)
-            ns.FA.SLASH.perf("report")
-            ns.FA.SLASH.perf("off")
+            ns.LAR.SLASH.perf("report")
+            ns.LAR.SLASH.perf("off")
             assert(not ns.LegacyPerf.IsEnabled() and ns.LegacyPerf.Snapshot().counters.Rows==5)
-            ns.FA.SLASH.perf("reset")
+            ns.LAR.SLASH.perf("reset")
             assert(ns.LegacyPerf.Snapshot().names==0)
-            ns.FA.SLASH.perf("unsupported")
+            ns.LAR.SLASH.perf("unsupported")
             assert(saved.done.first==1730000000 and saved.history[1]=="keep")
             assert(next(settings)==nil and #calls==0)
             assert(#messages<10)

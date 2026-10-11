@@ -15,32 +15,32 @@ def tag(name): return '{' + URI + '}' + name
 source = ET.parse(ROOT / 'References/WrathAchievementUI/Blizzard_AchievementUI.xml').getroot()
 out = ET.Element(tag('Ui'))
 mapping = {
-    'AchievementFrameSummaryCategoryTemplate': 'FAWrathSummaryBarTemplate',
-    'AchievementCheckButtonTemplate': 'FAWrathTrackTemplate',
-    'AchievementFrameTabButtonTemplate': 'FAWrathTabTemplate',
-    'MetaCriteriaTemplate': 'FAWrathMetaTemplate',
-    'AchievementProgressBarTemplate': 'FAWrathProgressTemplate',
-    'AchievementCategoryTemplate': 'FAWrathCategoryTemplate',
-    'AchievementIconFrameTemplate': 'FAWrathIconTemplate',
-    'AchievementCriteriaTemplate': 'FAWrathCriterionTemplate',
-    'AchievementTemplate': 'FAWrathCardTemplate',
-    'StatTemplate': 'FAWrathStatTemplate',
+    'AchievementFrameSummaryCategoryTemplate': 'LARWrathSummaryBarTemplate',
+    'AchievementCheckButtonTemplate': 'LARWrathTrackTemplate',
+    'AchievementFrameTabButtonTemplate': 'LARWrathTabTemplate',
+    'MetaCriteriaTemplate': 'LARWrathMetaTemplate',
+    'AchievementProgressBarTemplate': 'LARWrathProgressTemplate',
+    'AchievementCategoryTemplate': 'LARWrathCategoryTemplate',
+    'AchievementIconFrameTemplate': 'LARWrathIconTemplate',
+    'AchievementCriteriaTemplate': 'LARWrathCriterionTemplate',
+    'AchievementTemplate': 'LARWrathCardTemplate',
+    'StatTemplate': 'LARWrathStatTemplate',
 }
 loads = {
-    'FAWrathSummaryBarTemplate': 'SummaryBarOnLoad',
-    'FAWrathTabTemplate': 'TabOnLoad',
-    'FAWrathMetaTemplate': 'MetaOnLoad',
-    'FAWrathProgressTemplate': 'ProgressOnLoad',
-    'FAWrathCategoryTemplate': 'CategoryOnLoad',
-    'FAWrathIconTemplate': 'IconOnLoad',
-    'FAWrathCriterionTemplate': 'CriterionOnLoad',
-    'FAWrathCardTemplate': 'CardOnLoad',
-    'FAWrathStatTemplate': 'StatOnLoad',
+    'LARWrathSummaryBarTemplate': 'SummaryBarOnLoad',
+    'LARWrathTabTemplate': 'TabOnLoad',
+    'LARWrathMetaTemplate': 'MetaOnLoad',
+    'LARWrathProgressTemplate': 'ProgressOnLoad',
+    'LARWrathCategoryTemplate': 'CategoryOnLoad',
+    'LARWrathIconTemplate': 'IconOnLoad',
+    'LARWrathCriterionTemplate': 'CriterionOnLoad',
+    'LARWrathCardTemplate': 'CardOnLoad',
+    'LARWrathStatTemplate': 'StatOnLoad',
 }
 def scripts(e, handlers):
     s = ET.SubElement(e, tag('Scripts'))
     for event, handler in handlers.items():
-        ET.SubElement(s, tag(event)).text = 'ForeverAchievementsWrathUI.' + handler + '(self);'
+        ET.SubElement(s, tag(event)).text = 'LegacyAchievementsReforgedWrathUI.' + handler + '(self);'
 def adapt(e):
     for node in e.iter():
         for key, value in list(node.attrib.items()):
@@ -50,7 +50,7 @@ def adapt(e):
         # These fonts belong to the original load-on-demand UI. Define our own
         # equivalents so loading its globals/backend is unnecessary.
         if node.get('inherits', '').startswith('Achievement'):
-            node.set('inherits', 'FAWrath' + node.get('inherits'))
+            node.set('inherits', 'LARWrath' + node.get('inherits'))
         if node.get('inherits') in ('GameFontNormalLeftBottom', 'GameFontHighlightLeft', 'GameFontHighlightRight'):
             style = node.get('inherits')
             node.set('inherits', 'GameFontNormal' if 'Normal' in style else 'GameFontHighlight')
@@ -64,7 +64,7 @@ def adapt(e):
 for original, renamed in mapping.items():
     e = adapt(deepcopy(next(n for n in source if n.get('name') == original)))
     handlers = {'OnLoad': loads[renamed]} if renamed in loads else {}
-    if renamed == 'FAWrathCardTemplate':
+    if renamed == 'LARWrathCardTemplate':
         handlers.update(OnClick='CardClick', OnEnter='CardEnter', OnLeave='CardLeave')
         shield = e.find("./" + tag('Frames') + '/' + tag('Frame') + "[@name='$parentShield']")
         scripts(shield, {'OnLoad': 'ShieldOnLoad'})
@@ -83,12 +83,12 @@ for original, renamed in mapping.items():
         wreath.set('name', '$parentWreath'); wreath.set('parentKey', 'wreath'); wreath.set('hidden', 'true')
         wreath_layer.append(wreath)
         shield_layers.insert(1, wreath_layer)
-    elif renamed == 'FAWrathCategoryTemplate': handlers['OnClick'] = 'CategoryClick'
-    elif renamed == 'FAWrathTrackTemplate': handlers['OnClick'] = 'TrackClick'
-    elif renamed == 'FAWrathMetaTemplate': handlers['OnClick'] = 'MetaClick'
-    elif renamed == 'FAWrathTabTemplate': handlers['OnClick'] = 'TabClick'
+    elif renamed == 'LARWrathCategoryTemplate': handlers['OnClick'] = 'CategoryClick'
+    elif renamed == 'LARWrathTrackTemplate': handlers['OnClick'] = 'TrackClick'
+    elif renamed == 'LARWrathMetaTemplate': handlers['OnClick'] = 'MetaClick'
+    elif renamed == 'LARWrathTabTemplate': handlers['OnClick'] = 'TabClick'
     if handlers: scripts(e, handlers)
-    if renamed == 'FAWrathSummaryBarTemplate':
+    if renamed == 'LARWrathSummaryBarTemplate':
         button = e.find('./' + tag('Frames') + '/' + tag('Button'))
         scripts(button, {'OnClick': 'SummaryClick'})
     out.append(e)
@@ -97,7 +97,7 @@ for original, renamed in mapping.items():
 # scroll frames, comparison panel and global dropdown are omitted. The original
 # close button is rebound to the reversible controller below.
 original = next(n for n in source if n.get('name') == 'AchievementFrame')
-window = ET.SubElement(out, tag('Frame'), {'name': 'FAWrathWindowTemplate', 'virtual': 'true',
+window = ET.SubElement(out, tag('Frame'), {'name': 'LARWrathWindowTemplate', 'virtual': 'true',
                                         'enableMouse': 'true', 'inherits': 'BackdropTemplate'})
 window.append(deepcopy(original.find(tag('Size'))))
 window.append(deepcopy(original.find(tag('Layers'))))
@@ -121,7 +121,7 @@ frames = ET.SubElement(window, tag('Frames'))
 header = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Frame') + "[@name='$parentHeader']"))
 for node in header.iter():
     if 'relativeTo' in node.attrib:
-        node.set('relativeTo', node.get('relativeTo').replace('AchievementFrame', 'FAWrathAchievementFrame'))
+        node.set('relativeTo', node.get('relativeTo').replace('AchievementFrame', 'LARWrathAchievementFrame'))
 frames.append(header)
 header.find(tag('Size') + '/' + tag('AbsDimension')).set('y', '118')
 
@@ -212,21 +212,21 @@ ET.SubElement(crest, tag('TexCoords'), {'left': '0', 'right': '.5', 'top': '0', 
 close = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Button') + "[@name='$parentCloseButton']"))
 adapt(close)
 for node in close.iter():
-    if node.get('relativeTo') == 'AchievementFrame': node.set('relativeTo', 'FAWrathAchievementFrame')
+    if node.get('relativeTo') == 'AchievementFrame': node.set('relativeTo', 'LARWrathAchievementFrame')
 scripts(close, {'OnClick': 'CloseClick'})
 frames.append(close)
 
 # Namespaced fonts use standard game font objects, and original Wrath heights.
 for name, height in [('AchievementCriteriaFont', 12), ('AchievementDateFont', 12),
                      ('AchievementDescriptionFont', 12), ('AchievementPointsFont', 20)]:
-    font = ET.Element(tag('Font'), {'name': 'FAWrath' + name, 'inherits': 'GameFontHighlight', 'virtual': 'true'})
+    font = ET.Element(tag('Font'), {'name': 'LARWrath' + name, 'inherits': 'GameFontHighlight', 'virtual': 'true'})
     ET.SubElement(font, tag('FontHeight')).append(ET.Element(tag('AbsValue'), {'val': str(height)}))
     if name == 'AchievementDateFont':
         ET.SubElement(font, tag('Color'), {'r': '1', 'g': '.82', 'b': '0'})
     out.insert(0, font)
 
 ET.indent(out, space='  ')
-dest = ROOT / 'ForeverAchievements/UI/WrathAchievementUI.xml'
+dest = ROOT / 'LegacyAchievementsReforged/UI/WrathAchievementUI.xml'
 dest.parent.mkdir(parents=True, exist_ok=True)
 dest.write_text('<!-- Adapted from the unmodified files in References/WrathAchievementUI.\n'
                 '     Generated by tools/adapt_wrath_templates.py; native backend scripts excluded. -->\n'

@@ -23,11 +23,11 @@ C_MapExplorationInfo={GetExploredMapTextures=function(id)
 end}
 local records={}
 for _,key in ipairs({"explore855", "explore802", "exploreEK", "exploreKal", "worldexplorer"}) do
-    records[#records+1]=ns.FA.BY_KEY[key]
+    records[#records+1]=ns.LAR.BY_KEY[key]
 end
-ns.FA.CATEGORIES={{key="exploration",label="Exploration"}}
-ns.FA.CATEGORY_ORDER={"exploration"}
-ns.FA.CATEGORY_SECTIONS={exploration={{title="KALIMDOR",list=records}}}
+ns.LAR.CATEGORIES={{key="exploration",label="Exploration"}}
+ns.LAR.CATEGORY_ORDER={"exploration"}
+ns.LAR.CATEGORY_SECTIONS={exploration={{title="KALIMDOR",list=records}}}
 -- Make the client date formatter expose the actual timestamp it receives.
 function date(format,timestamp) assert(format=="%m/%d/%y"); return "date:"..timestamp end
 nativeCatalog={categories={},records={},byKey={},available=true,partial=false,points=16}
@@ -48,7 +48,7 @@ class Iteration6HeaderBindingTests(unittest.TestCase):
     def setUp(self):
         self.h = CoreHarness()
         self.h.execute(SETUP)
-        # Reload the adapter after the production core replaces the fixture FA.
+        # Reload the adapter after the production core replaces the fixture LAR.
         self.h.load("Integrations/CustomAdapter.lua")
 
     def test_unknown_live_progress_without_saved_completion_keeps_known_zero(self):
@@ -56,9 +56,9 @@ class Iteration6HeaderBindingTests(unittest.TestCase):
             local model,row=BindHeader()
             assert(row.current==nil and row.completed==false and row.timestamp==nil)
             assert(model.custom.points==0 and model.custom.pointsAvailable==true)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="0")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
-            local lowerBound,_,_,_,known=ns.FA.TotalPoints()
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="0")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
+            local lowerBound,_,_,_,known=ns.LAR.TotalPoints()
             assert(lowerBound==0 and known==true)
             assert(saved.done.explore855==nil and saved.done.first==1730000000)
             assert(saved.history[1]=="keep" and #calls==0)
@@ -73,12 +73,12 @@ class Iteration6HeaderBindingTests(unittest.TestCase):
             assert(row.completionVerificationReason=="Historical exploration completion retained; character discovery is unverified")
             assert(model.custom.points==nil and model.custom.pointsAvailable==false)
             assert(model.custom.confirmedPoints==0 and model.custom.unverifiedPointRecords==1)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="0+")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
-            local lowerBound,_,_,_,known=ns.FA.TotalPoints()
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="0+")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
+            local lowerBound,_,_,_,known=ns.LAR.TotalPoints()
             assert(lowerBound==0 and known==false)
             view:Render(); view:SetModel(model)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="0+")
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="0+")
             assert(saved.done==originalDone and saved.history==originalHistory)
             assert(saved.done.explore855==123456 and saved.done.first==1730000000)
             assert(saved.history[1]=="keep" and #calls==0)
@@ -93,11 +93,11 @@ class Iteration6HeaderBindingTests(unittest.TestCase):
             testZone="Moonglade"; testSubzone="Nighthaven"
             local model,row=BindHeader()
             assert(row.completed==true and row.timestamp==1730000321)
-            assert(row.date=="date:1730000321" and row.pointValue==ns.FA.BY_KEY.explore855.pts)
+            assert(row.date=="date:1730000321" and row.pointValue==ns.LAR.BY_KEY.explore855.pts)
             assert(model.custom.points==10 and model.custom.pointsAvailable==true)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="10")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
-            local lowerBound,_,_,_,known=ns.FA.TotalPoints()
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="10")
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=="16")
+            local lowerBound,_,_,_,known=ns.LAR.TotalPoints()
             assert(lowerBound==10 and known==true)
             testZone="Elwynn Forest"; testSubzone="Goldshire"
             C_Map=nil; C_MapExplorationInfo=nil

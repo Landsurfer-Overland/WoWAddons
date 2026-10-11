@@ -2,11 +2,11 @@
 --  Welcome screen: shown once per character, after the first quiet pass over
 --  its history. Says this is an alpha, what already counted, the
 --  three things worth knowing and lets the player pick a theme.
---  /fach welcome shows it again.
+--  /lar welcome shows it again.
 -------------------------------------------------------------------------------
 local _, ns = ...
-local FA = ns.FA
-local Kit = FA.Kit
+local LAR = ns.LAR
+local Kit = LAR.Kit
 local C = Kit.COLORS
 
 local W, H = 540, 470
@@ -15,7 +15,7 @@ local frame
 local TIPS = {
     { "Right-click", "an achievement to track it on screen." },
     { "Shift-click", "an achievement to post it in chat." },
-    { "/qa", "(or /fach) or the minimap button opens the window." },
+    { "/reforged", "(or /lar) or the minimap button opens the window." },
 }
 
 local function Hex(cr, cg, cb)
@@ -24,7 +24,7 @@ end
 
 local function Build(fromHistory)
     local r, g, b = Kit.Accent()
-    local f = CreateFrame("Frame", "ForeverAchievementsWelcome", UIParent)
+    local f = CreateFrame("Frame", "LegacyAchievementsReforgedWelcome", UIParent)
     f:SetSize(W, H)
     f:SetPoint("CENTER", 0, 40)
     f:SetFrameStrata("DIALOG")
@@ -34,8 +34,8 @@ local function Build(fromHistory)
     f:RegisterForDrag("LeftButton")
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    tinsert(UISpecialFrames, "ForeverAchievementsWelcome")
-    Kit.Chrome(f, "Forever Achievements", "", function() f:Hide() end)
+    tinsert(UISpecialFrames, "LegacyAchievementsReforgedWelcome")
+    Kit.Chrome(f, "Legacy Achievements Reforged", "", function() f:Hide() end)
 
     local y = -68
     local head = Kit.MakeFont(f, 16, nil, C.text[1], C.text[2], C.text[3], 1)
@@ -68,7 +68,7 @@ local function Build(fromHistory)
     hist:SetPoint("RIGHT", -30, 0)
     hist:SetJustifyH("LEFT")
     f.UpdateTotals = function()
-        local pts, _, n = FA.TotalPoints()
+        local pts, _, n = LAR.TotalPoints()
         hist:SetText(("This character already has |cff%s%d achievements|r and %d points."):format(Hex(r, g, b), n, pts))
     end
     y = y - 32
@@ -93,9 +93,9 @@ local function Build(fromHistory)
     tl:SetPoint("TOPLEFT", 30, y)
     tl:SetText("Pick a theme (more options in Settings):")
     y = y - 24
-    local current = FA.Settings().theme or "teal"
+    local current = LAR.Settings().theme or "teal"
     local size, gap = 52, 8
-    for i, t in ipairs(FA.THEMES) do
+    for i, t in ipairs(LAR.THEMES) do
         local sw = CreateFrame("Button", nil, f)
         sw:SetSize(size, 34)
         sw:SetPoint("TOPLEFT", 30 + (i - 1) * (size + gap), y)
@@ -116,13 +116,13 @@ local function Build(fromHistory)
         end)
         sw:SetScript("OnLeave", function() GameTooltip:Hide() end)
         sw:SetScript("OnClick", function()
-            FA.Settings().theme = t.key
-            FA.ApplyTheme(t.key)
+            LAR.Settings().theme = t.key
+            LAR.ApplyTheme(t.key)
             -- Built again in the new colours, where it stood.
             local point, _, rel, x, yy = f:GetPoint()
             f:Hide()
             frame = nil
-            FA.ShowWelcome(fromHistory)
+            LAR.ShowWelcome(fromHistory)
             frame:ClearAllPoints()
             frame:SetPoint(point, UIParent, rel, x, yy)
         end)
@@ -131,7 +131,7 @@ local function Build(fromHistory)
     -- Buttons.
     local open = Kit.Button(f, "Open achievements", 220, function()
         f:Hide()
-        FA.ShowTab("summary")
+        LAR.ShowTab("summary")
     end)
     open:SetPoint("BOTTOMLEFT", 30, 26)
     local close = Kit.Button(f, "Close", 220, function() f:Hide() end)
@@ -139,7 +139,7 @@ local function Build(fromHistory)
     return f
 end
 
-function FA.ShowWelcome(fromHistory)
+function LAR.ShowWelcome(fromHistory)
     if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return false end
     if not frame then frame = Build(fromHistory) end
     frame.UpdateTotals()
@@ -162,45 +162,45 @@ local function InterfaceBusy()
 end
 
 local function Log(text)
-    print(FA.TAG .. " welcome: " .. text)
+    print(LAR.TAG .. " welcome: " .. text)
 end
 
 -- Called by the main file once the first pass over the history is done.
 -- Waits for the intro to end, then opens; marked as seen only once the
 -- screen has really been on screen, so a skipped intro cannot eat it.
-function FA.OnReady(fromHistory)
+function LAR.OnReady(fromHistory)
     if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
-    if FA.DB().welcomeSeen then return end
+    if LAR.DB().welcomeSeen then return end
     local waited, announced = 0, false
     local function Try()
         if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
         if InterfaceBusy() then
             if not announced then
                 announced = true
-                -- Only with /fach debug: nothing a player needs to read.
-                if FA.IsDebug and FA.IsDebug() then Log("waiting for the intro to end.") end
+                -- Only with /lar debug: nothing a player needs to read.
+                if LAR.IsDebug and LAR.IsDebug() then Log("waiting for the intro to end.") end
             end
             waited = waited + 1
             if waited < 600 then C_Timer.After(1, Try) end
             return
         end
-        local ok, err = pcall(FA.ShowWelcome, fromHistory)
+        local ok, err = pcall(LAR.ShowWelcome, fromHistory)
         if not ok then
             frame = nil
-            Log("could not open: " .. tostring(err) .. " (/fach welcome to try again)")
+            Log("could not open: " .. tostring(err) .. " (/lar welcome to try again)")
             return
         end
         -- Seen once it has stayed up for a moment.
         C_Timer.After(2, function()
             if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then return end
             if frame and frame:IsVisible() then
-                FA.DB().welcomeSeen = true
+                LAR.DB().welcomeSeen = true
             else
-                Log("was closed straight away; it will open again on your next login (/fach welcome any time).")
+                Log("was closed straight away; it will open again on your next login (/lar welcome any time).")
             end
         end)
     end
     C_Timer.After(1.5, Try)
 end
 
-FA.SLASH.welcome = function() FA.ShowWelcome() end
+LAR.SLASH.welcome = function() LAR.ShowWelcome() end

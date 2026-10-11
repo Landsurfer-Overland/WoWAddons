@@ -84,8 +84,8 @@ class Iteration5ShellTests(unittest.TestCase):
                 local _,_,_,_,offset=view.root:GetPoint(1)
                 assert(offset==-82 and view.sizeButton.label:GetText()==name)
                 assert(view.nativeHost:GetWidth()==preset[1]-50 and view.nativeHost:GetHeight()==preset[2]-46)
-                assert(FAWrathAchievementFrameCategoriesBG.coords[2]==view.contentBackground.coords[1])
-                assert(FAWrathAchievementFrameCategoriesBG.coords[1]==0 and view.contentBackground.coords[2]==1)
+                assert(LARWrathAchievementFrameCategoriesBG.coords[2]==view.contentBackground.coords[1])
+                assert(LARWrathAchievementFrameCategoriesBG.coords[1]==0 and view.contentBackground.coords[2]==1)
             end
             assert(#calls==0 and refreshCalls==0)
         """)
@@ -198,7 +198,7 @@ class Iteration5ShellTests(unittest.TestCase):
 
     def test_header_has_balanced_titles_crest_and_original_unscaled_art_regions(self):
         xml = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
-        window = next(element for element in xml if element.get('name') == 'FAWrathWindowTemplate')
+        window = next(element for element in xml if element.get('name') == 'LARWrathWindowTemplate')
         self.assertEqual(window.get('inherits'), 'BackdropTemplate')
         header = window.find('.//' + URI + 'Frame[@name="$parentHeader"]')
         self.assertEqual(header.find(URI + 'Size/' + URI + 'AbsDimension').get('y'), '118')
@@ -221,7 +221,7 @@ class Iteration5ShellTests(unittest.TestCase):
 
     def test_page_backgrounds_share_a_parchment_source_without_footer_backing(self):
         xml = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
-        window = next(element for element in xml if element.get('name') == 'FAWrathWindowTemplate')
+        window = next(element for element in xml if element.get('name') == 'LARWrathWindowTemplate')
         page = window.find('.//' + URI + 'Texture[@name="$parentPageParchment"]')
         categories = window.find('.//' + URI + 'Texture[@name="$parentCategoriesBG"]')
         self.assertEqual(page.get('file'), categories.get('file'))

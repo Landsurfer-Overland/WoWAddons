@@ -1,4 +1,4 @@
--- Manual, read-only Legacy UI diagnostic. No FA dependency, hooks, timers,
+-- Manual, read-only Legacy UI diagnostic. No LAR dependency, hooks, timers,
 -- SavedVariables, native setters, achievement queries, or network calls.
 local _, ns = ...
 local Inspector = {}
@@ -229,7 +229,7 @@ local function Inspect()
         end
     end
 
-    line("=== FOREVER LEGACY INSPECTOR ===")
+    line("=== LEGACY ACHIEVEMENTS REFORGED INSPECTOR ===")
     line("")
     line("CLIENT")
     local build = rawget(_G, "GetBuildInfo")
@@ -514,7 +514,7 @@ end
 function Inspector.Inspect()
     local ok, report = pcall(Inspect)
     if ok then return report end
-    local failure = "=== FOREVER LEGACY INSPECTOR ===\n\nLIMITATIONS\nInspection stopped safely: " .. Scalar(report)
+    local failure = "=== LEGACY ACHIEVEMENTS REFORGED INSPECTOR ===\n\nLIMITATIONS\nInspection stopped safely: " .. Scalar(report)
     return failure:sub(1, Limit("maxOutputChars", 60000, 256, 120000))
 end
 
@@ -548,7 +548,7 @@ local function ShowWindow()
         return
     end
     if not window then
-        window = CreateFrame("Frame", "ForeverLegacyInspectorWindow", UIParent)
+        window = CreateFrame("Frame", "LegacyAchievementsReforgedInspectorWindow", UIParent)
         window:SetSize(780, 560)
         window:SetPoint("CENTER")
         window:SetFrameStrata("DIALOG")
@@ -563,7 +563,7 @@ local function ShowWindow()
         background:SetColorTexture(0.04, 0.04, 0.04, 0.98)
         local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         title:SetPoint("TOPLEFT", 18, -16)
-        title:SetText("Forever Legacy Inspector")
+        title:SetText("Legacy Achievements Reforged Inspector")
         local help = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         help:SetPoint("TOPLEFT", 18, -42)
         help:SetText("Open native Challenges first. Run Inspection. Click the report, then Ctrl+A and Ctrl+C to copy.")
@@ -591,11 +591,11 @@ local function ShowWindow()
         button("Clear Results", 175, function() SetResults("") end)
         button("Close", 600, function() edit:ClearFocus(); window:Hide() end)
         window:SetScript("OnHide", function() edit:ClearFocus() end)
-        if type(UISpecialFrames) == "table" then table.insert(UISpecialFrames, "ForeverLegacyInspectorWindow") end
+        if type(UISpecialFrames) == "table" then table.insert(UISpecialFrames, "LegacyAchievementsReforgedInspectorWindow") end
         SetResults("Open the native Legacy Challenges window, then click Run Inspection.\nSwitch categories yourself and rerun to compare snapshots.\nOpen the native reward track and rerun to inspect its populated fields.\n\nReports stay in memory; click here and use Ctrl+A / Ctrl+C to share them manually.")
     end
     window:Show()
 end
 
-SLASH_FOREVERLEGACYINSPECTOR1 = "/legacyinspect"
-SlashCmdList.FOREVERLEGACYINSPECTOR = ShowWindow
+SLASH_LARLEGACYINSPECTOR1 = "/legacyinspect"
+SlashCmdList.LARLEGACYINSPECTOR = ShowWindow

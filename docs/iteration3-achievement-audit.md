@@ -29,10 +29,10 @@ The adapter classifies them using that authored category, not their zero value.
 A standard custom record with zero points would remain standard and use the
 character point system. No blanket ten-point or one-point default is introduced.
 
-`ForeverAchievementsCharDB.done[originalKey]` remains the character's completion
+`LegacyAchievementsReforgedCharDB.done[originalKey]` remains the character's completion
 timestamp source. Its tracked keys, explored subzones, boss records, counters,
 daily history, and all other existing progression fields are retained.
-`ForeverAchievementsDB.chars` remains a separate account snapshot collection.
+`LegacyAchievementsReforgedDB.chars` remains a separate account snapshot collection.
 Both browsers read valid current-character `done` timestamps. The standalone
 account-union toggle has been removed while its stored preference and old histories
 remain preserved. Its account overview lists verified character snapshots and labels
@@ -215,7 +215,7 @@ Camelot `NameUtil.lua` confirms surname is part of character identity. New snaps
 prefer verified GUID plus realm, with guarded full-name/surname/realm fallback.
 Older ambiguous entries remain preserved and untrusted for elsewhere attribution.
 Unexpected collisions in the new canonical snapshot namespace are archived in
-`ForeverAchievementsDB.characterSnapshotArchives` before replacement. New snapshot
+`LegacyAchievementsReforgedDB.characterSnapshotArchives` before replacement. New snapshot
 point/count availability is explicit when malformed history prevents a reliable total.
 
 Current-character completion, completion reliably recorded on another character,
@@ -228,12 +228,12 @@ native character accomplishment from a shared completion; missing values do not
 identify an earning character. These details never write custom completion, merge
 dates, or inflate current-character custom point totals.
 
-No correction automatically revokes a completion. `/fa progressdebug on|off|status|dump`
+No correction automatically revokes a completion. `/lar progressdebug on|off|status|dump`
 controls diagnostics, disabled by default; enablement persists across reloads while
-the 64-record ring is session-only. `/fa inspectachievement KEY` reports
+the 64-record ring is session-only. `/lar inspectachievement KEY` reports
 the current character, triggering/evaluated evidence, and saved condition state.
 Inspection does not grant completion.
-`/fa correctachievement KEY` previews a narrowly scoped correction. Its
+`/lar correctachievement KEY` previews a narrowly scoped correction. Its
 `KEY confirm TOKEN` form requires explicit confirmation within 60 seconds, verified
 current-character identity, and the unchanged original timestamp. It archives only
 that key's old completion timestamp and identity in `CharDB.correctionHistory`, clears
@@ -241,7 +241,7 @@ only `done[key]`, and adds a `completionCorrections[key]` reaward hold. Source e
 all history, other keys, and native Legacy state remain untouched. `KEY resume`, then
 `KEY resume confirm TOKEN`, separately confirms removal of only that hold; the next
 normal verified check may award the key again. Native imports are rejected, and the
-older `/fach reset` no longer performs an unconfirmed bulk wipe. Preserved historical
+older `/lar reset` no longer performs an unconfirmed bulk wipe. Preserved historical
 completions therefore require player review if they may have been falsely awarded.
 
 ## Exact duplicates, overlaps, and deferred chains
@@ -319,7 +319,7 @@ completion, 322 distinct saved keys, original point distributions, character
 history isolation, and real zone/meta metadata. The tests use controlled values
 and are separate from in-game rendering or server validation.
 
-The [manual plan](../ForeverAchievements/Integrations/README.md) covers actual
+The [manual plan](../LegacyAchievementsReforged/Integrations/README.md) covers actual
 Explorer values, individual-zone character shields, genuine Feat artwork,
 scope tooltips, subject hierarchy, unmapped IDs, completion dates, category
 aggregation, and native progression preservation. No new live client results

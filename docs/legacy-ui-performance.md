@@ -112,10 +112,10 @@ typing session. Summary retains separate totals, recorded dates, and expandable 
 Enable diagnostics only when collecting a report:
 
 ```text
-/fa perf on
-/fa perf report
-/fa perf off
-/fa perf reset
+/lar perf on
+/lar perf report
+/lar perf off
+/lar perf reset
 ```
 
 Diagnostics default **off each session** and do not write SavedVariables. `on` starts
@@ -144,7 +144,7 @@ Useful report entries include `controller.attach`, `controller.refresh`,
 
 ## Manual client verification
 
-1. Enable `/fa perf on`, then enable the replacement and open the normal Legacy window.
+1. Enable `/lar perf on`, then enable the replacement and open the normal Legacy window.
    Close and reopen it several times. Report metrics after the first opening and after
    reopening; save any fallback/error text together with the report.
 2. Switch through Achievements, Rewards, Trees, and Statistics. Browse categories,
@@ -157,11 +157,11 @@ Useful report entries include `controller.attach`, `controller.refresh`,
    after the deferred refresh. Reopening must recover newly available native records.
 4. Close or disable while a refresh/search is queued. Reopen and confirm stale work does
    not alter the new session. Test combat and gamepad transitions, then restore with
-   `/fa legacyui off`; original native presentation and interactions must remain usable.
-5. Run `/fa perf report`, record the relevant metric counts/durations, then `/fa perf off`.
+   `/lar legacyui off`; original native presentation and interactions must remain usable.
+5. Run `/lar perf report`, record the relevant metric counts/durations, then `/lar perf off`.
    Reload and confirm performance collection returns to off. Keep genuine progression
    and SavedVariables intact; do not claim rewards or commit traits solely for testing.
 
-Use the full [integration manual plan](../ForeverAchievements/Integrations/README.md)
+Use the full [integration manual plan](../LegacyAchievementsReforged/Integrations/README.md)
 for visual fidelity and progression checks. Automated operation-count fixtures do not
 emulate client rendering, protected frames, native timing, or server progression.

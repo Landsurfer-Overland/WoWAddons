@@ -19,7 +19,7 @@ class AdapterHarness:
 
     def load(self, path):
         fn = self.lua.execute("return assert(loadstring(...))", (ADDON / path).read_text(), "@" + path)
-        fn("ForeverAchievements", self.g.ns)
+        fn("LegacyAchievementsReforged", self.g.ns)
 
     def execute(self, code):
         return self.lua.execute(code)
@@ -143,10 +143,10 @@ class AchievementClassificationTests(unittest.TestCase):
             local ordinary={key="ordinary-zero",name="No point custom",pts=0,progress=function()return 0,1 end}
             local feat={key="real-feat",name="Authored feat",pts=0,progress=function()return 0,1 end}
             local unusual={key="special",name="Special",pts=25,achievementType="special",progress=function()return 0,1 end}
-            table.insert(ns.FA.CATEGORY_SECTIONS.general[1].list,ordinary)
-            table.insert(ns.FA.CATEGORY_SECTIONS.general[1].list,unusual)
-            ns.FA.CATEGORY_ORDER[#ns.FA.CATEGORY_ORDER+1]="feats"
-            ns.FA.CATEGORY_SECTIONS.feats={{title="Authored special achievements",list={feat}}}
+            table.insert(ns.LAR.CATEGORY_SECTIONS.general[1].list,ordinary)
+            table.insert(ns.LAR.CATEGORY_SECTIONS.general[1].list,unusual)
+            ns.LAR.CATEGORY_ORDER[#ns.LAR.CATEGORY_ORDER+1]="feats"
+            ns.LAR.CATEGORY_SECTIONS.feats={{title="Authored special achievements",list={feat}}}
             local c=ns.CustomAchievementAdapter.Catalog()
             ordinary=c.byKey["custom:ordinary-zero"]; feat=c.byKey["custom:real-feat"]
             assert(ordinary.achievementType=="standard" and ordinary.pointType=="character" and ordinary.pointValue==0)
@@ -158,9 +158,9 @@ class AchievementClassificationTests(unittest.TestCase):
     def test_custom_identity_metadata_and_character_history_remain_separate(self):
         self.check('''
             settings.accountView=true
-            local a=ns.FA.BY_KEY.second
+            local a=ns.LAR.BY_KEY.second
             a.skill="Cooking"; a.series="cook"; a.faction="Alliance"
-            ns.FA.CATEGORY_SECTIONS.general[1].title="COOKING"
+            ns.LAR.CATEGORY_SECTIONS.general[1].title="COOKING"
             local c=ns.CustomAchievementAdapter.Catalog()
             local row=c.byKey["custom:second"]
             assert(row.uniqueID==row.key and row.savedKey=="second" and row.sourceType=="custom_character")
@@ -173,7 +173,7 @@ class AchievementClassificationTests(unittest.TestCase):
 
     def test_custom_unavailable_points_and_invalid_history_are_not_fabricated(self):
         self.check('''
-            ns.FA.BY_KEY.first.pts=nil
+            ns.LAR.BY_KEY.first.pts=nil
             saved.done.second="Unreadable saved timestamp"
             local c=ns.CustomAchievementAdapter.Catalog()
             assert(c.points==nil and c.possiblePoints==nil and not c.pointsAvailable)
@@ -203,12 +203,12 @@ class RealCoreAuditTests(unittest.TestCase):
             UnitLevel=function()return 21 end; UnitFactionGroup=function()return "Alliance" end
         ''')
         for path in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua", "DataExtra.lua",
-                     "MoneyTracking.lua", "ForeverAchievements.lua", "Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua"):
+                     "MoneyTracking.lua", "LegacyAchievementsReforged.lua", "Integrations/LegacyAdapter.lua", "Integrations/CustomAdapter.lua"):
             fn = self.lua.execute("return assert(loadstring(...))", (ADDON / path).read_text(), "@" + path)
-            fn("ForeverAchievements", self.lua.globals().ns)
+            fn("LegacyAchievementsReforged", self.lua.globals().ns)
 
     def test_real_core_retains_all_322_unique_saved_keys_and_authored_point_values(self):
-        definitions = [a for _, a in self.lua.globals().ns.FA.ALL.items()]
+        definitions = [a for _, a in self.lua.globals().ns.LAR.ALL.items()]
         self.assertEqual(len(definitions), 322)
         self.assertEqual(len({a.key for a in definitions}), 322)
         self.assertEqual(sum(bool(a.native) for a in definitions), 59)
@@ -217,7 +217,7 @@ class RealCoreAuditTests(unittest.TestCase):
 
     def test_real_custom_zones_keep_character_points_and_explicit_geography_and_meta_relationships(self):
         self.lua.execute('''
-            local d=ns.FA.DB()
+            local d=ns.LAR.DB()
             d.done.explore848=1730000000; d.done.exploreEK=1730000001; d.done.exploreKal=1730000002
             local c=ns.CustomAchievementAdapter.Catalog()
             for key,geography in pairs({explore848="Kalimdor",explore844="Kalimdor",

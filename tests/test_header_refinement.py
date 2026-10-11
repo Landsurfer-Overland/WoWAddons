@@ -32,11 +32,11 @@ class HeaderPointRefinementTests(unittest.TestCase):
             local model=BindHeader()
             assert(model.custom.points==nil and model.custom.confirmedPoints==10)
             assert(model.custom.unverifiedPointRecords==1)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='16')
-            FAWrathAchievementFrameHeader:Fire('OnEnter')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='10+')
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=='16')
+            LARWrathAchievementFrameHeader:Fire('OnEnter')
             assert(#tooltipLines==0 and not GameTooltip.visible)
-            local lowerBound,_,_,_,known=ns.FA.TotalPoints()
+            local lowerBound,_,_,_,known=ns.LAR.TotalPoints()
             assert(lowerBound==10 and known==false)
             assert(saved.done==done and saved.history==history and saved.done.explore855==123456 and #calls==0)
         ''')
@@ -48,8 +48,8 @@ class HeaderPointRefinementTests(unittest.TestCase):
             testZone='Moonglade'; testSubzone='Nighthaven'
             local model=BindHeader()
             assert(model.custom.points==20 and model.custom.confirmedPoints==20 and model.custom.unverifiedPointRecords==0)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='20')
-            FAWrathAchievementFrameHeader:Fire('OnEnter')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='20')
+            LARWrathAchievementFrameHeader:Fire('OnEnter')
             assert(#tooltipLines==0 and not GameTooltip.visible)
             assert(saved.done.explore855==123456 and saved.done.explore802==123400 and #calls==0)
         ''')
@@ -57,11 +57,11 @@ class HeaderPointRefinementTests(unittest.TestCase):
     def test_foreign_or_unknown_character_scope_does_not_fabricate_zero_or_a_subtotal(self):
         self.h.execute('''
             saved.done.explore802=123400
-            ns.FA.CharacterScope=function() return nil end
+            ns.LAR.CharacterScope=function() return nil end
             local model=BindHeader()
             assert(model.custom.points==nil and model.custom.confirmedPoints==nil)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='—')
-            FAWrathAchievementFrameHeader:Fire('OnEnter')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='—')
+            LARWrathAchievementFrameHeader:Fire('OnEnter')
             assert(#tooltipLines==0 and not GameTooltip.visible)
             assert(saved.done.explore802==123400 and saved.history[1]=='keep' and #calls==0)
         ''')
@@ -69,12 +69,12 @@ class HeaderPointRefinementTests(unittest.TestCase):
     def test_missing_earned_point_value_does_not_inflate_verified_subtotal(self):
         self.h.execute('''
             saved.done.explore802=123400
-            ns.FA.BY_KEY.explore802.pts=nil
+            ns.LAR.BY_KEY.explore802.pts=nil
             local model=BindHeader()
             assert(model.custom.points==nil and model.custom.confirmedPoints==0 and model.custom.unverifiedPointRecords==1)
             assert(model.custom.byKey['custom:explore802'].completed==true)
             assert(model.custom.byKey['custom:explore802'].pointValue==nil)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='0+' and saved.done.explore802==123400 and #calls==0)
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='0+' and saved.done.explore802==123400 and #calls==0)
         ''')
 
     def test_hover_without_tooltip_and_repeated_render_do_not_do_catalog_work(self):
@@ -84,11 +84,11 @@ class HeaderPointRefinementTests(unittest.TestCase):
             ns.LegacyPresentation.Build=function() error('Hover rebuilt achievements') end
             ns.CustomAchievementAdapter.Catalog=function() error('Hover rescanned achievements') end
             for i=1,20 do
-                FAWrathAchievementFrameHeader:Fire('OnEnter')
+                LARWrathAchievementFrameHeader:Fire('OnEnter')
                 assert(not GameTooltip.visible and #tooltipLines==0)
-                FAWrathAchievementFrameHeader:Fire('OnLeave'); assert(not GameTooltip.visible)
+                LARWrathAchievementFrameHeader:Fire('OnLeave'); assert(not GameTooltip.visible)
                 view:Render()
-                assert(view.model==model and FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
+                assert(view.model==model and LARWrathAchievementFrameHeaderPoints:GetText()=='10+')
             end
             assert(#frames==frameCount and saved.done.explore855==123456 and #calls==0)
         ''')
@@ -97,18 +97,18 @@ class HeaderPointRefinementTests(unittest.TestCase):
         self.h.execute('''
             saved.done.explore802=123400
             nativeCatalog.points=0; BindHeader()
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='0')
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=='0')
             nativeCatalog.points=nil; BindHeader()
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10')
-            FAWrathAchievementFrameHeader:Fire('OnEnter')
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='10')
+            LARWrathAchievementFrameHeader:Fire('OnEnter')
             assert(#tooltipLines==0 and not GameTooltip.visible and #calls==0)
         ''')
 
     def test_header_hover_has_no_handlers_and_leaves_unrelated_tooltips_alone(self):
         self.h.execute('''
             BindHeader()
-            local header=FAWrathAchievementFrameHeader
+            local header=LARWrathAchievementFrameHeader
             assert(header:GetScript('OnEnter')==nil and header:GetScript('OnLeave')==nil)
             assert(view.PointsTooltip==nil)
             GameTooltip.visible=true
@@ -130,21 +130,21 @@ class HeaderGeometryRefinementTests(unittest.TestCase):
             local c=ns.LegacyUIController; local frameCount=#frames; local model=c.ui.model
             for _,name in ipairs({'Compact','Standard','Large','Compact'}) do
                 c:SetSizePreset(name); FlushTimers()
-                local header=FAWrathAchievementFrameHeader
+                local header=LARWrathAchievementFrameHeader
                 local x=header:GetCenter(); local rootX=c.ui.root:GetCenter()
                 assert(x==rootX and c.ui.model==model)
-                local crest=FAWrathAchievementFrameHeaderCrest
-                local surround=FAWrathAchievementFrameHeaderCrestSurround
+                local crest=LARWrathAchievementFrameHeaderCrest
+                local surround=LARWrathAchievementFrameHeaderCrestSurround
                 local cx,cy=crest:GetCenter(); local sx,sy=surround:GetCenter()
                 assert(cx==x and sx==x and cy==sy and surround:IsShown())
                 assert(crest:GetWidth()<surround:GetWidth() and crest:GetHeight()<surround:GetHeight())
-                local a,b=FAWrathAchievementFrameHeaderRoofLeft,FAWrathAchievementFrameHeaderRoofRight
+                local a,b=LARWrathAchievementFrameHeaderRoofLeft,LARWrathAchievementFrameHeaderRoofRight
                 assert(a:GetRight()==x and b:GetLeft()==x and a:GetTop()==b:GetTop())
-                local l,r=FAWrathAchievementFrameHeaderPointBorder,FAWrathAchievementFrameHeaderLegacyPointBorder
+                local l,r=LARWrathAchievementFrameHeaderPointBorder,LARWrathAchievementFrameHeaderLegacyPointBorder
                 local lx,ly=l:GetCenter(); local rx,ry=r:GetCenter()
                 assert(x-lx==rx-x and ly==ry)
-                assert(FAWrathAchievementFrameHeaderPointBorderLeft:GetLeft()>=a:GetLeft())
-                assert(FAWrathAchievementFrameHeaderLegacyPointBorderRight:GetRight()<=b:GetRight())
+                assert(LARWrathAchievementFrameHeaderPointBorderLeft:GetLeft()>=a:GetLeft())
+                assert(LARWrathAchievementFrameHeaderLegacyPointBorderRight:GetRight()<=b:GetRight())
                 assert(l:GetRight()<surround:GetLeft() and r:GetLeft()>surround:GetRight())
                 assert(#frames==frameCount and c.cover:IsVisible() and c.lastError==nil and #calls==0)
             end
@@ -156,10 +156,10 @@ class HeaderGeometryRefinementTests(unittest.TestCase):
         h.execute(TOOLTIP)
         h.execute('''
             local c=ns.LegacyUIController; local model=c.ui.model
-            FAWrathAchievementFrameHeader:Fire('OnEnter')
-            FAWrathAchievementFrameHeader:Fire('OnDragStart')
+            LARWrathAchievementFrameHeader:Fire('OnEnter')
+            LARWrathAchievementFrameHeader:Fire('OnDragStart')
             assert(c.cover.moving and c.dragging)
-            FAWrathAchievementFrameHeader:Fire('OnDragStop')
+            LARWrathAchievementFrameHeader:Fire('OnDragStop')
             assert(not c.cover.moving and not c.dragging and c.ui.model==model)
             assert(saved.done.first==1730000000 and saved.history[1]=='keep' and #calls==0)
         ''')

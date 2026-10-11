@@ -332,7 +332,7 @@ class Iteration6MaskAssetsTests(unittest.TestCase):
 
     def test_shield_template_has_one_point_text_and_complementary_artwork_layers(self):
         root = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
-        card = next(n for n in root if n.get('name') == 'FAWrathCardTemplate')
+        card = next(n for n in root if n.get('name') == 'LARWrathCardTemplate')
         shield = next(n for n in card.iter(URI + 'Frame') if n.get('name') == '$parentShield')
         textures = list(shield.iter(URI + 'Texture'))
         points = list(shield.iter(URI + 'FontString'))

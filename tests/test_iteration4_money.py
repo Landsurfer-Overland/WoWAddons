@@ -14,7 +14,7 @@ class MoneyHarness:
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute('''
             ns={}; db={money=38,done={gold5000=12345},history={"keep"}}
-            ForeverAchievementsDB={}; clock=123
+            LegacyAchievementsReforgedDB={}; clock=123
             time=function() return clock end
             SecretValue={}; issecretvalue=function(v) return v==SecretValue end
             titles={[333]="Gold looted",[326]="Gold from quest rewards"}
@@ -26,7 +26,7 @@ class MoneyHarness:
             GetStatistic=function(id) reads[id]=(reads[id] or 0)+1; return stats[id] end
             function Coin(n,unit) return n.."|TInterface\\\\MoneyFrame\\\\UI-"..unit.."Icon:0|t" end
         ''')
-        self.lua.execute('assert(loadstring(...))("ForeverAchievements",ns)', (ADDON / "MoneyTracking.lua").read_text())
+        self.lua.execute('assert(loadstring(...))("LegacyAchievementsReforged",ns)', (ADDON / "MoneyTracking.lua").read_text())
         self.lua.execute('M=ns.MoneyTracking')
 
     def execute(self, code):
@@ -161,7 +161,7 @@ class MoneyTrackingTests(unittest.TestCase):
 
     def test_scope_failure_preserves_all_character_storage(self):
         self.check('''
-            ns.FA={CharacterScope=function(d) assert(d==db); return nil,"Identity unavailable" end}
+            ns.LAR={CharacterScope=function(d) assert(d==db); return nil,"Identity unavailable" end}
             stats[333]=Coin(100,"Gold")
             assert(not M.Sync(db) and not M.ObserveLoot(db,"You loot 5 Gold."))
             assert(M.Read(db,"loot")==nil and db.moneyTracking==nil)
@@ -218,22 +218,22 @@ class MoneyTrackingTests(unittest.TestCase):
     def test_invalid_saved_thresholds_fail_back_without_rewriting_settings(self):
         self.check('''
             local bad={gold100=99999999,gold1000=2,gold5000=1}
-            ForeverAchievementsDB.moneyConfig={thresholds=bad}
+            LegacyAchievementsReforgedDB.moneyConfig={thresholds=bad}
             assert(M.Threshold("gold100")==50000 and M.Threshold("gold5000")==1000000)
-            assert(ForeverAchievementsDB.moneyConfig.thresholds==bad and bad.gold100==99999999)
-            ForeverAchievementsDB.moneyConfig=SecretValue
-            assert(not M.Configure("gold5000",750000) and ForeverAchievementsDB.moneyConfig==SecretValue)
-            ForeverAchievementsDB.moneyConfig={thresholds=SecretValue}
-            assert(not M.Configure("gold5000",750000) and ForeverAchievementsDB.moneyConfig.thresholds==SecretValue)
-            ForeverAchievementsDB=false
-            assert(not M.Configure("gold5000",750000) and ForeverAchievementsDB==false)
+            assert(LegacyAchievementsReforgedDB.moneyConfig.thresholds==bad and bad.gold100==99999999)
+            LegacyAchievementsReforgedDB.moneyConfig=SecretValue
+            assert(not M.Configure("gold5000",750000) and LegacyAchievementsReforgedDB.moneyConfig==SecretValue)
+            LegacyAchievementsReforgedDB.moneyConfig={thresholds=SecretValue}
+            assert(not M.Configure("gold5000",750000) and LegacyAchievementsReforgedDB.moneyConfig.thresholds==SecretValue)
+            LegacyAchievementsReforgedDB=false
+            assert(not M.Configure("gold5000",750000) and LegacyAchievementsReforgedDB==false)
         ''')
 
     def test_localized_statistic_identity_requires_explicit_verified_name(self):
         self.check('''
             titles[326]="Or des récompenses de quête"; stats[326]=Coin(5,"Gold")
             assert(M.Read(db,"quest")==nil)
-            ForeverAchievementsDB.moneyConfig={statisticNames={quest="Or des récompenses de quête"}}
+            LegacyAchievementsReforgedDB.moneyConfig={statisticNames={quest="Or des récompenses de quête"}}
             assert(M.Read(db,"quest")==50000)
             stats[326]="5"; assert(M.Read(db,"quest")==nil)
         ''')
@@ -263,7 +263,7 @@ class MoneyTrackingTests(unittest.TestCase):
 
 class ProductionMoneyHarness(CoreHarness):
     def load(self, path):
-        if path == "ForeverAchievements.lua" and self.lua.eval("ns.MoneyTracking==nil"):
+        if path == "LegacyAchievementsReforged.lua" and self.lua.eval("ns.MoneyTracking==nil"):
             super().load("MoneyTracking.lua")
         super().load(path)
 
@@ -273,11 +273,11 @@ class ProductionMoneyTests(unittest.TestCase):
         h = ProductionMoneyHarness()
         h.execute('''
             for key,need in pairs({gold100=50000,gold1000=250000,gold5000=1000000,breadwinner=1000000}) do
-                local current,required,quantity=ns.FA.BY_KEY[key].progress()
+                local current,required,quantity=ns.LAR.BY_KEY[key].progress()
                 assert(required==need and type(quantity)=="string")
-                assert(ns.FA.BY_KEY[key].money==true)
+                assert(ns.LAR.BY_KEY[key].money==true)
             end
-            assert(ns.FA.BY_KEY.breadwinner.progress()==nil)
+            assert(ns.LAR.BY_KEY.breadwinner.progress()==nil)
         ''')
 
     def test_actual_event_awards_only_new_observations_without_rewriting_history(self):
@@ -291,7 +291,7 @@ class ProductionMoneyTests(unittest.TestCase):
             assert(saved.done.gold100 and not saved.done.gold1000 and not saved.done.breadwinner)
             local earned=saved.done.gold100; local observed=saved.moneyTracking.observedLootCopper
             CoreEvent("PLAYER_ENTERING_WORLD"); FlushTimers()
-            ns.FA.CheckAll(); ns.FA.CheckAll()
+            ns.LAR.CheckAll(); ns.LAR.CheckAll()
             assert(saved.done.gold100==earned and saved.moneyTracking.observedLootCopper==observed)
             assert(saved.money==50000000 and saved.done.first==1730000000 and saved.history[1]=="keep")
         ''')
@@ -309,7 +309,7 @@ class ProductionMoneyTests(unittest.TestCase):
             currentName="Other"; currentSurname="Different"
             CoreEvent("CHAT_MSG_MONEY","You loot 5 Gold.")
             assert(ledger.observedLootCopper==10000 and saved.moneyTracking==ledger)
-            assert(ns.FA.BY_KEY.gold100.progress()==nil and not saved.done.gold100)
+            assert(ns.LAR.BY_KEY.gold100.progress()==nil and not saved.done.gold100)
             assert(saved.money==38 and saved.done.first==1730000000 and saved.history[1]=="keep")
             saved.trackingIdentity=ledger.ownerIdentity
             CoreEvent("CHAT_MSG_MONEY","You loot 5 Gold.")

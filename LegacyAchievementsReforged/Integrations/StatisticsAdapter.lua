@@ -1,7 +1,7 @@
 -- Read-only subject navigation for statistics. These are observed values, not
 -- achievement progress, and never combine character and account histories.
 local _, ns = ...
-local FA, R = ns.FA, ns.LegacyReadOnly
+local LAR, R = ns.LAR, ns.LegacyReadOnly
 local A = {}
 ns.LegacyStatistics, ns.StatisticsAdapter = A, A
 
@@ -64,7 +64,7 @@ end
 local function countValue(data, field)
     local collection = R.Field(data, field)
     if type(collection) ~= "table" then return nil end
-    local result = R.Call(FA.Count, collection)
+    local result = R.Call(LAR.Count, collection)
     local n = result and R.Number(result[1])
     return n and n >= 0 and n == math.floor(n) and tostring(n) or nil
 end
@@ -138,14 +138,14 @@ function A.Catalog()
     -- Normal runtime has a character SavedVariables table. Read it directly so
     -- this view never adds defaults. The existing accessor is a guarded fallback
     -- for hosts that expose the state only through the addon namespace.
-    local data = R.Field(_G, "ForeverAchievementsCharDB")
+    local data = R.Field(_G, "LegacyAchievementsReforgedCharDB")
     if data == nil then
-        local result = R.Call(FA.DB)
+        local result = R.Call(LAR.DB)
         data = result and result[1]
     end
     for _, stat in ipairs(TRACKED) do
         add("statistic:tracked:" .. stat[1], stat[2], (stat[4] or countValue)(data, stat[1]), stat[3],
-            "custom_tracking", "TRACKED BY FOREVER ACHIEVEMENTS")
+            "custom_tracking", "TRACKED BY LEGACY ACHIEVEMENTS REFORGED")
     end
     for _, section in ipairs(ns.STATS or {}) do
         local title = R.Text(section.title) or "MISCELLANEOUS"

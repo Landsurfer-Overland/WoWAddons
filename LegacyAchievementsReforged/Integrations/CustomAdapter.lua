@@ -1,7 +1,7 @@
 -- Presentation only. Existing definitions, progress evaluators and saved keys
 -- remain authoritative. Old native imports stay in the standalone alpha UI.
 local _, ns = ...
-local FA, R = ns.FA, ns.LegacyReadOnly
+local LAR, R = ns.LAR, ns.LegacyReadOnly
 local A = {}
 ns.CustomAchievementAdapter = A
 local function first(fn, ...)
@@ -57,10 +57,10 @@ local function sameCharacter(a, b)
     return a.surname == b.surname
 end
 local function otherCharacterCompletions()
-    local current = verifiedIdentity(first(FA.CharacterIdentity))
+    local current = verifiedIdentity(first(LAR.CharacterIdentity))
     local other = {}
     if not current then return other end
-    local chars = R.Field(first(FA.Account), "chars")
+    local chars = R.Field(first(LAR.Account), "chars")
     if type(chars) ~= "table" or not R.Safe(chars) then return other end
     for key, snapshot in pairs(chars) do
         local identity = verifiedIdentity(R.Field(snapshot, "identity"))
@@ -115,21 +115,21 @@ local function completionProvenance(row, completedElsewhere)
     end
 end
 local function catalog()
-    local d = FA.DB()
-    local characterScope = type(FA.CharacterScope) ~= "function" or first(FA.CharacterScope) == true
+    local d = LAR.DB()
+    local characterScope = type(LAR.CharacterScope) ~= "function" or first(LAR.CharacterScope) == true
     local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
         pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false,
         unverifiedPointRecords = 0 }
     local labels, seen = {}, {}
     local zones, continents = explorationMetadata()
     local completedElsewhere = otherCharacterCompletions()
-    for _, c in ipairs(FA.CATEGORIES) do labels[c.key] = c.label end
-    for _, key in ipairs(FA.CATEGORY_ORDER) do
+    for _, c in ipairs(LAR.CATEGORIES) do labels[c.key] = c.label end
+    for _, key in ipairs(LAR.CATEGORY_ORDER) do
         local cat = { key = "custom-category:" .. key, customKey = key, parent = "custom", name = labels[key] or key, source = "custom", records = {} }
         out.categories[#out.categories + 1] = cat
-        for _, section in ipairs(FA.CATEGORY_SECTIONS[key]) do
+        for _, section in ipairs(LAR.CATEGORY_SECTIONS[key]) do
             for _, a in ipairs(section.list) do
-                if not a.native and not seen[a.key] and first(FA.Available, a) == true then
+                if not a.native and not seen[a.key] and first(LAR.Available, a) == true then
                     seen[a.key] = true
                     local savedCompletion = rawget(d.done, a.key)
                     local timestamp = characterScope and completionTime(savedCompletion) or nil
@@ -141,10 +141,10 @@ local function catalog()
                     -- but cannot supply current-character completion or progress.
                     local progress = characterScope and R.Call(a.progress) or nil
                     local completionReason
-                    if characterScope and type(FA.CompletionStatus) == "function" then
+                    if characterScope and type(LAR.CompletionStatus) == "function" then
                         -- Read after progress: a local re-observation can verify
                         -- retained history without replacing its original date.
-                        local status = R.Call(FA.CompletionStatus, a.key)
+                        local status = R.Call(LAR.CompletionStatus, a.key)
                         completed = status and R.Bool(status[1])
                         timestamp = completed == true and completionTime(status[2]) or nil
                         completionReason = status and R.Text(status[3])
@@ -218,7 +218,7 @@ function A.Catalog()
     local perf = ns.LegacyPerf
     local token = perf and perf.Begin("custom.catalog")
     local ok, result = pcall(function()
-        if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(catalog) end
+        if type(LAR.WithProgressSnapshot) == "function" then return LAR.WithProgressSnapshot(catalog) end
         return catalog()
     end)
     if perf then perf.Finish(token) end
@@ -228,7 +228,7 @@ end
 local function criteria(row)
     local a = row.achievement
     local data = { items = {}, available = true, complete = true }
-    if type(FA.CharacterScope) == "function" and first(FA.CharacterScope) ~= true then
+    if type(LAR.CharacterScope) == "function" and first(LAR.CharacterScope) ~= true then
         data.available = false; data.count = 0; row.criteria = data; return data
     end
     if a.list then
@@ -263,11 +263,11 @@ local function criteria(row)
     elseif #data.items == 0 and not row.completed and not row.current then data.available = false end
     -- Earned series retain access to earlier tiers without changing their keys.
     if row.completed and a.series then
-        for _, tier in ipairs(FA.SERIES[a.series] or {}) do
+        for _, tier in ipairs(LAR.SERIES[a.series] or {}) do
             if tier == a then break end
             if not tier.native then
                 data.items[#data.items + 1] = { name = tier.name, link = "custom:" .. tier.key,
-                    completed = completionTime(FA.DB().done[tier.key]) ~= nil }
+                    completed = completionTime(LAR.DB().done[tier.key]) ~= nil }
             end
         end
     end
@@ -276,22 +276,22 @@ local function criteria(row)
     return data
 end
 function A.Criteria(row)
-    if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(criteria, row) end
+    if type(LAR.WithProgressSnapshot) == "function" then return LAR.WithProgressSnapshot(criteria, row) end
     return criteria(row)
 end
 function A.Track(row)
-    if row and row.source == "custom" and row.achievement and not row.achievement.native then FA.ToggleTrack(row.achievement) end
+    if row and row.source == "custom" and row.achievement and not row.achievement.native then LAR.ToggleTrack(row.achievement) end
 end
 function A.Statistics()
-    local d, rows = FA.DB(), {}
+    local d, rows = LAR.DB(), {}
     for _, stat in ipairs({ {"critters", "Critters loved"}, {"pests", "Pests slain"}, {"books", "Books read"},
         {"foods", "Different dishes eaten"}, {"drinks", "Different drinks"}, {"rares", "Rare enemies slain"}, {"bosses", "Bosses seen slain"} }) do
-        rows[#rows + 1] = { stat[2], tostring(FA.Count(d[stat[1]])) }
+        rows[#rows + 1] = { stat[2], tostring(LAR.Count(d[stat[1]])) }
     end
     rows[#rows + 1] = { "Fishing catches seen", tostring(d.fished or 0) }
     for _, section in ipairs(ns.STATS or {}) do
         rows[#rows + 1] = { section.title, "", heading = true }
-        for _, stat in ipairs(section.list) do rows[#rows + 1] = { stat[2], first(FA.StatText, stat[1]) or "Unavailable" } end
+        for _, stat in ipairs(section.list) do rows[#rows + 1] = { stat[2], first(LAR.StatText, stat[1]) or "Unavailable" } end
     end
     return rows
 end

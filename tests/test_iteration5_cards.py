@@ -135,7 +135,7 @@ class Iteration5CardTests(unittest.TestCase):
     def test_unknown_money_uses_missing_value_marker_without_zero_bar(self):
         self.check("""
             local row=view.model.byKey['custom:second']; row.achievement.money=true
-            ns.FA.Money=function(v) assert(v==1000000); return '100g' end
+            ns.LAR.Money=function(v) assert(v==1000000); return '100g' end
             local item={name='Quest earnings',current=nil,required=1000000,completed=nil,
                 quantityText='Unavailable / 100g (lifetime quest total unsupported)'}
             ns.LegacyPresentation.Criteria=function() return {available=false,complete=false,items={item}} end

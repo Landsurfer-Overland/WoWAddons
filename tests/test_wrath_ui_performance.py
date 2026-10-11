@@ -198,7 +198,7 @@ class WrathUIPerformanceTests(unittest.TestCase):
             FlushTimers()
             local card=cardFor('custom:second')
             assert(card.saturated and card.record.completed and view.model.custom.points==30)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='30')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='30')
             assert(not view.renderQueued and #timers==0 and #calls==0)
         """)
 

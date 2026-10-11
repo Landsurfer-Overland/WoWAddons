@@ -57,8 +57,8 @@ templates, presets, window geometry, native progression and backend APIs are unc
 
 | File | Change |
 | --- | --- |
-| `ForeverAchievements/Integrations/LegacyController.lua` | New `C:DeferCombat`; combat handling in `Release`, `Refresh`, `QueueRefresh`, `QueueAttach`, `Close`, `NativeSelection`, `Attach`, root visibility hooks and event callback |
-| `ForeverAchievements/ForeverAchievements.toc` | Version only |
+| `LegacyAchievementsReforged/Integrations/LegacyController.lua` | New `C:DeferCombat`; combat handling in `Release`, `Refresh`, `QueueRefresh`, `QueueAttach`, `Close`, `NativeSelection`, `Attach`, root visibility hooks and event callback |
+| `LegacyAchievementsReforged/LegacyAchievementsReforged.toc` | Version only |
 | `tests/test_legacy_combat.py` | Combat lifecycle regression tests using actual controller, bridge and UI Lua/XML |
 | `docs/combat-ui-regression-fix.md` | Cause, behavior, validation and client procedure |
 
@@ -82,7 +82,7 @@ progression or absence of real script timeouts. In-game validation is pending.
 ## Manual in-game procedure
 
 1. Replace the complete addon folder while keeping existing WTF/SavedVariables.
-   Leave combat, enable `/fa legacyui on`, and enable `/fa perf on` if timing
+   Leave combat, enable `/lar legacyui on`, and enable `/lar perf on` if timing
    evidence is wanted. Open the custom Achievements tab through the usual Legacy
    control. Select a category, expand an achievement and scroll to a recognizable
    position. Record the selected tab and both point totals.
@@ -105,8 +105,8 @@ progression or absence of real script timeouts. In-game validation is pending.
 6. Repeat several combat cycles, including queued search/data refreshes and
    opening/closing around combat entry. Check for script timeouts, protected-action
    errors or unexpected fallback messages. Preserve any error text and
-   `/fa perf report`; confirm queued work settles after combat.
-7. Outside combat, run `/fa legacyui off` and repeat opening, gaining aggro,
+   `/lar perf report`; confirm queued work settles after combat.
+7. Outside combat, run `/lar legacyui off` and repeat opening, gaining aggro,
    leaving combat and closing with the native interface. Confirm normal native
    behavior. If disabling during combat, restoration should wait until combat
    ends. Re-enable outside combat if desired.

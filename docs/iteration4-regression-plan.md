@@ -7,8 +7,8 @@ progression, taint, client timings, or SavedVariables disk writes.
 
 ## Storage and independent completion
 
-`ForeverAchievementsCharDB` remains SavedVariablesPerCharacter. Its original `done`
-keys and timestamps remain the completion history. `ForeverAchievementsDB.chars`
+`LegacyAchievementsReforgedCharDB` remains SavedVariablesPerCharacter. Its original `done`
+keys and timestamps remain the completion history. `LegacyAchievementsReforgedDB.chars`
 contains separate account snapshots used for historical indicators, never to award
 this character's custom achievements. Existing snapshot identities include realm,
 Forever surname where available, and a valid player GUID where available.
@@ -60,10 +60,10 @@ not automatically revoked. An optional token-confirmed correction archives and c
 only the chosen current-character completion, adds a reaward hold, and leaves source
 evidence, other characters, other keys and native progression intact.
 
-Use `/fa progressdebug on` while investigating, `/fa inspectachievement explore855`
-for the current condition, and `/fa progressdebug dump` for award decisions. Repeat
+Use `/lar progressdebug on` while investigating, `/lar inspectachievement explore855`
+for the current condition, and `/lar progressdebug dump` for award decisions. Repeat
 with `explore802`, `explore776`, `pet1` or `fall` as appropriate. Disable with
-`/fa progressdebug off` when finished.
+`/lar progressdebug off` when finished.
 
 ## Relationship and classification audit
 
@@ -120,13 +120,13 @@ keys and their point values stay unchanged:
 | `breadwinner` | 10,000g quest rewards | 100g / 1,000,000c |
 
 These are configurable initial lower-economy values, not measured income rates.
-Use `/fa money threshold KEY COPPER`; loot tiers must stay increasing. Native
+Use `/lar money threshold KEY COPPER`; loot tiers must stay increasing. Native
 Legacy thresholds and currency rewards are unchanged.
 
 The old `38 / 50,000,000` display was the raw character money counter compared
 with 5,000g in copper. That counter accepted event loot and a statistic parser that
 could interpret plain digits without currency evidence. The report does not establish
-38's original source or unit. `/fa money report` now prints the actual raw statistic,
+38's original source or unit. `/lar money report` now prints the actual raw statistic,
 its title, verification result and threshold. Statistics 333/326 are accepted only
 with verified metric identity, readable non-account scope flags and explicit coin units.
 Otherwise loot uses explicitly
@@ -138,7 +138,7 @@ cannot fabricate a trustworthy baseline. See [the full money audit](iteration4-m
 ## Manual client checks
 
 1. Install the full new addon folder while retaining `WTF` data. Enable
-   `/fa legacyui on`, `/fa perf on`, and optional `/fa progressdebug on`.
+   `/lar legacyui on`, `/lar perf on`, and optional `/lar progressdebug on`.
    Record a first-open timing report before navigating.
 2. On character A, verify genuine Westfall/Elwynn/Moonglade completion, point totals,
    dates, criteria, and native Legacy completion. Observe new area evidence only through
@@ -148,7 +148,7 @@ cannot fabricate a trustworthy baseline. See [the full money audit](iteration4-m
    completion may be blue and must never turn B's custom achievement gold. Inspect
    `pet1`: an account pet journal or old shared maximum must not grant Can I Keep Him?.
 4. Inspect suspected historical false records before any correction. Only if explicitly
-   testing a false award, run `/fa correctachievement explore855`, review the preview,
+   testing a false award, run `/lar correctachievement explore855`, review the preview,
    and enter its confirmation token. Check the archive and hold. To permit reearning,
    separately preview and confirm `resume`; genuine new evidence must then be required.
    Never run correction commands merely to test a legitimate achievement.
@@ -161,17 +161,17 @@ cannot fabricate a trustworthy baseline. See [the full money audit](iteration4-m
    individual factions. Check each supported class, unavailable For the Alliance!,
    Spelunker/dungeon groups, PvP and Feats. Expand/collapse navigation independently
    from selecting it, and check that counts can include children without listing them.
-7. Run `/fa money report`. Verify 100c = 1s, 10,000c = 1g, and the configured targets.
+7. Run `/lar money report`. Verify 100c = 1s, 10,000c = 1g, and the configured targets.
    Loot known coins through ordinary gameplay and verify one increase. Opening/searching
    the UI and reloading must not add that loot again. A plain unverified statistic such
    as “38” must not masquerade as verified lifetime money. Quest income remains unavailable
    if its source cannot be verified; current holdings must not substitute for it.
 8. Open/close repeatedly, switch categories rapidly, expand/collapse cards, scroll long
    lists, search/type/clear, drag and change size presets/UI scale. Visit all four tabs;
-   verify native Rewards/Trees behavior and restore with `/fa legacyui off`. Check queued
+   verify native Rewards/Trees behavior and restore with `/lar legacyui off`. Check queued
    work while closing, combat/gamepad transitions, and original fallback behavior.
    `Going Down?` must not award for a fence collision or merely becoming stuck.
-9. Save `/fa perf report`, progression evidence and any fallback/error text. Pure
+9. Save `/lar perf report`, progression evidence and any fallback/error text. Pure
    navigation must not repeatedly enumerate the catalog. Turn diagnostics off, reload
    both characters and check genuine saved progression, histories and attribution.
    Client testing remains pending until these checks are actually performed.

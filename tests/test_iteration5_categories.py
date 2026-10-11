@@ -355,13 +355,13 @@ class Iteration5ExplorationDefinitionTests(unittest.TestCase):
     def test_authored_exploration_points_and_stable_world_definition_remain_consistent(self):
         h = CoreHarness()
         h.execute('''
-            local world=ns.FA.BY_KEY.worldexplorer
+            local world=ns.LAR.BY_KEY.worldexplorer
             assert(world.key=='worldexplorer' and world.id==46 and world.pts==50)
             assert(world.name=='Explore Azeroth')
-            assert(ns.FA.BY_KEY.exploreEK.pts==25 and ns.FA.BY_KEY.exploreKal.pts==25)
+            assert(ns.LAR.BY_KEY.exploreEK.pts==25 and ns.LAR.BY_KEY.exploreKal.pts==25)
             for _,zone in ipairs(ns.EXPLORE) do
                 local key=zone.key or 'explore'..zone.id
-                local a=ns.FA.BY_KEY[key]
+                local a=ns.LAR.BY_KEY[key]
                 assert(a and a.pts==10 and a.id==zone.id)
             end
             assert(saved.done.first==1730000000 and saved.history[1]=='keep')

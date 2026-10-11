@@ -32,14 +32,14 @@ local function call(fn, ...)
 end
 local function scope(db)
     if type(db) ~= "table" or not safe(db) then return false end
-    if ns.FA and type(ns.FA.CharacterScope) == "function" then
-        local matches, identity = call(ns.FA.CharacterScope, db)
+    if ns.LAR and type(ns.LAR.CharacterScope) == "function" then
+        local matches, identity = call(ns.LAR.CharacterScope, db)
         return safe(matches) and matches == true, identity
     end
     return true
 end
 local function config()
-    local account = ForeverAchievementsDB
+    local account = LegacyAchievementsReforgedDB
     local c = type(account) == "table" and safe(account) and account.moneyConfig
     return type(c) == "table" and safe(c) and c or {}
 end
@@ -65,14 +65,14 @@ function M.Configure(key, copper)
     if values.gold100 >= values.gold1000 or values.gold1000 >= values.gold5000 then
         return false, "Loot thresholds must increase from gold100 to gold1000 to gold5000."
     end
-    if type(ForeverAchievementsDB) == "nil" then ForeverAchievementsDB = {} end
-    if type(ForeverAchievementsDB) ~= "table" or not safe(ForeverAchievementsDB) then return false, "Settings unavailable." end
-    if not safe(ForeverAchievementsDB.moneyConfig) or ForeverAchievementsDB.moneyConfig ~= nil
-        and type(ForeverAchievementsDB.moneyConfig) ~= "table" then
+    if type(LegacyAchievementsReforgedDB) == "nil" then LegacyAchievementsReforgedDB = {} end
+    if type(LegacyAchievementsReforgedDB) ~= "table" or not safe(LegacyAchievementsReforgedDB) then return false, "Settings unavailable." end
+    if not safe(LegacyAchievementsReforgedDB.moneyConfig) or LegacyAchievementsReforgedDB.moneyConfig ~= nil
+        and type(LegacyAchievementsReforgedDB.moneyConfig) ~= "table" then
         return false, "Existing money settings are malformed; nothing was overwritten."
     end
-    ForeverAchievementsDB.moneyConfig = ForeverAchievementsDB.moneyConfig or {}
-    local c = ForeverAchievementsDB.moneyConfig
+    LegacyAchievementsReforgedDB.moneyConfig = LegacyAchievementsReforgedDB.moneyConfig or {}
+    local c = LegacyAchievementsReforgedDB.moneyConfig
     if not safe(c.thresholds) or c.thresholds ~= nil and type(c.thresholds) ~= "table" then return false, "Existing thresholds are malformed." end
     c.thresholds = c.thresholds or {}
     c.thresholds[key] = copper
@@ -166,7 +166,7 @@ local function ledger(db, create)
     if d == nil and create then
         d = { version = 1, unit = "copper", observedLootCopper = 0 }
         local _, identity = scope(db)
-        if ns.FA and type(ns.FA.CharacterScope) == "function" then
+        if ns.LAR and type(ns.LAR.CharacterScope) == "function" then
             if type(identity) ~= "table" or not safe(identity) or not text(identity.key) then return nil end
             d.ownerIdentity = { key = identity.key, name = identity.name, surname = identity.surname,
                 realm = identity.realm, guid = identity.guid, verified = true }
@@ -177,9 +177,9 @@ local function ledger(db, create)
     if type(d) ~= "table" or not safe(d) or not safe(d.version) or not safe(d.unit)
         or d.version ~= 1 or d.unit ~= "copper"
         or not integer(d.observedLootCopper) then return nil end
-    if ns.FA and type(ns.FA.CharacterScope) == "function" then
+    if ns.LAR and type(ns.LAR.CharacterScope) == "function" then
         if type(d.ownerIdentity) ~= "table" or not safe(d.ownerIdentity)
-            or call(ns.FA.CharacterScope, { trackingIdentity = d.ownerIdentity }) ~= true then return nil end
+            or call(ns.LAR.CharacterScope, { trackingIdentity = d.ownerIdentity }) ~= true then return nil end
     end
     return d
 end
@@ -235,7 +235,7 @@ function M.Progress(db, key)
     local need = M.Threshold(key)
     if not need then return nil, nil, "Unknown money achievement" end
     local current = M.Read(db, key == "breadwinner" and "quest" or "loot")
-    -- Provenance belongs in /fa money report. Unknown earnings stay unknown;
+    -- Provenance belongs in /lar money report. Unknown earnings stay unknown;
     -- the ordinary progress label must not manufacture a zero or repeat it.
     return current and math.min(current, need), need,
         (current ~= nil and M.Format(current) or "—") .. " / " .. M.Format(need)
@@ -265,7 +265,7 @@ function M.ObserveLoot(db, msg, lineID)
     return true
 end
 function M.Report(db)
-    local out = { "Forever Achievements money audit: all stored thresholds and observed totals use copper (100c=1s; 10000c=1g)." }
+    local out = { "Legacy Achievements Reforged money audit: all stored thresholds and observed totals use copper (100c=1s; 10000c=1g)." }
     local legacy = type(db) == "table" and safe(db) and db.money
     out[#out + 1] = "Historical alpha money counter preserved: " .. (integer(legacy) and tostring(legacy) or "unavailable")
         .. "; excluded because previous plain-statistic units were not verified."
@@ -288,5 +288,5 @@ function M.Command(db, command)
         return { ok and ("Custom " .. key .. " threshold: " .. M.Format(tonumber(amount)) .. ". Existing completions retained.") or why }, ok
     end
     if command:match("^%s*$") or command:match("^%s*report%s*$") then return M.Report(db), false end
-    return { "Usage: /fa money report; /fa money threshold <gold100|gold1000|gold5000|breadwinner> <integer copper>." }, false
+    return { "Usage: /lar money report; /lar money threshold <gold100|gold1000|gold5000|breadwinner> <integer copper>." }, false
 end

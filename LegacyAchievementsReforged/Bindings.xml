@@ -1,0 +1,5 @@
+<Bindings>
+    <Binding name="LEGACYACHIEVEMENTSREFORGED_TOGGLE" header="LEGACYACHIEVEMENTSREFORGED" category="ADDONS">
+        LegacyAchievementsReforged_Toggle()
+    </Binding>
+</Bindings>

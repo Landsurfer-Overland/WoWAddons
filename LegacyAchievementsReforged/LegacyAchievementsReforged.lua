@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
---  Forever Achievements
+--  Legacy Achievements Reforged
 --
 --  The WotLK General achievements that the WoW Forever world still allows,
 --  tracked per character. State that the game can report (level, riding,
@@ -9,11 +9,11 @@
 -------------------------------------------------------------------------------
 
 local ADDON, ns = ...
-local TAG = "|cff0cd29fForever Achievements|r"
+local TAG = "|cff0cd29fLegacy Achievements Reforged|r"
 
-ForeverAchievementsCharDB = ForeverAchievementsCharDB or {}
+LegacyAchievementsReforgedCharDB = LegacyAchievementsReforgedCharDB or {}
 local function DB()
-    local d = ForeverAchievementsCharDB
+    local d = LegacyAchievementsReforgedCharDB
     d.done = d.done or {}          -- [key] = time completed
     d.money = d.money or 0         -- copper looted
     d.critters = d.critters or {}  -- [name] = true
@@ -46,8 +46,8 @@ function Proof.Pack(...) return { n = select("#", ...), ... } end
 -- Nil/error results are cached too; the cache never survives a pass or DB change.
 function Proof.WithEvaluation(fn, ...)
     local previous = Proof.evaluation
-    if not previous or previous.db ~= ForeverAchievementsCharDB then
-        Proof.evaluation = { db = ForeverAchievementsCharDB, reads = {}, api = {} }
+    if not previous or previous.db ~= LegacyAchievementsReforgedCharDB then
+        Proof.evaluation = { db = LegacyAchievementsReforgedCharDB, reads = {}, api = {} }
     end
     local ok, result = pcall(function(...)
         if ns.MoneyTracking and type(ns.MoneyTracking.WithSnapshot) == "function" then
@@ -62,7 +62,7 @@ end
 function Proof.CacheRead(domain, fn)
     return function(...)
         local pass = Proof.evaluation
-        if not pass or pass.db ~= ForeverAchievementsCharDB then return fn(...) end
+        if not pass or pass.db ~= LegacyAchievementsReforgedCharDB then return fn(...) end
         local cache = pass.reads[domain]
         if not cache then cache = {}; pass.reads[domain] = cache end
         local key = select(1, ...) or false
@@ -83,7 +83,7 @@ function Proof.ReadAPI(fn, ...)
 end
 function Proof.EvaluationAPI(domain, fn, ...)
     local pass = Proof.evaluation
-    if not pass or pass.db ~= ForeverAchievementsCharDB then return Proof.ReadAPI(fn, ...) end
+    if not pass or pass.db ~= LegacyAchievementsReforgedCharDB then return Proof.ReadAPI(fn, ...) end
     local cache = pass.api[domain]
     if not cache then cache = {}; pass.api[domain] = cache end
     local first, second = ...
@@ -539,13 +539,13 @@ end
 Proof.mapCache = { offsets = {}, maps = {} }
 function Proof.ClearExplorationCache()
     local identity = Proof.CharacterIdentity()
-    Proof.mapCache = { offsets = {}, maps = {}, characterDB = ForeverAchievementsCharDB,
+    Proof.mapCache = { offsets = {}, maps = {}, characterDB = LegacyAchievementsReforgedCharDB,
         characterKey = identity and identity.key }
 end
 function Proof.ExplorationContext()
     local matches, identity = Proof.CharacterScope()
     if matches ~= true then return nil end
-    if Proof.mapCache.characterDB ~= ForeverAchievementsCharDB
+    if Proof.mapCache.characterDB ~= LegacyAchievementsReforgedCharDB
         or Proof.mapCache.characterKey ~= identity.key then Proof.ClearExplorationCache() end
     return identity
 end
@@ -666,7 +666,7 @@ end
 Proof.explorationRequirements = {}
 function Proof.CompletionStatus(key, visiting)
     local d, value = DB(), DB().done[key]
-    local definition = ns.FA and ns.FA.BY_KEY and ns.FA.BY_KEY[key]
+    local definition = ns.LAR and ns.LAR.BY_KEY and ns.LAR.BY_KEY[key]
     local scope, identity = Proof.CharacterScope(d)
     if not (definition and definition.native) and scope ~= true then
         return nil, nil, "Character completion attribution unavailable"
@@ -1798,8 +1798,8 @@ end
 
 -- Account-wide data (characters, settings), saved for every character.
 local function AccountDB()
-    ForeverAchievementsDB = ForeverAchievementsDB or {}
-    local a = ForeverAchievementsDB
+    LegacyAchievementsReforgedDB = LegacyAchievementsReforgedDB or {}
+    local a = LegacyAchievementsReforgedDB
     a.chars = a.chars or {}
     a.settings = a.settings or {}
     return a
@@ -2053,14 +2053,14 @@ On("PLAYER_LOGIN", function()
             d.dataVersion = DATA_VERSION
             historyReady = true
             print(TAG .. " ready: " .. Count(d.done) .. " earned (" .. (Count(d.done) - before)
-                .. " new from your history). /qa or /fach to open.")
-            if ns.FA and ns.FA.OnReady then ns.FA.OnReady(Count(d.done) - before) end
+                .. " new from your history). /reforged or /lar to open.")
+            if ns.LAR and ns.LAR.OnReady then ns.LAR.OnReady(Count(d.done) - before) end
         end)
     else
         historyReady = true
         CheckAll(false, "PLAYER_LOGIN")
         -- A character that has not seen the welcome screen yet gets it now.
-        if ns.FA and ns.FA.OnReady then ns.FA.OnReady() end
+        if ns.LAR and ns.LAR.OnReady then ns.LAR.OnReady() end
     end
 end)
 On("PLAYER_LEVEL_UP", function() C_Timer.After(1, function() CheckAll(nil, "PLAYER_LEVEL_UP") end) end)
@@ -2103,7 +2103,7 @@ end)
 -- /love on critters. Two ways in: the emote call itself, and the chat echo
 -- of it. The target just has to be a creature (not a player) named like a
 -- critter on the list; creature types read differently on this client.
-local debugOn = false -- /fach debug
+local debugOn = false -- /lar debug
 local lastLove = 0
 
 local function LoveTarget(source)
@@ -2525,7 +2525,7 @@ do
         Proof.SetProgressEvidence("fall", "measured-fall", evidence)
         CheckAll(nil, "FALL_LANDED")
     end
-    local faller = CreateFrame("Frame", "ForeverAchievementsFallTracker")
+    local faller = CreateFrame("Frame", "LegacyAchievementsReforgedFallTracker")
     faller:SetScript("OnUpdate", function()
         -- Confirmation already preserves any existing completion. Avoid the
         -- seven per-frame API reads once there is nothing left to award, but
@@ -3168,12 +3168,12 @@ local function Open()
     -- Keep the original implementation intact for later feature migration.
     -- Every old launcher (including local slash calls) passes this gate.
     if not (ns.OriginalUI and ns.OriginalUI.IsEnabled()) then
-        print(TAG .. " Original UI is quarantined. Open achievements through the Legacy panel (/fa legacyui on).")
+        print(TAG .. " Original UI is quarantined. Open achievements through the Legacy panel (/lar legacyui on).")
         return false
     end
     if not win then
         local r, g, b = Accent()
-        win = CreateFrame("Frame", "ForeverAchievementsWindow", UIParent)
+        win = CreateFrame("Frame", "LegacyAchievementsReforgedWindow", UIParent)
         win:SetSize(WIN_W, WIN_H)
         win:SetPoint("CENTER")
         win:SetScale(Settings().scale or 1)
@@ -3187,8 +3187,8 @@ local function Open()
             self:StopMovingOrSizing()
             Kit.RealignBorders()
         end)
-        tinsert(UISpecialFrames, "ForeverAchievementsWindow")
-        Kit.Chrome(win, "Forever Achievements", "", function() win:Hide() end)
+        tinsert(UISpecialFrames, "LegacyAchievementsReforgedWindow")
+        Kit.Chrome(win, "Legacy Achievements Reforged", "", function() win:Hide() end)
 
         -- Category sidebar: one row per category with its earned count;
         -- Statistics and Settings sit apart, pinned to the bottom.
@@ -3343,16 +3343,16 @@ local function Open()
     return true
 end
 
-SLASH_FOREVERACHIEVEMENTS1 = "/fach"
-SLASH_FOREVERACHIEVEMENTS2 = "/qa" -- short alias, same commands
-SLASH_FOREVERACHIEVEMENTS3 = "/fa" -- also used by the experimental native Legacy UI
+SLASH_LEGACYACHIEVEMENTSREFORGED1 = "/lar"
+SLASH_LEGACYACHIEVEMENTSREFORGED2 = "/reforged" -- same commands
+SLASH_LEGACYACHIEVEMENTSREFORGED3 = "/legacyachievements" -- same commands
 SLASH.money = function(input)
     if not ns.MoneyTracking then print(TAG .. " money tracking unavailable."); return end
     local lines, changed = ns.MoneyTracking.Command(DB(), input or "")
     for _, line in ipairs(lines or {}) do print(TAG .. " " .. line) end
     if changed then
         for _, key in ipairs({ "gold100", "gold1000", "gold5000", "breadwinner" }) do
-            local a = ns.FA and ns.FA.BY_KEY[key]
+            local a = ns.LAR and ns.LAR.BY_KEY[key]
             if a then a.desc = ns.MoneyTracking.Description(key) end
         end
         CheckAll(nil, "money threshold configuration")
@@ -3367,7 +3367,7 @@ SLASH.progressdebug = function(input)
         for _, record in ipairs(Proof.trace.records) do Proof.PrintDecision(record) end
         return
     elseif mode ~= "" and mode ~= "status" then
-        print(TAG .. " use /fa progressdebug on|off|status|dump.")
+        print(TAG .. " use /lar progressdebug on|off|status|dump.")
         return
     end
     print(TAG .. " progression diagnostics " .. (Proof.trace.enabled and "ON" or "OFF")
@@ -3375,8 +3375,8 @@ SLASH.progressdebug = function(input)
 end
 SLASH.inspectachievement = function(key)
     key = (key or ""):match("^%s*(%S+)%s*$")
-    local a = key and ns.FA and ns.FA.BY_KEY[key]
-    if not a then print(TAG .. " use /fa inspectachievement <saved achievement key>."); return end
+    local a = key and ns.LAR and ns.LAR.BY_KEY[key]
+    if not a then print(TAG .. " use /lar inspectachievement <saved achievement key>."); return end
     local result = Proof.ReadAPI(a.progress)
     local cur, need = result and result[1], result and result[2]
     local identity, evidence = Proof.CharacterIdentity(), Proof.evidence[key] or {}
@@ -3409,10 +3409,10 @@ SLASH.correctachievement = function(input)
         else
             token = tail:match("^confirm%s+(%S+)$")
             if not token then action, token = "resume", tail:match("^resume%s+confirm%s+(%S+)$") end
-            if not token then print(TAG .. " use /fa correctachievement <key> [resume] to preview a targeted correction."); return end
+            if not token then print(TAG .. " use /lar correctachievement <key> [resume] to preview a targeted correction."); return end
         end
     end
-    local a = key and ns.FA and ns.FA.BY_KEY[key]
+    local a = key and ns.LAR and ns.LAR.BY_KEY[key]
     if not a or a.native then print(TAG .. " only a known custom achievement on this character can be corrected."); return end
     local identity, clock = Proof.CharacterIdentity(), Proof.ReadAPI(GetTime)
     local now = clock and Proof.PlainNumber(clock[1])
@@ -3433,7 +3433,7 @@ SLASH.correctachievement = function(input)
         print(TAG .. " " .. (action == "clear" and "Clear only " or "Resume verified completion checks for ")
             .. a.name .. " (" .. key .. ") for " .. identity.name .. (identity.surname and (" " .. identity.surname) or "")
             .. " @ " .. identity.realm .. ". Other achievements and source history remain saved.")
-        print(TAG .. " confirm within 60 seconds: /fa correctachievement " .. key
+        print(TAG .. " confirm within 60 seconds: /lar correctachievement " .. key
             .. (action == "resume" and " resume" or "") .. " confirm " .. token)
         return
     end
@@ -3459,14 +3459,14 @@ SLASH.correctachievement = function(input)
         d.completionCorrections[key] = { reason = "Explicitly confirmed correction", characterKey = identity.key }
     else d.completionCorrections[key] = nil end
     Proof.pendingCorrection = nil
-    if ns.FA.SaveCharacter then ns.FA.SaveCharacter() end
+    if ns.LAR.SaveCharacter then ns.LAR.SaveCharacter() end
     if RefreshWindow then RefreshWindow() end
     for _, fn in ipairs(CHECK_HOOKS) do pcall(fn) end
     print(TAG .. " " .. key .. (action == "clear" and " cleared on this character; automatic reaward held until a confirmed resume."
         or " correction hold removed on this character; verified future checks may award it."))
 end
 Proof.trace.PendingCorrection = Proof.PendingCorrection
-SlashCmdList.FOREVERACHIEVEMENTS = function(input)
+SlashCmdList.LEGACYACHIEVEMENTSREFORGED = function(input)
     local msg, rest = (input or ""):match("^%s*(%S*)%s*(.-)%s*$")
     msg = (msg or ""):lower()
     if SLASH[msg] then
@@ -3479,21 +3479,21 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
         print(TAG .. " commands:")
         local originalUI = ns.OriginalUI and ns.OriginalUI.IsEnabled()
         for _, line in ipairs({
-            { "/fach", originalUI and "open the original window" or "original window quarantined; use the Legacy panel" },
-            { "/fach compare Firstname Lastname", originalUI and "compare with a player who runs the addon (or right-click them)"
+            { "/lar", originalUI and "open the original window" or "original window quarantined; use the Legacy panel" },
+            { "/lar compare Firstname Lastname", originalUI and "compare with a player who runs the addon (or right-click them)"
                 or "retained comparison data command; original comparison window quarantined" },
-            { "/fach compare off", "stop comparing" },
-            { "/fach welcome", originalUI and "show the welcome screen again" or "original welcome screen quarantined" },
-            { "/fa legacyui on|off", "enable or disable the unified Wrath Legacy interface" },
-            { "/fa legacyui size compact|standard|large", "choose a saved window size" },
-            { "/fa legacyui reset", "reset the Legacy window position without changing progress" },
-            { "/fach debug", "debug messages for critters, pests and kills" },
-            { "/fa progressdebug on|off|status|dump", "optional award evidence diagnostics" },
-            { "/fa inspectachievement <key>", "inspect an achievement condition without granting completion" },
-            { "/fa correctachievement <key>", "preview a token-confirmed correction for this character only" },
-            { "/fa money report", "inspect exact monetary sources, units and configured copper thresholds" },
-            { "/fach help", "this list" },
-            { "/qa", "short for /fach (works with every command above)" },
+            { "/lar compare off", "stop comparing" },
+            { "/lar welcome", originalUI and "show the welcome screen again" or "original welcome screen quarantined" },
+            { "/lar legacyui on|off", "enable or disable the unified Wrath Legacy interface" },
+            { "/lar legacyui size compact|standard|large", "choose a saved window size" },
+            { "/lar legacyui reset", "reset the Legacy window position without changing progress" },
+            { "/lar debug", "debug messages for critters, pests and kills" },
+            { "/lar progressdebug on|off|status|dump", "optional award evidence diagnostics" },
+            { "/lar inspectachievement <key>", "inspect an achievement condition without granting completion" },
+            { "/lar correctachievement <key>", "preview a token-confirmed correction for this character only" },
+            { "/lar money report", "inspect exact monetary sources, units and configured copper thresholds" },
+            { "/lar help", "this list" },
+            { "/reforged or /legacyachievements", "aliases for /lar (work with every command above)" },
         }) do
             print("  " .. accent .. line[1] .. "|r - " .. line[2])
         end
@@ -3505,7 +3505,7 @@ SlashCmdList.FOREVERACHIEVEMENTS = function(input)
         return
     end
     if msg == "reset" then
-        print(TAG .. " use /fa correctachievement <key> for a confirmed correction of one achievement. No progress changed.")
+        print(TAG .. " use /lar correctachievement <key> for a confirmed correction of one achievement. No progress changed.")
     else
         Open()
     end
@@ -3533,14 +3533,14 @@ RidingRank = Proof.CacheRead("riding", RidingRank)
 StatText = Proof.CacheRead("statistics", StatText)
 CompletedIDs = Proof.CacheRead("completed-quests", CompletedIDs)
 
-ns.FA = {
+ns.LAR = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
     CharacterScope = Proof.CharacterScope, CompletionAttribution = Proof.CompletionAttribution,
     CompletionStatus = Proof.CompletionStatus,
     WithProgressSnapshot = Proof.WithEvaluation,
     ProgressionDiagnostics = Proof.trace,
-    IsDebug = function() return debugOn end, -- /fach debug, for messages in the other files
+    IsDebug = function() return debugOn end, -- /lar debug, for messages in the other files
     DB = DB, Account = AccountDB, Settings = Settings,
     ALL = ALL, BY_KEY = BY_KEY, SERIES = SERIES, Available = Available, Earned = Earned,
     CATEGORIES = CATEGORIES, CATEGORY_SECTIONS = CATEGORY_SECTIONS, CATEGORY_ORDER = CATEGORY_ORDER,
@@ -3574,7 +3574,7 @@ ns.FA = {
     end,
     -- A sample toast, for the settings page.
     PreviewToast = function()
-        queue[#queue + 1] = { name = "Forever Achievements", icon = 132347, pts = 10 }
+        queue[#queue + 1] = { name = "Legacy Achievements Reforged", icon = 132347, pts = 10 }
         if not showing then ShowNextToast() end
     end,
     IsShown = function() return win and win:IsShown() end,

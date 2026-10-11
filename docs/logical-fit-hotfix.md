@@ -22,9 +22,9 @@ broad size clamp, weakened minimum, guessed preset or disabled fallback.
 
 Changed files:
 
-- `ForeverAchievements/Integrations/LegacyController.lua`: `C:Fit` passes the exact preset dimensions.
-- `ForeverAchievements/UI/WrathAchievementUI.lua`: `U.Fit` accepts a validated pair of logical dimensions.
-- `ForeverAchievements/ForeverAchievements.toc`: version only.
+- `LegacyAchievementsReforged/Integrations/LegacyController.lua`: `C:Fit` passes the exact preset dimensions.
+- `LegacyAchievementsReforged/UI/WrathAchievementUI.lua`: `U.Fit` accepts a validated pair of logical dimensions.
+- `LegacyAchievementsReforged/LegacyAchievementsReforged.toc`: version only.
 - `tests/test_legacy_logical_fit.py`: six regressions, including the reported client readback.
 - `docs/logical-fit-hotfix.md`: cause, correction and validation.
 
@@ -39,9 +39,9 @@ syntax checks passed for 27 files; packaging checks passed for 28 TOC references
 and four XML files. Core initialization loaded 322 definitions and the isolated
 behavior check passed 14 assertions. These checks do not replace client testing.
 
-To install, replace the complete `ForeverAchievements` addon folder with this
+To install, replace the complete `LegacyAchievementsReforged` addon folder with this
 build, retaining your existing WTF/SavedVariables. Run `/reload`, leave combat,
-then `/fa legacyui size compact` and `/fa legacyui on`. Open Legacy normally.
+then `/lar legacyui size compact` and `/lar legacyui on`. Open Legacy normally.
 Confirm the custom interface opens without the minimum-dimensions fallback.
 Check Standard and Large, close/reopen, then gain aggro while the custom panel
 is open and verify the combat fix still retains the custom presentation.

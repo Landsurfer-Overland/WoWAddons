@@ -1,0 +1,13 @@
+package-as: LegacyAchievementsReforged
+manual-changelog: LegacyAchievementsReforged/CHANGELOG.md
+ignore:
+  - .github
+  - .gitignore
+  - README.md
+  - References
+  - docs
+  - tests
+  - tools
+  - requirements-dev.txt
+move-folders:
+  LegacyAchievementsReforged/LegacyAchievementsReforged: LegacyAchievementsReforged

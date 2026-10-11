@@ -10,7 +10,7 @@ from test_progression_addendum import CoreHarness
 
 class EvaluationHarness(CoreHarness):
     def load(self, path):
-        if path == "ForeverAchievements.lua":
+        if path == "LegacyAchievementsReforged.lua":
             # The core captures this API at load time. Install its observer
             # before that capture, preserving its exact return tuple.
             self.execute('''
@@ -28,14 +28,14 @@ class EvaluationHarness(CoreHarness):
 
     def __init__(self):
         super().__init__()
-        # The integration harness initially loads a small fake FA. Reload this
-        # adapter so it observes the production FA and its snapshot wrapper.
+        # The integration harness initially loads a small fake LAR. Reload this
+        # adapter so it observes the production LAR and its snapshot wrapper.
         self.load("Integrations/CustomAdapter.lua")
         self.execute('''
             function SelectCatalog(...)
                 local wanted={}
-                for _,key in ipairs({...}) do wanted[key]=true; assert(ns.FA.BY_KEY[key]) end
-                for _,sections in pairs(ns.FA.CATEGORY_SECTIONS) do
+                for _,key in ipairs({...}) do wanted[key]=true; assert(ns.LAR.BY_KEY[key]) end
+                for _,sections in pairs(ns.LAR.CATEGORY_SECTIONS) do
                     for _,section in ipairs(sections) do
                         for i=#section.list,1,-1 do
                             if not wanted[section.list[i].key] then table.remove(section.list,i) end
@@ -46,7 +46,7 @@ class EvaluationHarness(CoreHarness):
             function AssertNoAwardsOrNativeMutations()
                 assert(saved.done.first==1730000000 and saved.history[1]=="keep")
                 assert(saved.explored.zone.old and next(saved.tracked)==nil and #calls==0)
-                assert(ns.FA.Count(saved.done)==1 and #ns.FA.ProgressionDiagnostics.records==0)
+                assert(ns.LAR.Count(saved.done)==1 and #ns.LAR.ProgressionDiagnostics.records==0)
                 assert(Standing==globalStandingSentinel and FvCriteria==globalCriteriaSentinel)
             end
         ''')
@@ -79,16 +79,16 @@ class ProgressEvaluationTests(unittest.TestCase):
         self.check('''
             local reads,value=0,"7"
             GetStatistic=function(id) assert(id==98); reads=reads+1; return value end
-            local first,hole,last=ns.FA.WithProgressSnapshot(function(argument)
+            local first,hole,last=ns.LAR.WithProgressSnapshot(function(argument)
                 assert(argument=="input")
-                assert(ns.FA.StatText(98)=="7")
+                assert(ns.LAR.StatText(98)=="7")
                 value="8"
-                assert(ns.FA.StatText(98)=="7" and reads==1)
+                assert(ns.LAR.StatText(98)=="7" and reads==1)
                 return "first",nil,"last"
             end,"input")
             assert(first=="first" and hole==nil and last=="last")
-            assert(ns.FA.StatText(98)=="8" and reads==2)
-            ns.FA.WithProgressSnapshot(function() assert(ns.FA.StatText(98)=="8") end)
+            assert(ns.LAR.StatText(98)=="8" and reads==2)
+            ns.LAR.WithProgressSnapshot(function() assert(ns.LAR.StatText(98)=="8") end)
             assert(reads==3)
         ''')
 
@@ -96,45 +96,45 @@ class ProgressEvaluationTests(unittest.TestCase):
         self.check('''
             local reads,value=0,"7"
             GetStatistic=function() reads=reads+1; return value end
-            local ok,message=pcall(ns.FA.WithProgressSnapshot,function()
-                assert(ns.FA.StatText(98)=="7")
+            local ok,message=pcall(ns.LAR.WithProgressSnapshot,function()
+                assert(ns.LAR.StatText(98)=="7")
                 error("Injected evaluation failure")
             end)
             assert(not ok and message:find("Injected evaluation failure",1,true))
             value="8"
-            assert(ns.FA.StatText(98)=="8" and reads==2)
-            ns.FA.WithProgressSnapshot(function()
-                assert(ns.FA.StatText(98)=="8")
+            assert(ns.LAR.StatText(98)=="8" and reads==2)
+            ns.LAR.WithProgressSnapshot(function()
+                assert(ns.LAR.StatText(98)=="8")
                 value="9"
-                local nestedOk=pcall(ns.FA.WithProgressSnapshot,function()
-                    assert(ns.FA.StatText(98)=="8")
+                local nestedOk=pcall(ns.LAR.WithProgressSnapshot,function()
+                    assert(ns.LAR.StatText(98)=="8")
                     error("Injected nested failure")
                 end)
-                assert(not nestedOk and ns.FA.StatText(98)=="8" and reads==3)
+                assert(not nestedOk and ns.LAR.StatText(98)=="8" and reads==3)
             end)
-            assert(ns.FA.StatText(98)=="9" and reads==4)
+            assert(ns.LAR.StatText(98)=="9" and reads==4)
         ''')
 
     def test_nested_character_db_switch_cannot_reuse_another_characters_observation(self):
         self.check('''
-            local firstDB=ForeverAchievementsCharDB
+            local firstDB=LegacyAchievementsReforgedCharDB
             local secondDB={done={},tracked={},history={"second"},explored={},fixtureStat="20"}
             firstDB.fixtureStat="10"
             local reads=0
-            GetStatistic=function() reads=reads+1; return ForeverAchievementsCharDB.fixtureStat end
-            ns.FA.WithProgressSnapshot(function()
-                assert(ns.FA.StatText(98)=="10")
-                ForeverAchievementsCharDB=secondDB
-                ns.FA.WithProgressSnapshot(function()
-                    assert(ns.FA.StatText(98)=="20" and ns.FA.StatText(98)=="20")
+            GetStatistic=function() reads=reads+1; return LegacyAchievementsReforgedCharDB.fixtureStat end
+            ns.LAR.WithProgressSnapshot(function()
+                assert(ns.LAR.StatText(98)=="10")
+                LegacyAchievementsReforgedCharDB=secondDB
+                ns.LAR.WithProgressSnapshot(function()
+                    assert(ns.LAR.StatText(98)=="20" and ns.LAR.StatText(98)=="20")
                 end)
                 assert(reads==2)
-                assert(ns.FA.StatText(98)=="20" and reads==3)
-                ForeverAchievementsCharDB=firstDB
-                assert(ns.FA.StatText(98)=="10" and reads==3)
+                assert(ns.LAR.StatText(98)=="20" and reads==3)
+                LegacyAchievementsReforgedCharDB=firstDB
+                assert(ns.LAR.StatText(98)=="10" and reads==3)
             end)
             firstDB.fixtureStat="30"
-            assert(ns.FA.StatText(98)=="30" and reads==4)
+            assert(ns.LAR.StatText(98)=="30" and reads==4)
             assert(next(secondDB.done)==nil and secondDB.history[1]=="second")
         ''')
 
@@ -161,7 +161,7 @@ class ProgressEvaluationTests(unittest.TestCase):
 
     def test_failed_map_fallback_is_once_per_zone_with_shared_hierarchy_reads(self):
         self.check('''
-            local westfall=ns.FA.ZONE_ACH.Westfall
+            local westfall=ns.LAR.ZONE_ACH.Westfall
             SelectCatalog("explore855",westfall.key)
             local mapReads,bestReads,childrenReads={},0,0
             Enum={UIMapType={Zone=3}}
@@ -259,7 +259,7 @@ class ProgressEvaluationTests(unittest.TestCase):
                 dx,dy=case[1],case[2]
                 saved.explorationEvidence=nil
                 testClock=testClock+6
-                local current,needed=ns.FA.WithProgressSnapshot(ns.FA.BY_KEY.explore855.progress)
+                local current,needed=ns.LAR.WithProgressSnapshot(ns.LAR.BY_KEY.explore855.progress)
                 assert(current==(case[3] and 1 or 0) and needed==1)
             end
         ''')
@@ -267,13 +267,13 @@ class ProgressEvaluationTests(unittest.TestCase):
     def test_native_oversized_criteria_are_unknown_without_iteration_or_loss_of_authoritative_completion(self):
         self.check('''
             local achievement
-            for _,a in ipairs(ns.FA.ALL) do if a.native then achievement=a; break end end
+            for _,a in ipairs(ns.LAR.ALL) do if a.native then achievement=a; break end end
             assert(achievement)
             local countReads,criteriaReads,completed=0,0,false
             GetAchievementInfo=function(id) return id,"Native challenge",0,completed end
             GetAchievementNumCriteria=function() countReads=countReads+1; return 257 end
             GetAchievementCriteriaInfo=function() criteriaReads=criteriaReads+1; error("Oversized criteria must not be read") end
-            ns.FA.WithProgressSnapshot(function()
+            ns.LAR.WithProgressSnapshot(function()
                 local current,needed=achievement.progress()
                 assert(current==nil and needed==257)
                 local list=achievement.dynamicList()
@@ -283,14 +283,14 @@ class ProgressEvaluationTests(unittest.TestCase):
             end)
             assert(countReads==1 and criteriaReads==0)
             completed=true
-            local current,needed=ns.FA.WithProgressSnapshot(achievement.progress)
+            local current,needed=ns.LAR.WithProgressSnapshot(achievement.progress)
             assert(current==1 and needed==1 and countReads==1 and criteriaReads==0)
         ''')
 
     def test_native_criteria_at_the_supported_limit_are_read_once_per_pass(self):
         self.check('''
             local achievement
-            for _,a in ipairs(ns.FA.ALL) do if a.native then achievement=a; break end end
+            for _,a in ipairs(ns.LAR.ALL) do if a.native then achievement=a; break end end
             assert(achievement)
             local countReads,criteriaReads=0,0
             GetAchievementInfo=function(id) return id,"Native challenge",0,false end
@@ -299,7 +299,7 @@ class ProgressEvaluationTests(unittest.TestCase):
                 criteriaReads=criteriaReads+1
                 return "Criterion "..index,0,index<=128
             end
-            ns.FA.WithProgressSnapshot(function()
+            ns.LAR.WithProgressSnapshot(function()
                 local current,needed=achievement.progress()
                 assert(current==128 and needed==256)
                 assert(#achievement.dynamicList()==256)

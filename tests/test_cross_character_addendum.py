@@ -10,9 +10,9 @@ from test_iteration3_achievement_classification import AdapterHarness
 
 IDENTITIES = '''
     currentIdentity={key="character:5:Realm:Player-ALT",name="Same",surname="Alt",realm="Realm",guid="Player-ALT",verified=true}
-    ns.FA.CharacterIdentity=function() return currentIdentity end
+    ns.LAR.CharacterIdentity=function() return currentIdentity end
     account={chars={}}
-    ns.FA.Account=function() return account end
+    ns.LAR.Account=function() return account end
     function Snapshot(identity,done)
         return {characterKey=identity.key,identityVersion=1,identity=identity,completionScope="character",done=done}
     end
@@ -75,7 +75,7 @@ class CrossCharacterAdapterTests(unittest.TestCase):
                 local row=ns.CustomAchievementAdapter.Catalog().byKey["custom:second"]
                 assert(not row.completed and not row.completedByOtherCharacter and row.completionScope=="incomplete")
             end
-            ns.FA.CharacterIdentity=function() error("Client identity unavailable") end
+            ns.LAR.CharacterIdentity=function() error("Client identity unavailable") end
             assert(not ns.CustomAchievementAdapter.Catalog().byKey["custom:second"].completedByOtherCharacter)
         ''')
 
@@ -171,9 +171,9 @@ class CharacterSnapshotTests(unittest.TestCase):
     def setUp(self):
         self.h = AdapterHarness()
         self.h.execute(IDENTITIES + '''
-            ns.FA.secret=function(value) return SecretValue~=nil and value==SecretValue end
-            ns.FA.LINK={}; ns.FA.COMPARE={}; ns.FA.CurrentTitle=function() return nil end
-            ns.FA.TotalPoints=function() error("Merged/native totals must not enter character snapshots") end
+            ns.LAR.secret=function(value) return SecretValue~=nil and value==SecretValue end
+            ns.LAR.LINK={}; ns.LAR.COMPARE={}; ns.LAR.CurrentTitle=function() return nil end
+            ns.LAR.TotalPoints=function() error("Merged/native totals must not enter character snapshots") end
             UnitClass=function() return "Warrior","WARRIOR" end
             UnitLevel=function() return 21 end
             CreateFrame=function(kind,name,parent) return UIObject(kind,name,parent) end
@@ -188,7 +188,7 @@ class CharacterSnapshotTests(unittest.TestCase):
             local old={name="Same",realm="Realm",done={second=99},pts=999}
             account.chars["Same-Realm"]=old
             settings.accountView=true; saved.done.imported=500
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             local altSnapshot=account.chars[currentIdentity.key]
             assert(altSnapshot.identityVersion==1 and altSnapshot.characterKey==currentIdentity.key)
             assert(altSnapshot.identity.name=="Same" and altSnapshot.surname=="Alt" and altSnapshot.name=="Same Alt")
@@ -197,7 +197,7 @@ class CharacterSnapshotTests(unittest.TestCase):
             assert(altSnapshot.pts==10 and altSnapshot.count==1 and altSnapshot.pointType=="character")
             saved={done={second=1732000000},tracked={},history={"main"}}
             currentIdentity=otherIdentity
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             local mainSnapshot=account.chars[currentIdentity.key]
             assert(mainSnapshot.pts==20 and mainSnapshot.count==1 and mainSnapshot.done.first==nil)
             assert(altSnapshot.done.second==nil and saved.done.second==1732000000)
@@ -206,7 +206,7 @@ class CharacterSnapshotTests(unittest.TestCase):
             assert(catalog.byKey["custom:first"].completionScope=="other_character" and catalog.points==20)
             currentIdentity={key="character:11:Other Realm:Player-MAIN",name="Same",surname="Main",realm="Other Realm",guid="Player-MAIN",verified=true}
             saved={done={},tracked={},history={"other realm"}}
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             assert(account.chars[currentIdentity.key].pts==0 and mainSnapshot.pts==20)
             assert(account.chars[otherIdentity.key]==mainSnapshot and #calls==0)
         ''')
@@ -216,35 +216,35 @@ class CharacterSnapshotTests(unittest.TestCase):
             local old={done={first=100}}
             account.chars["Same-Realm"]=old
             currentIdentity={name="Same",surname="Alt",realm="Realm",verified=false}
-            local ok,reason=ns.FA.SaveCharacter()
+            local ok,reason=ns.LAR.SaveCharacter()
             assert(ok==false and reason=="Character identity unavailable")
             assert(account.chars["Same-Realm"]==old and account.characterSnapshotArchives==nil)
             local count=0; for _ in pairs(account.chars) do count=count+1 end; assert(count==1)
             SecretValue={}; currentIdentity=SecretValue
-            assert(ns.FA.SaveCharacter()==false and saved.done.first==1730000000 and #calls==0)
+            assert(ns.LAR.SaveCharacter()==false and saved.done.first==1730000000 and #calls==0)
         ''')
 
     def test_guid_snapshot_preserves_unavailable_surname_without_losing_reliable_identity(self):
         self.check('''
             currentIdentity.surname=nil
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             local snapshot=account.chars[currentIdentity.key]
             assert(snapshot.identity.guid=="Player-ALT" and snapshot.identity.surname==nil)
             assert(snapshot.name=="Same" and snapshot.surname==nil and snapshot.pts==10)
             currentIdentity={key="Bad",name="Same",realm="Realm",guid="Unavailable",verified=true}
-            assert(ns.FA.SaveCharacter()==false and account.chars.Bad==nil and #calls==0)
+            assert(ns.LAR.SaveCharacter()==false and account.chars.Bad==nil and #calls==0)
         ''')
 
     def test_unexpected_canonical_collision_is_archived_and_snapshot_updates_do_not_merge(self):
         self.check('''
             local old={name="Unknown",done={second=100}}
             account.chars[currentIdentity.key]=old
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             assert(#account.characterSnapshotArchives==1 and account.characterSnapshotArchives[1].snapshot==old)
             assert(old.done.second==100 and account.characterSnapshotArchives[1].key==currentIdentity.key)
             assert(account.chars[currentIdentity.key].done.second==nil)
             saved.done.first=nil; saved.done.second=1732000000
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             local snapshot=account.chars[currentIdentity.key]
             assert(snapshot.done.first==nil and snapshot.done.second==1732000000 and snapshot.pts==20)
             assert(#account.characterSnapshotArchives==1 and saved.history[1]=="keep" and #calls==0)
@@ -253,12 +253,12 @@ class CharacterSnapshotTests(unittest.TestCase):
     def test_malformed_done_values_are_preserved_without_counting_points(self):
         self.check('''
             saved.done.first=0; saved.done.second="Unreadable historical timestamp"
-            assert(ns.FA.SaveCharacter())
+            assert(ns.LAR.SaveCharacter())
             local snapshot=account.chars[currentIdentity.key]
             assert(snapshot.done.first==0 and snapshot.done.second==saved.done.second)
             assert(snapshot.pts==nil and snapshot.count==0 and not snapshot.pointsAvailable and not snapshot.countAvailable)
-            ns.FA.BY_KEY.first.pts=nil; saved.done.first=100; saved.done.second=nil
-            assert(ns.FA.SaveCharacter())
+            ns.LAR.BY_KEY.first.pts=nil; saved.done.first=100; saved.done.second=nil
+            assert(ns.LAR.SaveCharacter())
             snapshot=account.chars[currentIdentity.key]
             assert(snapshot.count==1 and snapshot.pts==nil and not snapshot.pointsAvailable and snapshot.countAvailable)
             assert(saved.done.first==100 and #calls==0)
@@ -280,22 +280,22 @@ class ActualCoreSnapshotIntegrationTests(unittest.TestCase):
             UnitFullName=function() return "Same",surname end
             UnitGUID=function() return guid end
             GetRealmName=function() return "Realm" end
-            ForeverAchievementsDB.settings.accountView=true
-            ForeverAchievementsCharDB.done={pet1=1731000000}
-            assert(ns.FA.SaveCharacter())
-            local main=ns.FA.CharacterIdentity()
-            local snapshot=ns.FA.Account().chars[main.key]
+            LegacyAchievementsReforgedDB.settings.accountView=true
+            LegacyAchievementsReforgedCharDB.done={pet1=1731000000}
+            assert(ns.LAR.SaveCharacter())
+            local main=ns.LAR.CharacterIdentity()
+            local snapshot=ns.LAR.Account().chars[main.key]
             assert(snapshot.identityVersion==1 and snapshot.identity.surname=="Main" and snapshot.pts==10)
             surname,guid="Alt","Player-ALT"
-            ForeverAchievementsCharDB={done={},tracked={},history={"alt history"}}
-            local alt=ns.FA.CharacterIdentity()
-            assert(alt.key~=main.key and ns.FA.Earned("pet1")==nil)
-            assert(ns.FA.SaveCharacter())
+            LegacyAchievementsReforgedCharDB={done={},tracked={},history={"alt history"}}
+            local alt=ns.LAR.CharacterIdentity()
+            assert(alt.key~=main.key and ns.LAR.Earned("pet1")==nil)
+            assert(ns.LAR.SaveCharacter())
             local catalog=ns.CustomAchievementAdapter.Catalog()
             local pet=catalog.byKey["custom:pet1"]
             assert(pet.completed==false and pet.completionScope=="other_character" and catalog.points==0)
-            assert(ns.FA.Account().chars[alt.key].pts==0 and snapshot.done.pet1==1731000000)
-            assert(ForeverAchievementsCharDB.done.pet1==nil and ForeverAchievementsCharDB.history[1]=="alt history")
+            assert(ns.LAR.Account().chars[alt.key].pts==0 and snapshot.done.pet1==1731000000)
+            assert(LegacyAchievementsReforgedCharDB.done.pet1==nil and LegacyAchievementsReforgedCharDB.history[1]=="alt history")
             GetAchievementInfo=function(id) return id,"Explore Azeroth",0,true,10,27,24,"Description",
                 ACHIEVEMENT_FLAGS_ACCOUNT,237388,"",nil,false end
             local native=ns.LegacyAdapter.Resolve(62053)

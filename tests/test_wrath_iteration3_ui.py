@@ -45,13 +45,13 @@ class Iteration3UITests(unittest.TestCase):
             local compactWidth,compactHeight=view.contentScroll:GetWidth(),view.contentScroll:GetHeight()
             view:RenderCard(view.model.byKey['custom:first'],1,0)
             local compactCard,compactDescription=view.cards[1]:GetWidth(),view.cards[1].description:GetWidth()
-            local roofWidth,cornerWidth=FAWrathAchievementFrameHeader:GetWidth(),FAWrathAchievementFrameMetalBorderTopLeft:GetWidth()
+            local roofWidth,cornerWidth=LARWrathAchievementFrameHeader:GetWidth(),LARWrathAchievementFrameMetalBorderTopLeft:GetWidth()
             host:SetSize(1024,860); view:Fit(host)
             view:RenderCard(view.model.byKey['custom:first'],1,0)
             assert(view.root:GetWidth()==1024 and view.root:GetHeight()==720 and view.root:GetScale()==1)
             assert(view.contentScroll:GetWidth()>compactWidth and view.contentScroll:GetHeight()>compactHeight)
             assert(view.cards[1]:GetWidth()>compactCard and view.cards[1].description:GetWidth()>compactDescription)
-            assert(FAWrathAchievementFrameHeader:GetWidth()==roofWidth and FAWrathAchievementFrameMetalBorderTopLeft:GetWidth()==cornerWidth)
+            assert(LARWrathAchievementFrameHeader:GetWidth()==roofWidth and LARWrathAchievementFrameMetalBorderTopLeft:GetWidth()==cornerWidth)
             assert(view.nativeHost:GetWidth()==974 and view.nativeHost:GetHeight()==674)
             assert(view.sizeButton.label:GetText()=='Large')
             for _,preset in pairs(ns.WrathAchievementUI.PRESETS) do
@@ -178,7 +178,7 @@ class Iteration3UITests(unittest.TestCase):
             assert(view.bars[1].text:GetText()=='3/5')
             local source=ns.LegacyPresentation.Summary(view.model)
             assert(source.custom.completed==1 and source.native.completed==2)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='10')
         """)
 
     def test_search_placeholder_clear_and_source_filters_keep_native_state_read_only(self):
@@ -275,9 +275,9 @@ class Iteration3UITests(unittest.TestCase):
 
     def test_owner_drag_and_preset_control_report_callbacks(self):
         self.check("""
-            FAWrathAchievementFrameHeader:Fire('OnDragStart')
+            LARWrathAchievementFrameHeader:Fire('OnDragStart')
             assert(host.moving and dragStarts==1)
-            FAWrathAchievementFrameHeader:Fire('OnDragStop')
+            LARWrathAchievementFrameHeader:Fire('OnDragStop')
             assert(not host.moving and positionSaves==1)
             view.sizeButton:Fire('OnClick'); assert(sizeSelections==0 and view.sizeMenu:IsShown())
             view.sizeChoices[3]:Fire('OnClick')
@@ -289,13 +289,13 @@ class Iteration3UITests(unittest.TestCase):
             for _,tab in ipairs({'rewards','trees'}) do
                 view:SetTab(tab,false)
                 assert(view.nativeHost:IsShown() and not view.nativeBackground:IsShown() and not view.contentBackground:IsShown())
-                assert(not FAWrathAchievementFrameCategoriesBG:IsShown() and not view.contentScroll:IsShown())
+                assert(not LARWrathAchievementFrameCategoriesBG:IsShown() and not view.contentScroll:IsShown())
             end
         """)
 
     def test_matched_roof_counters_are_balanced_and_do_not_share_regions(self):
         root = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
-        window = next(e for e in root if e.get("name") == "FAWrathWindowTemplate")
+        window = next(e for e in root if e.get("name") == "LARWrathWindowTemplate")
         borders = [e for e in window.iter(URI + "Texture") if e.get("name") in ("$parentPointBorder", "$parentLegacyPointBorder")]
         offsets = [e.find(".//" + URI + "Offset").get("x") for e in borders]
         self.assertEqual(offsets, ["-140", "140"])
@@ -303,8 +303,8 @@ class Iteration3UITests(unittest.TestCase):
                          borders[1].find(URI + "Size/" + URI + "AbsDimension").attrib)
         self.check("""
             view.model.custom.points=nil; view.model.native.points=nil; view:SetModel(view.model)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='10+')
+            assert(LARWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
         """)
 
 

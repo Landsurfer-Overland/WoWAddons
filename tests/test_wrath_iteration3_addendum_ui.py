@@ -129,8 +129,8 @@ class AddendumUITests(unittest.TestCase):
         self.check("""
             local current={verified=true,key='AltKey',name='Alt',surname='One',realm='Forever',guid='Player-Alt'}
             local other={verified=true,key='MainKey',name='Main',surname='One',realm='Forever',guid='Player-Main'}
-            ns.FA.CharacterIdentity=function() return current end
-            ns.FA.Account=function() return {chars={MainKey={identity=other,identityVersion=1,
+            ns.LAR.CharacterIdentity=function() return current end
+            ns.LAR.Account=function() return {chars={MainKey={identity=other,identityVersion=1,
                 characterKey='MainKey',completionScope='character',done={second=200}}}} end
             local nativeInfo=GetAchievementInfo
             function GetAchievementInfo(id,index)
@@ -151,7 +151,7 @@ class AddendumUITests(unittest.TestCase):
             assert(view.cards[1].visualState=='native-complete' and view.cards[1].nativeStatus:GetText()=='Completed via Legacy')
             assert(native.completionDetail=='Legacy challenge completed account-wide')
             assert(custom.completed==false and saved.done.second==nil and view.model.custom.points==10)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10' and #calls==0)
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=='10' and #calls==0)
         """)
 
 

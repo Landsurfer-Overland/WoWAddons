@@ -14,11 +14,11 @@ import xml.etree.ElementTree as ET
 try:
     from lupa.lua51 import LuaRuntime
 except ImportError:
-    sys.path.insert(0, "/workspace/.cloud-tools/forever-achievements/python")
+    sys.path.insert(0, "/workspace/.cloud-tools/legacy-achievements-reforged/python")
     from lupa.lua51 import LuaRuntime
 
 ROOT = Path(__file__).resolve().parents[1]
-ADDON = ROOT / "ForeverAchievements"
+ADDON = ROOT / "LegacyAchievementsReforged"
 URI = "{http://www.blizzard.com/wow/ui/}"
 BASE = r'''
 ns = { ICONS = {}, STATS = {} }
@@ -50,7 +50,7 @@ local a = { key = "first", id = 62013, name = "First custom", desc = "Keep this 
 local b = { key = "second", id = 6, name = "Second custom", desc = "Numeric progress", pts = 20,
     progress = function() return 7, 10 end }
 local imported = { key = "imported", name = "Old native import", native = true, pts = 10 }
-ns.FA = { TAG = "FA", Settings = function() return settings end, DB = function() return saved end,
+ns.LAR = { TAG = "LAR", Settings = function() return settings end, DB = function() return saved end,
     Account = function() return { chars = { other = { done = { second = 100 } } } } end,
     Available = function() return true end, Earned = function() return true end,
     ALL = {a, b, imported}, BY_KEY = {first=a, second=b}, SERIES = {},
@@ -368,7 +368,7 @@ function SetupNative()
     InputUtil.RegisterForInterfaceTransitions(LegacySystemFrame)
     InputUtil.RegisterGamepadInit(LegacySystemFrame,function()
         nativeGamepadSawNormal=LegacySystemFrame.Background:IsShown() and LegacySystemFrame:IsMouseEnabled()
-            and (not FAWrathLegacyCover or not FAWrathLegacyCover:IsShown())
+            and (not LARWrathLegacyCover or not LARWrathLegacyCover:IsShown())
     end)
     return page
 end
@@ -412,7 +412,7 @@ class Harness:
 
     def load(self, path):
         fn = self.lua.execute("return assert(loadstring(...))", (ADDON / path).read_text(), "@" + path)
-        fn("ForeverAchievements", self.g.ns)
+        fn("LegacyAchievementsReforged", self.g.ns)
 
     def create(self, kind, name=None, parent=None, template=None):
         f = self.g.UIObject(kind, name, parent)
@@ -477,7 +477,7 @@ class Harness:
         return self.lua.execute(code)
 
     def enable(self):
-        self.execute('ns.FA.SLASH.legacyui("on")')
+        self.execute('ns.LAR.SLASH.legacyui("on")')
         self.execute('FlushTimers()')
 
 
@@ -612,7 +612,7 @@ class AdapterTests(unittest.TestCase):
 
     def test_custom_progress_failure_never_awards_or_deletes_saved_data(self):
         self.check('''
-            ns.FA.BY_KEY.second.progress=function() error("API unavailable") end
+            ns.LAR.BY_KEY.second.progress=function() error("API unavailable") end
             local a=ns.CustomAchievementAdapter.Catalog().byKey["custom:second"]
             assert(a.current==nil and not a.completed)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep")
@@ -633,7 +633,7 @@ class ControllerTests(unittest.TestCase):
 
     def test_default_off_creates_no_cover_or_native_hooks(self):
         self.check('''
-            assert(settings.legacyUI==nil and FAWrathLegacyCover==nil)
+            assert(settings.legacyUI==nil and LARWrathLegacyCover==nil)
             assert(next(LegacySystemFrame.ChallengesPage.hooks)==nil)
             assert(#calls==0)
         ''')
@@ -659,10 +659,10 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             local done,history,explored=saved.done,saved.history,saved.explored
-            local originalDefinition=ns.FA.BY_KEY.first
+            local originalDefinition=ns.LAR.BY_KEY.first
             local cases={{"compact","Compact",768,640,500},{"standard","Standard",960,760,620},{"large","Large",1024,860,720}}
             for _,case in ipairs(cases) do
-                ns.FA.SLASH.legacyui("size "..case[1]); FlushTimers()
+                ns.LAR.SLASH.legacyui("size "..case[1]); FlushTimers()
                 assert(settings.legacyUISize==case[2])
                 assert(c.cover:GetWidth()==case[3] and c.cover:GetHeight()==case[4])
                 assert(c.ui.root:GetWidth()==case[3] and c.ui.root:GetHeight()==case[5])
@@ -671,18 +671,18 @@ class ControllerTests(unittest.TestCase):
                 local _,relative=c.cover:GetPoint(1)
                 assert(relative==UIParent)
                 assert(saved.done==done and saved.history==history and saved.explored==explored)
-                assert(ns.FA.BY_KEY.first==originalDefinition and saved.done.first==1730000000)
+                assert(ns.LAR.BY_KEY.first==originalDefinition and saved.done.first==1730000000)
             end
             assert(saved.history[1]=="keep" and saved.explored.zone.old and #calls==0)
         ''')
 
     def test_selecting_size_while_disabled_does_not_enable_native_replacement(self):
         self.check('''
-            ns.FA.SLASH.legacyui("size large")
+            ns.LAR.SLASH.legacyui("size large")
             assert(settings.legacyUISize=="Large" and not settings.legacyUI)
-            assert(FAWrathLegacyCover==nil and LegacySystemFrame.NativeTabs:IsShown())
+            assert(LARWrathLegacyCover==nil and LegacySystemFrame.NativeTabs:IsShown())
             assert(LegacySystemFrame:IsMouseEnabled() and next(LegacySystemFrame.ChallengesPage.hooks)==nil)
-            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            ns.LAR.SLASH.legacyui("on"); FlushTimers()
             assert(ns.LegacyUIController.cover:GetWidth()==1024 and #calls==0)
         ''')
 
@@ -708,13 +708,13 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            FAWrathAchievementFrameHeader:Fire("OnDragStart")
+            LARWrathAchievementFrameHeader:Fire("OnDragStart")
             assert(c.cover.moving)
             c.cover:ClearAllPoints(); c.cover:SetPoint("CENTER",UIParent,"CENTER",85,-35)
             c:Refresh()
             local _,relative,_,x,y=c.cover:GetPoint(1)
             assert(relative==UIParent and x==85 and y==-35)
-            FAWrathAchievementFrameHeader:Fire("OnDragStop")
+            LARWrathAchievementFrameHeader:Fire("OnDragStop")
             local position=settings.legacyUIPosition
             assert(not c.cover.moving and type(position)=="table")
             assert(position.point=="CENTER" and position.relativePoint=="CENTER")
@@ -752,10 +752,10 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            ns.FA.SLASH.legacyui("size large"); FlushTimers()
+            ns.LAR.SLASH.legacyui("size large"); FlushTimers()
             c.ui.tabs[3]:Fire("OnClick")
             settings.legacyUIPosition={point="CENTER",relativePoint="CENTER",x=99999,y=-99999}
-            ns.FA.SLASH.legacyui("reset"); FlushTimers()
+            ns.LAR.SLASH.legacyui("reset"); FlushTimers()
             local position=settings.legacyUIPosition
             assert(position==nil or position.point=="CENTER" and position.relativePoint=="CENTER" and position.x==0 and position.y==0)
             local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
@@ -768,7 +768,7 @@ class ControllerTests(unittest.TestCase):
     def test_offscreen_saved_position_is_clamped_into_available_screen(self):
         self.check('''
             settings.legacyUIPosition={point="CENTER",relativePoint="CENTER",x=99999,y=-99999}
-            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            ns.LAR.SLASH.legacyui("on"); FlushTimers()
             local cover=ns.LegacyUIController.cover
             local scale=cover:GetEffectiveScale()/UIParent:GetEffectiveScale()
             assert(cover:GetLeft()*scale>=9.99 and cover:GetBottom()*scale>=9.99)
@@ -781,7 +781,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             settings.legacyUISize="Enormous"
             settings.legacyUIPosition={point="NOT_AN_ANCHOR",relativePoint={},x=0/0,y=math.huge}
-            ns.FA.SLASH.legacyui("on"); FlushTimers()
+            ns.LAR.SLASH.legacyui("on"); FlushTimers()
             local c=ns.LegacyUIController
             assert(c.cover:IsVisible() and c.cover:GetWidth()==960 and c.cover:GetHeight()==760)
             local point,relative,relativePoint,x,y=c.cover:GetPoint(1)
@@ -793,8 +793,8 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            ns.FA.SLASH.legacyui("size compact"); FlushTimers()
-            ns.FA.SLASH.legacyui("size unsupported")
+            ns.LAR.SLASH.legacyui("size compact"); FlushTimers()
+            ns.LAR.SLASH.legacyui("size unsupported")
             assert(settings.legacyUISize=="Compact" and settings.legacyUI)
             assert(c.cover:GetWidth()==768 and c.cover:GetHeight()==640 and c.cover:IsVisible())
             assert(LegacySystemFrame.ChallengesPage:GetScript("OnShow")==originalShow and #calls==0)
@@ -815,7 +815,7 @@ class ControllerTests(unittest.TestCase):
                 end
             end
             tree.protected=true; inCombat=true
-            ns.FA.SLASH.legacyui("size large")
+            ns.LAR.SLASH.legacyui("size large")
             assert(settings.legacyUISize=="Large" and writes==0)
             assert(tree:GetParent()==LegacySystemFrame and saved.done.first==1730000000)
             tree.protected=false; inCombat=false
@@ -834,14 +834,14 @@ class ControllerTests(unittest.TestCase):
             c.ui.tabs[2]:Fire("OnClick")
             local fit=c.ui.Fit
             c.ui.Fit=function() error("Injected preset layout failure") end
-            ns.FA.SLASH.legacyui("size compact"); FlushTimers()
+            ns.LAR.SLASH.legacyui("size compact"); FlushTimers()
             local reward=LegacySystemFrame.RewardTrackPage
             assert(not c.cover:IsShown() and c.state:find("Fallback"))
             assert(reward:IsVisible() and reward:GetParent()==LegacySystemFrame and reward:GetScale()==1)
             assert(reward:GetWidth()==910 and reward:GetHeight()==569 and reward.Background:IsShown())
             assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and settings.legacyUISize=="Compact")
-            c.ui.Fit=fit; ns.FA.SLASH.legacyui("on"); FlushTimers()
+            c.ui.Fit=fit; ns.LAR.SLASH.legacyui("on"); FlushTimers()
             assert(c.cover:IsVisible() and c.cover:GetWidth()==768 and #calls==0)
         ''')
 
@@ -851,7 +851,7 @@ class ControllerTests(unittest.TestCase):
             local page=LegacySystemFrame.ChallengesPage
             local provider=page.DetailPane.ScrollBox.dataProvider
             local reward=LegacySystemFrame.RewardTrackPage.majorFactionData
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(not ns.LegacyUIController.cover:IsShown() and settings.legacyUI==false)
             assert(page:GetScript("OnShow")==originalShow and page.DetailPane.ScrollBox.dataProvider==provider)
             assert(page.parent==LegacySystemFrame and page.width==920 and reward.renownLevel==16)
@@ -919,7 +919,7 @@ class ControllerTests(unittest.TestCase):
             end
             c.ui.tabs[2]:Fire("OnClick")
             assert(c.ui.tab=="rewards" and LegacySystemFrame.currentPage==1 and reward:IsVisible())
-            assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>reward:GetFrameLevel())
+            assert(LARWrathAchievementFrameCloseButton:GetFrameLevel()>reward:GetFrameLevel())
             local _,relative=reward:GetPoint(1)
             assert(relative==c.ui.nativeHost and reward:GetParent()==LegacySystemFrame)
             assert(reward.Background:IsShown())
@@ -927,14 +927,14 @@ class ControllerTests(unittest.TestCase):
             assert(reward:GetHeight()*reward:GetEffectiveScale()<=c.ui.nativeHost:GetHeight()*c.ui.nativeHost:GetEffectiveScale()+.01)
             c.ui.tabs[3]:Fire("OnClick")
             assert(c.ui.tab=="trees" and LegacySystemFrame.currentPage==3 and tree:IsVisible())
-            assert(FAWrathAchievementFrameCloseButton:GetFrameLevel()>tree:GetFrameLevel())
+            assert(LARWrathAchievementFrameCloseButton:GetFrameLevel()>tree:GetFrameLevel())
             assert(tree:GetParent()==LegacySystemFrame and tree.Background:IsShown() and tree.VerticalDivider:IsShown())
             assert(not reward:IsShown() and reward:GetParent()==LegacySystemFrame)
             c.ui.tabs[4]:Fire("OnClick")
             assert(c.ui.tab=="statistics" and not reward:IsShown() and not tree:IsShown())
             assert(tree:GetParent()==LegacySystemFrame)
             c.ui.tabs[2]:Fire("OnClick")
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             checkOriginalReward()
             assert(tree:GetScale()==1 and tree.width==920 and tree.height==575 and tree.VerticalDivider:IsShown())
             assert(reward:GetParent()==LegacySystemFrame and reward:IsVisible())
@@ -947,7 +947,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             c.ui.tabs[3]:Fire("OnClick")
-            FAWrathAchievementFrameCloseButton:Fire("OnClick")
+            LARWrathAchievementFrameCloseButton:Fire("OnClick")
             assert(not LegacySystemFrame:IsShown() and not c.cover:IsShown() and rootHides==1)
             assert(LegacySystemFrame.TreePage:GetScale()==1 and LegacySystemFrame.TreePage:GetParent()==LegacySystemFrame)
             LegacySystemFrame:Show()
@@ -969,7 +969,7 @@ class ControllerTests(unittest.TestCase):
             assert(settings.legacyUI)
             ChangeInputMode(false); FlushTimers()
             assert(c.cover:IsVisible() and c.ui.tab=="trees" and #calls==0)
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             ChangeInputMode(true); ChangeInputMode(false); FlushTimers()
             assert(not c.cover:IsShown() and LegacySystemFrame.NativeTabs:IsShown())
         ''')
@@ -977,10 +977,10 @@ class ControllerTests(unittest.TestCase):
     def test_initial_gamepad_enable_resumes_on_mkb_with_already_open_root(self):
         self.check('''
             gamepad=true
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             assert(settings.legacyUI and LegacySystemFrame:IsShown())
             assert(LegacySystemFrame.NativeTabs:IsShown() and LegacySystemFrame:IsMouseEnabled())
-            assert(not FAWrathLegacyCover or not FAWrathLegacyCover:IsShown())
+            assert(not LARWrathLegacyCover or not LARWrathLegacyCover:IsShown())
             ChangeInputMode(false); FlushTimers()
             local c=ns.LegacyUIController
             assert(c.root==LegacySystemFrame and c.cover:IsVisible())
@@ -991,7 +991,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             LegacySystemFrame:Hide()
             gamepad=true
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             assert(not LegacySystemFrame:IsShown())
             ChangeInputMode(false); FlushTimers()
             local c=ns.LegacyUIController
@@ -1020,7 +1020,7 @@ class ControllerTests(unittest.TestCase):
             c.ui.tabs[3]:Fire("OnClick")
             LegacySystemFrame.TreePage.protected=true
             inCombat=true
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(not settings.legacyUI and c.restorePending and c.cover:IsVisible())
             assert(not LegacySystemFrame.NativeTabs:IsShown())
             LegacySystemFrame.TreePage.protected=false
@@ -1038,10 +1038,10 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             local c=ns.LegacyUIController
             c.ui.tabs[3]:Fire("OnClick")
-            FAWrathAchievementFrameHeader:Fire("OnDragStart")
+            LARWrathAchievementFrameHeader:Fire("OnDragStart")
             assert(c.dragging and c.cover.moving)
             c.cover.StopMovingOrSizing=function() error("Injected drag cleanup failure") end
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             local tree=LegacySystemFrame.TreePage
             local point,relative,relativePoint,x,y=tree:GetPoint(1)
             assert(not c.busy and not c.dragging and not c.restorePending and c.bridge==nil)
@@ -1062,7 +1062,7 @@ class ControllerTests(unittest.TestCase):
             local bridge=c.bridge
             local originalRestore=bridge.Restore
             bridge.Restore=function() error("Injected restoration exception") end
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(not settings.legacyUI and not c.busy and c.restorePending)
             assert(c.bridge==bridge and c.cover:IsVisible())
             assert(c.state:find("Restoration pending") and c.state:find("Injected restoration exception"))
@@ -1104,7 +1104,7 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             EventRegistry:TriggerEvent("Legacy.SelectPage",3)
             ChangeInputMode(true); ChangeInputMode(false); FlushTimers()
             assert(not c.cover:IsShown() and LegacySystemFrame.TreePage:IsVisible())
@@ -1116,7 +1116,7 @@ class ControllerTests(unittest.TestCase):
         self.h.enable()
         self.check('''
             local c=ns.LegacyUIController
-            ns.FA.SLASH.legacyui("size large"); FlushTimers()
+            ns.LAR.SLASH.legacyui("size large"); FlushTimers()
             c.ui.tabs[2]:Fire("OnClick")
             UIParent:SetSize(640,480); UIParent:SetScale(.75)
             UIParent:Fire("OnSizeChanged"); FlushTimers()
@@ -1131,7 +1131,7 @@ class ControllerTests(unittest.TestCase):
             UIParent:SetSize(1920,1080); UIParent:SetScale(1)
             UIParent:Fire("OnSizeChanged"); FlushTimers()
             assert(c.cover:GetScale()==1 and c.ui.root:GetScale()==1 and settings.legacyUISize=="Large")
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(page:GetScale()==1 and page:GetParent()==LegacySystemFrame and #calls==0)
         ''')
 
@@ -1140,9 +1140,9 @@ class ControllerTests(unittest.TestCase):
             LegacySystemFrame.EdgeArt:Hide()
             LegacySystemFrame.TitleContainer:Hide()
             LegacySystemFrame.alpha=.73
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             assert(LegacySystemFrame:GetAlpha()==.73)
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(not LegacySystemFrame.EdgeArt:IsShown() and not LegacySystemFrame.TitleContainer:IsShown())
             assert(LegacySystemFrame.Background:IsShown() and LegacySystemFrame:GetAlpha()==.73 and #calls==0)
         ''')
@@ -1150,8 +1150,8 @@ class ControllerTests(unittest.TestCase):
     def test_missing_native_frame_waits_without_loading_or_toggling_blizzard(self):
         self.check('''
             LegacySystemFrame=nil
-            ns.FA.SLASH.legacyui("on")
-            assert(settings.legacyUI and FAWrathLegacyCover==nil)
+            ns.LAR.SLASH.legacyui("on")
+            assert(settings.legacyUI and LARWrathLegacyCover==nil)
             assert(ns.LegacyUIController.state:find("Waiting"))
             SetupNative(); ns.LegacyUIController:Attach()
             assert(ns.LegacyUIController.state=="Enabled" and #calls==0)
@@ -1159,8 +1159,8 @@ class ControllerTests(unittest.TestCase):
 
     def test_combat_defers_initialization_then_resumes(self):
         self.check('''
-            inCombat=true; ns.FA.SLASH.legacyui("on")
-            assert(FAWrathLegacyCover==nil and ns.LegacyUIController.pending)
+            inCombat=true; ns.LAR.SLASH.legacyui("on")
+            assert(LARWrathLegacyCover==nil and ns.LegacyUIController.pending)
             inCombat=false; ns.LegacyUIController:Attach()
             assert(ns.LegacyUIController.cover:IsVisible() and #calls==0)
         ''')
@@ -1168,8 +1168,8 @@ class ControllerTests(unittest.TestCase):
     def test_protected_native_page_falls_back_without_hooks(self):
         self.check('''
             LegacySystemFrame.protected=true
-            ns.FA.SLASH.legacyui("on")
-            assert(FAWrathLegacyCover==nil and ns.LegacyUIController.state:find("Fallback"))
+            ns.LAR.SLASH.legacyui("on")
+            assert(LARWrathLegacyCover==nil and ns.LegacyUIController.state:find("Fallback"))
             assert(next(LegacySystemFrame.ChallengesPage.hooks)==nil and #calls==0)
         ''')
 
@@ -1185,12 +1185,12 @@ class ControllerTests(unittest.TestCase):
     def test_initialization_failure_keeps_native_scripts_and_content(self):
         self.check('''
             ns.WrathAchievementUI.Create=function() error("Unsupported template") end
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             assert(not ns.LegacyUIController.cover:IsShown())
             local page=LegacySystemFrame.ChallengesPage
             assert(page:IsVisible() and page:GetScript("OnShow")==originalShow)
             assert(next(page.hooks)==nil and #calls==0)
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             assert(settings.legacyUI==false)
         ''')
 
@@ -1231,9 +1231,9 @@ class ControllerTests(unittest.TestCase):
             EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo",payload)
             FlushTimers()
             assert(c.ui.nativePoints:GetText()=="21")
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=="10")
+            assert(LARWrathAchievementFrameHeaderPoints:GetText()=="10")
             assert(payload.renownCurrency==999 and payload.quantity==12 and payload.sentinel=="keep")
-            ns.FA.SLASH.legacyui("off")
+            ns.LAR.SLASH.legacyui("off")
             EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo",payload)
             assert(#timers==0 and #calls==0)
         ''')
@@ -1243,7 +1243,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             ns.LegacyUIController:Schedule(); ns.LegacyUIController:Schedule()
             assert(#timers==1)
-            ns.FA.SLASH.legacyui("off"); FlushTimers()
+            ns.LAR.SLASH.legacyui("off"); FlushTimers()
             assert(not ns.LegacyUIController.cover:IsShown() and #calls==0)
         ''')
 
@@ -1292,7 +1292,7 @@ class ControllerTests(unittest.TestCase):
         self.check('''
             GetCategoryList=nil; C_MajorFactions.GetCurrentRenownLevel=nil
             LegacySystemFrame.ChallengesPage.DetailPane.ScrollBox.dataProvider=nil
-            ns.FA.SLASH.legacyui("on")
+            ns.LAR.SLASH.legacyui("on")
             local ui=ns.LegacyUIController.ui
             assert(ui.notice:GetText():find("unavailable"))
             assert(ui.nativePoints:GetText()=="—")
@@ -1312,46 +1312,47 @@ class CoreIntegrationTests(unittest.TestCase):
             function GetRealmName() return "Fixture Realm" end
             function UnitGUID() return "Player-TEST" end
             C_Timer.NewTicker=function() return {} end
-            ForeverAchievementsCharDB=saved
+            LegacyAchievementsReforgedCharDB=saved
         ''')
         for name in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
-                     "DataExtra.lua", "MoneyTracking.lua", "ForeverAchievements.lua", "Integrations/CustomAdapter.lua"):
+                     "DataExtra.lua", "MoneyTracking.lua", "LegacyAchievementsReforged.lua", "Integrations/CustomAdapter.lua"):
             h.load(name)
         return h
 
     def test_real_definitions_keep_saved_keys_and_build_custom_criteria(self):
         h = self.core_harness()
         h.execute('''
-            ForeverAchievementsCharDB.done.lvl10=1730000000
+            LegacyAchievementsReforgedCharDB.done.lvl10=1730000000
             local c=ns.CustomAchievementAdapter.Catalog()
-            assert(#ns.FA.ALL==322 and #c.records>100)
+            assert(#ns.LAR.ALL==322 and #c.records>100)
             assert(c.byKey["custom:lvl10"].completed)
-            assert(ForeverAchievementsCharDB.done.first==1730000000)
-            assert(ForeverAchievementsCharDB.history[1]=="keep")
+            assert(LegacyAchievementsReforgedCharDB.done.first==1730000000)
+            assert(LegacyAchievementsReforgedCharDB.history[1]=="keep")
             for _, row in ipairs(c.records) do
                 assert(not row.achievement.native)
                 ns.CustomAchievementAdapter.Criteria(row)
             end
-            assert(SLASH_FOREVERACHIEVEMENTS3=="/fa")
+            assert(SLASH_LEGACYACHIEVEMENTSREFORGED1=="/lar")
+            assert(SLASH_LEGACYACHIEVEMENTSREFORGED3=="/legacyachievements")
             assert(#calls==0)
         ''')
 
     def test_unsupported_daily_definitions_preserve_history_without_reading_progress(self):
         h=self.core_harness()
         h.execute('''
-            local db=ns.FA.DB()
+            local db=ns.LAR.DB()
             db.done.d5=12345; db.done.request=54321; db.tracked.d5=true
             db.dailyLast=17; db.dailyDays={old=true}
             local dailyKeys={"d5","d50","d200","d500","d1000","request"}
             for _,key in ipairs(dailyKeys) do
-                local definition=ns.FA.BY_KEY[key]
-                assert(definition and definition.unsupported and not ns.FA.Available(definition))
+                local definition=ns.LAR.BY_KEY[key]
+                assert(definition and definition.unsupported and not ns.LAR.Available(definition))
                 definition.progress=function() error("Unsupported daily progress must not be queried") end
             end
             GetStatistic=function(id) assert(id~=97); return nil end
             local catalog=ns.CustomAchievementAdapter.Catalog()
             for _,key in ipairs(dailyKeys) do assert(catalog.byKey["custom:"..key]==nil) end
-            assert(#ns.FA.ALL==322 and db.done.d5==12345 and db.done.request==54321)
+            assert(#ns.LAR.ALL==322 and db.done.d5==12345 and db.done.request==54321)
             assert(db.dailyLast==17 and db.dailyDays.old and db.tracked.d5)
             assert(db.history[1]=="keep" and db.done.first==1730000000 and #calls==0)
         ''')
@@ -1359,17 +1360,17 @@ class CoreIntegrationTests(unittest.TestCase):
     def test_quest_seam_distinguishes_missing_counts_zero_and_completed_ids(self):
         h=self.core_harness()
         h.execute('''
-            local quests=ns.FA.QuestTracking
+            local quests=ns.LAR.QuestTracking
             GetStatistic=nil; C_QuestLog=nil; GetQuestsCompleted=nil
             assert(quests.Count()==nil and quests.CompletedIDs()==nil)
-            local current,required=ns.FA.BY_KEY.q50.progress()
+            local current,required=ns.LAR.BY_KEY.q50.progress()
             assert(current==nil and required==50)
             local loreEK,loreKal=quests.LoremasterCounts()
             assert(loreEK==nil and loreKal==nil)
-            current=ns.FA.BY_KEY.loreEK.progress(); assert(current==nil)
+            current=ns.LAR.BY_KEY.loreEK.progress(); assert(current==nil)
             GetStatistic=function(id) assert(id==98); return "0" end
             assert(quests.Count()==0)
-            current=ns.FA.BY_KEY.q50.progress(); assert(current==0)
+            current=ns.LAR.BY_KEY.q50.progress(); assert(current==0)
             C_QuestLog={GetAllCompletedQuestIDs=function() return {100,200,300} end}
             assert(quests.Count()==3 and #quests.CompletedIDs()==3)
             GetStatistic=function() return "75" end
@@ -1397,15 +1398,15 @@ class PackagingTests(unittest.TestCase):
     def test_runtime_templates_are_namespaced_and_do_not_load_native_backend(self):
         root = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
         for element in root:
-            self.assertTrue(element.get("name").startswith("FAWrath"))
+            self.assertTrue(element.get("name").startswith("LARWrath"))
             self.assertEqual(element.get("virtual"), "true")
         for element in root.iter():
             self.assertFalse(element.get("parent") == "UIParent")
             self.assertNotEqual(element.get("toplevel"), "true")
             if element.tag == URI + "Scripts":
                 for callback in element:
-                    self.assertIn("ForeverAchievementsWrathUI.", callback.text)
-        toc = (ADDON / "ForeverAchievements.toc").read_text()
+                    self.assertIn("LegacyAchievementsReforgedWrathUI.", callback.text)
+        toc = (ADDON / "LegacyAchievementsReforged.toc").read_text()
         self.assertNotIn("References", toc)
         self.assertLess(toc.index("UI\\WrathAchievementUI.lua"), toc.index("UI\\WrathAchievementUI.xml"))
         self.assertLess(toc.index("UI\\WrathAchievementUI.xml"), toc.index("Integrations\\LegacyController.lua"))

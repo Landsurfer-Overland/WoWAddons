@@ -48,11 +48,11 @@ class CoreHarness(Harness):
                 return mapID==1450 and {mapID=1450,name="Moonglade"} or nil
             end}
             C_Timer.NewTicker=function() return {} end
-            ForeverAchievementsCharDB=saved
-            ForeverAchievementsDB={chars={},settings={toasts=false,sound=false}}
+            LegacyAchievementsReforgedCharDB=saved
+            LegacyAchievementsReforgedDB={chars={},settings={toasts=false,sound=false}}
         ''')
         for path in ("AlphaUI.lua", "Data.lua", "DataQuests.lua", "DataProfDungeons.lua",
-                     "DataExtra.lua", "MoneyTracking.lua", "ForeverAchievements.lua"):
+                     "DataExtra.lua", "MoneyTracking.lua", "LegacyAchievementsReforged.lua"):
             self.load(path)
         self.execute('''
             -- Keep the exact production definitions/closure-held ALL table;
@@ -60,8 +60,8 @@ class CoreHarness(Harness):
             function SelectAchievements(...)
                 local wanted={}
                 for _,key in ipairs({...}) do wanted[key]=true end
-                for i=#ns.FA.ALL,1,-1 do
-                    if not wanted[ns.FA.ALL[i].key] then table.remove(ns.FA.ALL,i) end
+                for i=#ns.LAR.ALL,1,-1 do
+                    if not wanted[ns.LAR.ALL[i].key] then table.remove(ns.LAR.ALL,i) end
                 end
             end
             function CoreEvent(event,...)
@@ -86,7 +86,7 @@ class PetOwnershipTests(unittest.TestCase):
             local done,history=saved.done,saved.history
             CoreEvent("PLAYER_LOGIN"); FlushTimers()
             assert(saved.done.pet1==nil and saved.done.pet15==nil)
-            local current,need=ns.FA.BY_KEY.pet15.progress()
+            local current,need=ns.LAR.BY_KEY.pet15.progress()
             assert(current==0 and need==15)
             assert(saved.done==done and saved.history==history and saved.history[1]=="keep")
             assert(saved.done.first==1730000000 and saved.petsBest==15 and #calls==0)
@@ -104,27 +104,27 @@ class PetOwnershipTests(unittest.TestCase):
         self.h.execute('''
             GetNumCompanions=nil; C_PetJournal.GetNumPets=function() error("Account journal unavailable") end
             bagItems[0]={12345,12345}; bagItems[1]={12345}
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1 and saved.done.pet15==nil)
-            local current,need=ns.FA.BY_KEY.pet15.progress()
+            local current,need=ns.LAR.BY_KEY.pet15.progress()
             assert(current==1 and need==15 and #calls==0)
         ''')
 
     def test_verified_pet_item_history_survives_bag_removal_without_leaking_to_an_alt(self):
         self.h.execute('''
             bagItems[0]={12345}
-            ns.FA.CheckAll(true)
-            local originalDB=ForeverAchievementsCharDB
+            ns.LAR.CheckAll(true)
+            local originalDB=LegacyAchievementsReforgedCharDB
             local completedAt=originalDB.done.pet1
             assert(completedAt)
             bagItems={}
-            local current,need=ns.FA.BY_KEY.pet15.progress()
+            local current,need=ns.LAR.BY_KEY.pet15.progress()
             assert(current==1 and need==15 and originalDB.done.pet1==completedAt)
             currentName="Other"; currentSurname="Character"
-            ForeverAchievementsCharDB={done={},tracked={},history={"other"},explored={}}
-            ns.FA.CheckAll(true)
-            current,need=ns.FA.BY_KEY.pet15.progress()
-            assert(current==0 and need==15 and ForeverAchievementsCharDB.done.pet1==nil)
+            LegacyAchievementsReforgedCharDB={done={},tracked={},history={"other"},explored={}}
+            ns.LAR.CheckAll(true)
+            current,need=ns.LAR.BY_KEY.pet15.progress()
+            assert(current==0 and need==15 and LegacyAchievementsReforgedCharDB.done.pet1==nil)
             assert(originalDB.done.pet1==completedAt and originalDB.history[1]=="keep" and #calls==0)
         ''')
 
@@ -135,9 +135,9 @@ class PetOwnershipTests(unittest.TestCase):
             GetNumCompanions=function() error("Character collection unavailable") end
             C_Container.GetContainerNumSlots=function() error("Bag data unavailable") end
             C_PetJournal.GetNumPets=function() return 100,99 end
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1==112233 and saved.done.pet15==nil)
-            local current,need=ns.FA.BY_KEY.pet15.progress()
+            local current,need=ns.LAR.BY_KEY.pet15.progress()
             assert(current==nil and need==15)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -148,11 +148,11 @@ class PetOwnershipTests(unittest.TestCase):
             SecretTestValue=setmetatable({}, {__tostring=function() error("Secret value conversion") end})
             for _,value in ipairs({-1,math.huge,0/0,"15",true,SecretTestValue}) do
                 companionCount=value
-                ns.FA.CheckAll(true)
+                ns.LAR.CheckAll(true)
                 assert(saved.done.pet1==nil and saved.done.pet15==nil)
             end
             companionCount=nil
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1==nil and saved.done.pet15==nil and #calls==0)
         ''')
 
@@ -168,11 +168,11 @@ class ExplorationTests(unittest.TestCase):
 
     def test_zone_entry_and_login_do_not_complete_moonglades_single_criterion(self):
         self.h.execute('''
-            assert(ns.FA.BY_KEY.explore855.id==855)
+            assert(ns.LAR.BY_KEY.explore855.id==855)
             CoreEvent("PLAYER_LOGIN"); FlushTimers()
             CoreEvent("ZONE_CHANGED_NEW_AREA"); FlushTimers()
             assert(saved.done.explore855==nil)
-            local current,need=ns.FA.BY_KEY.explore855.progress()
+            local current,need=ns.LAR.BY_KEY.explore855.progress()
             assert(current==nil or current<need)
             assert(saved.explored.zone.old and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -184,7 +184,7 @@ class ExplorationTests(unittest.TestCase):
                 return {{offsetX=244,offsetY=89,textureWidth=512,textureHeight=512,isShownByMouseOver=false}}
             end}
             CoreEvent("PLAYER_LOGIN"); FlushTimers()
-            assert(saved.done.explore855 and ns.FA.BY_KEY.explore855.has("Moonglade"))
+            assert(saved.done.explore855 and ns.LAR.BY_KEY.explore855.has("Moonglade"))
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
@@ -196,7 +196,7 @@ class ExplorationTests(unittest.TestCase):
                         {offsetX=244,offsetY=0/0},{offsetX=100,offsetY=100},
                         {offsetX=244,offsetY=89,textureWidth=512,textureHeight=512,isShownByMouseOver=true}}
             end}
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.explore855==nil and saved.explored.zone.old and #calls==0)
         ''')
 
@@ -217,7 +217,7 @@ class ExplorationTests(unittest.TestCase):
                 assert(mapID==1450)
                 return {{offsetX=244,offsetY=89,textureWidth=512,textureHeight=512,isShownByMouseOver=SecretTestValue}}
             end}
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.explore855==nil and saved.history[1]=="keep" and #calls==0)
         ''')
 
@@ -250,7 +250,7 @@ class ExplorationTests(unittest.TestCase):
                 assert(mapID==9450)
                 return {{offsetX=245,offsetY=88,textureWidth=256,textureHeight=128,isShownByMouseOver=false}}
             end}
-            local current,needed=ns.FA.BY_KEY.explore855.progress()
+            local current,needed=ns.LAR.BY_KEY.explore855.progress()
             assert(current==1 and needed==1 and saved.done.explore855==nil)
             local proof=saved.explorationEvidence.explore855.Moonglade
             assert(proof.kind=="revealed-map-overlay" and proof.verified)
@@ -259,13 +259,13 @@ class ExplorationTests(unittest.TestCase):
             assert(proof.textureWidth==256 and proof.textureHeight==128)
             C_Map=nil; C_MapExplorationInfo=nil
         ''')
-        self.h.load("ForeverAchievements.lua")
+        self.h.load("LegacyAchievementsReforged.lua")
         self.h.execute('''
             SelectAchievements("explore855"); timers={}
-            local current,needed=ns.FA.BY_KEY.explore855.progress()
-            assert(current==1 and needed==1 and ns.FA.BY_KEY.explore855.has("Moonglade")==true)
-            ns.FA.CheckAll(true)
-            assert(ns.FA.Earned("explore855") and saved.explorationEvidence.explore855.Moonglade.mapID==9450)
+            local current,needed=ns.LAR.BY_KEY.explore855.progress()
+            assert(current==1 and needed==1 and ns.LAR.BY_KEY.explore855.has("Moonglade")==true)
+            ns.LAR.CheckAll(true)
+            assert(ns.LAR.Earned("explore855") and saved.explorationEvidence.explore855.Moonglade.mapID==9450)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
@@ -277,9 +277,9 @@ class ExplorationTests(unittest.TestCase):
                 local proof={kind="revealed-map-overlay",verified=true,mapID=9450,zoneName=case.name,
                     offsetX=244,offsetY=89,textureWidth=256,textureHeight=128}
                 saved.explorationEvidence={explore855={Moonglade=proof}}
-                local current,needed=ns.FA.BY_KEY.explore855.progress()
-                assert(current==nil and needed==1 and ns.FA.BY_KEY.explore855.has("Moonglade")==nil)
-                ns.FA.CheckAll(true)
+                local current,needed=ns.LAR.BY_KEY.explore855.progress()
+                assert(current==nil and needed==1 and ns.LAR.BY_KEY.explore855.has("Moonglade")==nil)
+                ns.LAR.CheckAll(true)
                 assert(saved.done.explore855==nil and saved.explorationEvidence.explore855.Moonglade==proof)
             end
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
@@ -298,9 +298,9 @@ class ExplorationTests(unittest.TestCase):
                             offsetX=244,offsetY=89,textureWidth=256,textureHeight=128}
                         proof[field]=case.value
                         saved.explorationEvidence={explore855={Moonglade=proof}}
-                        local current,needed=ns.FA.BY_KEY.explore855.progress()
+                        local current,needed=ns.LAR.BY_KEY.explore855.progress()
                         assert(current==nil and needed==1)
-                        ns.FA.CheckAll(true)
+                        ns.LAR.CheckAll(true)
                         assert(saved.done.explore855==nil and saved.explorationEvidence.explore855.Moonglade==proof)
                     end
                 end
@@ -316,67 +316,67 @@ class CharacterScopeTests(unittest.TestCase):
 
     def test_account_view_never_changes_current_character_completion_or_points(self):
         self.h.execute('''
-            local account=ns.FA.Account()
+            local account=ns.LAR.Account()
             account.chars["Main-Realm One"]={name="Main",realm="Realm One",done={pet1=123456,explore855=123457}}
             local snapshot=account.chars["Main-Realm One"]
-            ns.FA.Settings().accountView=true
-            assert(ns.FA.Earned("pet1")==nil and ns.FA.Earned("explore855")==nil)
-            local points,possible,count=ns.FA.TotalPoints()
+            ns.LAR.Settings().accountView=true
+            assert(ns.LAR.Earned("pet1")==nil and ns.LAR.Earned("explore855")==nil)
+            local points,possible,count=ns.LAR.TotalPoints()
             assert(points==0 and possible==20 and count==0)
             assert(saved.done.pet1==nil and saved.done.explore855==nil)
             assert(snapshot.done.pet1==123456 and snapshot.done.explore855==123457)
             saved.done.pet1=234567
-            assert(ns.FA.Earned("pet1")==234567)
-            points,possible,count=ns.FA.TotalPoints()
+            assert(ns.LAR.Earned("pet1")==234567)
+            points,possible,count=ns.LAR.TotalPoints()
             assert(points==10 and possible==20 and count==1)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
     def test_switching_same_name_on_different_realms_uses_the_loaded_character_db(self):
         self.h.execute('''
-            ns.FA.Settings().accountView=true
+            ns.LAR.Settings().accountView=true
             saved.done.pet1=345678
-            ns.FA.Account().chars["Alt-Realm One"]={name="Alt",realm="Realm One",done={pet1=345678}}
-            local previousDB=ForeverAchievementsCharDB
+            ns.LAR.Account().chars["Alt-Realm One"]={name="Alt",realm="Realm One",done={pet1=345678}}
+            local previousDB=LegacyAchievementsReforgedCharDB
             currentRealm="Realm Two"
-            ForeverAchievementsCharDB={done={},tracked={},history={"alt history"},explored={}}
-            assert(ns.FA.Earned("pet1")==nil and ns.FA.Earned("explore855")==nil)
-            ns.FA.CheckAll(true)
-            assert(ForeverAchievementsCharDB.done.pet1==nil and ForeverAchievementsCharDB.done.explore855==nil)
-            assert(ForeverAchievementsCharDB.history[1]=="alt history")
+            LegacyAchievementsReforgedCharDB={done={},tracked={},history={"alt history"},explored={}}
+            assert(ns.LAR.Earned("pet1")==nil and ns.LAR.Earned("explore855")==nil)
+            ns.LAR.CheckAll(true)
+            assert(LegacyAchievementsReforgedCharDB.done.pet1==nil and LegacyAchievementsReforgedCharDB.done.explore855==nil)
+            assert(LegacyAchievementsReforgedCharDB.history[1]=="alt history")
             assert(previousDB.done.pet1==345678 and previousDB.done.first==1730000000)
-            assert(ns.FA.Account().chars["Alt-Realm One"].done.pet1==345678 and #calls==0)
-            currentRealm="Realm One"; ForeverAchievementsCharDB=previousDB
-            assert(ns.FA.Earned("pet1")==345678)
+            assert(ns.LAR.Account().chars["Alt-Realm One"].done.pet1==345678 and #calls==0)
+            currentRealm="Realm One"; LegacyAchievementsReforgedCharDB=previousDB
+            assert(ns.LAR.Earned("pet1")==345678)
         ''')
 
     def test_malformed_completion_records_are_preserved_without_counting_as_earned(self):
         self.h.execute('''
             for _,value in ipairs({0,-1,math.huge,0/0,"123456",true,{}}) do
                 saved.done.pet1=value
-                assert(ns.FA.Earned("pet1")==nil)
-                local points,_,count=ns.FA.TotalPoints()
+                assert(ns.LAR.Earned("pet1")==nil)
+                local points,_,count=ns.LAR.TotalPoints()
                 assert(points==0 and count==0)
                 assert(saved.done.pet1==value or value~=value)
             end
             saved.done.pet1=567890
-            assert(ns.FA.Earned("pet1")==567890 and saved.history[1]=="keep" and #calls==0)
+            assert(ns.LAR.Earned("pet1")==567890 and saved.history[1]=="keep" and #calls==0)
         ''')
 
     def test_character_identity_keeps_surname_and_realm_distinct_and_rejects_unknowns(self):
         self.h.execute('''
-            local first=ns.FA.CharacterIdentity()
+            local first=ns.LAR.CharacterIdentity()
             assert(type(first)=="table" and type(first.key)=="string" and first.name=="Alt")
             assert(first.surname=="Surname" and first.realm=="Realm One")
             currentRealm="Realm Two"
-            local otherRealm=ns.FA.CharacterIdentity()
+            local otherRealm=ns.LAR.CharacterIdentity()
             assert(otherRealm.key~=first.key and otherRealm.realm=="Realm Two")
             currentRealm="Realm One"; currentSurname="Other Surname"
-            assert(ns.FA.CharacterIdentity().key~=first.key)
+            assert(ns.LAR.CharacterIdentity().key~=first.key)
             currentSurname="Surname"; currentName=nil
-            assert(ns.FA.CharacterIdentity()==nil)
+            assert(ns.LAR.CharacterIdentity()==nil)
             currentName="Alt"; GetRealmName=function() error("Realm unavailable") end
-            assert(ns.FA.CharacterIdentity()==nil and saved.done.first==1730000000 and #calls==0)
+            assert(ns.LAR.CharacterIdentity()==nil and saved.done.first==1730000000 and #calls==0)
         ''')
 
 
@@ -386,9 +386,9 @@ class MetaCompletionTests(unittest.TestCase):
         self.h.execute('''
             SelectAchievements("loremaster","exploreEK","exploreKal","worldexplorer")
             function SaveContinentChildren(key,timestamp)
-                local meta=ns.FA.BY_KEY[key]
+                local meta=ns.LAR.BY_KEY[key]
                 for _,name in ipairs(meta.list) do
-                    local child=ns.FA.ZONE_ACH[name]
+                    local child=ns.LAR.ZONE_ACH[name]
                     assert(child)
                     saved.done[child.key]=timestamp
                 end
@@ -398,8 +398,8 @@ class MetaCompletionTests(unittest.TestCase):
     def test_malformed_child_completions_cannot_unlock_character_metas(self):
         self.h.execute('''
             SecretTestValue=setmetatable({}, {__tostring=function() error("Secret meta timestamp conversion") end})
-            local firstName=ns.FA.BY_KEY.exploreEK.list[1]
-            local firstKey=ns.FA.ZONE_ACH[firstName].key
+            local firstName=ns.LAR.BY_KEY.exploreEK.list[1]
+            local firstKey=ns.LAR.ZONE_ACH[firstName].key
             for _,value in ipairs({0,-1,true,false,"123456",{},math.huge,0/0,SecretTestValue}) do
                 SaveContinentChildren("exploreEK",123456)
                 saved.done[firstKey]=value
@@ -407,10 +407,10 @@ class MetaCompletionTests(unittest.TestCase):
                 saved.done.worldexplorer=nil; saved.done.loremaster=nil
                 saved.done.loreEK=123456; saved.done.loreKal=value
                 for _,key in ipairs({"loremaster","exploreEK","worldexplorer"}) do
-                    local current,needed=ns.FA.BY_KEY[key].progress()
+                    local current,needed=ns.LAR.BY_KEY[key].progress()
                     assert(current==nil and needed>0)
                 end
-                ns.FA.CheckAll(true)
+                ns.LAR.CheckAll(true)
                 assert(saved.done.loremaster==nil and saved.done.exploreEK==nil and saved.done.worldexplorer==nil)
                 assert(saved.done[firstKey]==value or value~=value)
             end
@@ -423,21 +423,21 @@ class MetaCompletionTests(unittest.TestCase):
             SaveContinentChildren("exploreKal",234567)
             -- This fixture represents genuine history, including the owning
             -- character's Moonglade attribution introduced in Iteration 4.
-            assert(ns.FA.CompletionStatus("explore855")==nil)
-            local identity=ns.FA.CharacterIdentity()
+            assert(ns.LAR.CompletionStatus("explore855")==nil)
+            local identity=ns.LAR.CharacterIdentity()
             saved.completionAttribution={explore855={completedAt=saved.done.explore855,
                 characterKey=identity.key,identity=identity,version=1}}
-            assert(ns.FA.CompletionStatus("explore855")==true)
+            assert(ns.LAR.CompletionStatus("explore855")==true)
             saved.done.loreEK=345678; saved.done.loreKal=456789
             GetStatistic=nil; C_QuestLog=nil; GetQuestsCompleted=nil
             C_Map=nil; C_MapExplorationInfo=nil
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             for _,key in ipairs({"loremaster","exploreEK","exploreKal","worldexplorer"}) do
-                assert(ns.FA.Earned(key))
-                local current,needed=ns.FA.BY_KEY[key].progress()
+                assert(ns.LAR.Earned(key))
+                local current,needed=ns.LAR.BY_KEY[key].progress()
                 assert(current==needed and needed>0)
             end
-            local points,possible,count=ns.FA.TotalPoints()
+            local points,possible,count=ns.LAR.TotalPoints()
             assert(points==110 and possible==110 and count==4)
             assert(saved.done.loreEK==345678 and saved.done.loreKal==456789)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
@@ -445,7 +445,7 @@ class MetaCompletionTests(unittest.TestCase):
 
     def test_meta_details_keep_eastern_kingdoms_and_kalimdor_completion_independent(self):
         self.h.execute('''
-            local world,lore=ns.FA.BY_KEY.worldexplorer,ns.FA.BY_KEY.loremaster
+            local world,lore=ns.LAR.BY_KEY.worldexplorer,ns.LAR.BY_KEY.loremaster
             saved.done.exploreEK=123456; saved.done.exploreKal=nil
             saved.done.loreEK=234567; saved.done.loreKal=nil
             assert(world.has("Eastern Kingdoms")==true and world.has("Kalimdor")==false)
@@ -459,16 +459,16 @@ class MetaCompletionTests(unittest.TestCase):
             saved.done.exploreKal=345678; saved.done.loreKal=456789
             assert(world.has("Kalimdor")==nil)
             saved.done.explore855=345600
-            local identity=ns.FA.CharacterIdentity()
+            local identity=ns.LAR.CharacterIdentity()
             saved.completionAttribution={explore855={completedAt=saved.done.explore855,
                 characterKey=identity.key,identity=identity,version=1}}
             assert(world.has("Kalimdor")==true and lore.has("Loremaster of Kalimdor")==true)
-            local continent=ns.FA.BY_KEY.exploreEK
+            local continent=ns.LAR.BY_KEY.exploreEK
             local first,second=continent.list[1],continent.list[2]
-            saved.done[ns.FA.ZONE_ACH[first].key]=567890
-            saved.done[ns.FA.ZONE_ACH[second].key]=nil
+            saved.done[ns.LAR.ZONE_ACH[first].key]=567890
+            saved.done[ns.LAR.ZONE_ACH[second].key]=nil
             assert(continent.has(first)==true and continent.has(second)==false)
-            saved.done[ns.FA.ZONE_ACH[second].key]={}
+            saved.done[ns.LAR.ZONE_ACH[second].key]={}
             assert(continent.has(second)==nil)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -548,7 +548,7 @@ class FallVerificationTests(unittest.TestCase):
     def test_old_unverified_fall_boolean_cannot_create_a_new_completion(self):
         self.h.execute('''
             saved.fall=true
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.fall==nil and saved.fall==true)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -560,10 +560,10 @@ class CorrectionTests(unittest.TestCase):
         self.h.execute('''
             SelectAchievements("pet1","explore855")
             saved.done.pet1=123456; saved.done.explore855=234567
-            ns.FA.Account().chars["another-character"]={name="Other",realm="Realm One",done={pet1=345678}}
+            ns.LAR.Account().chars["another-character"]={name="Other",realm="Realm One",done={pet1=345678}}
             function PreviewCorrection(key)
-                ns.FA.SLASH.correctachievement(key)
-                local pending=ns.FA.ProgressionDiagnostics.PendingCorrection()
+                ns.LAR.SLASH.correctachievement(key)
+                local pending=ns.LAR.ProgressionDiagnostics.PendingCorrection()
                 local token=type(pending)=="table" and pending.token or pending
                 assert(type(token)=="string" and token~="")
                 return token
@@ -572,27 +572,27 @@ class CorrectionTests(unittest.TestCase):
 
     def test_preview_inspection_and_wrong_confirmation_never_delete_progress(self):
         self.h.execute('''
-            local db,done,history=ForeverAchievementsCharDB,saved.done,saved.history
-            ns.FA.SLASH.inspectachievement("pet1")
+            local db,done,history=LegacyAchievementsReforgedCharDB,saved.done,saved.history
+            ns.LAR.SLASH.inspectachievement("pet1")
             local token=PreviewCorrection("pet1")
-            ns.FA.SLASH.correctachievement("pet1 confirm WRONG_TOKEN")
-            ns.FA.SLASH.correctachievement("explore855 confirm "..token)
-            assert(ForeverAchievementsCharDB==db and saved.done==done and saved.history==history)
+            ns.LAR.SLASH.correctachievement("pet1 confirm WRONG_TOKEN")
+            ns.LAR.SLASH.correctachievement("explore855 confirm "..token)
+            assert(LegacyAchievementsReforgedCharDB==db and saved.done==done and saved.history==history)
             assert(saved.done.pet1==123456 and saved.done.explore855==234567)
-            assert(ns.FA.Account().chars["another-character"].done.pet1==345678 and #calls==0)
+            assert(ns.LAR.Account().chars["another-character"].done.pet1==345678 and #calls==0)
         ''')
 
     def test_confirmed_correction_is_limited_to_the_target_on_the_current_character(self):
         self.h.execute('''
             local token=PreviewCorrection("pet1")
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==nil and saved.done.explore855==234567)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and saved.explored.zone.old)
-            assert(ns.FA.Account().chars["another-character"].done.pet1==345678)
-            ns.FA.CheckAll(true)
+            assert(ns.LAR.Account().chars["another-character"].done.pet1==345678)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1==nil and saved.done.explore855==234567 and #calls==0)
             saved.done.pet1=987654
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==987654)
         ''')
 
@@ -600,7 +600,7 @@ class CorrectionTests(unittest.TestCase):
         self.h.execute('''
             local token=PreviewCorrection("pet1")
             saved.done.pet1=987654
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==987654 and saved.done.explore855==234567)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -609,12 +609,12 @@ class CorrectionTests(unittest.TestCase):
         self.h.execute('''
             local token=PreviewCorrection("pet1")
             currentRealm="Realm Two"
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==123456)
             currentRealm="Realm One"
             token=PreviewCorrection("pet1")
             testClock=testClock+61
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==123456 and saved.done.explore855==234567)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
@@ -622,42 +622,42 @@ class CorrectionTests(unittest.TestCase):
     def test_correction_hold_preserves_source_evidence_until_separately_confirmed_resume(self):
         self.h.execute('''
             bagItems[0]={12345}
-            ns.FA.BY_KEY.pet1.progress() -- observe actual current-character acquisition
+            ns.LAR.BY_KEY.pet1.progress() -- observe actual current-character acquisition
             bagItems={}
             local evidence=saved.characterPetItems
             local token=PreviewCorrection("pet1")
-            local copy=ns.FA.ProgressionDiagnostics.PendingCorrection()
+            local copy=ns.LAR.ProgressionDiagnostics.PendingCorrection()
             copy.token="changed by caller"; copy.key="explore855"
-            ns.FA.SLASH.correctachievement("pet1 confirm "..token)
+            ns.LAR.SLASH.correctachievement("pet1 confirm "..token)
             assert(saved.done.pet1==nil and saved.completionCorrections.pet1)
             assert(saved.characterPetItems==evidence and evidence[12345])
             assert(saved.correctionHistory[1].key=="pet1" and saved.correctionHistory[1].completion==123456)
-            assert(saved.correctionHistory[1].characterKey==ns.FA.CharacterIdentity().key)
-            CoreEvent("BAG_UPDATE_DELAYED"); ns.FA.CheckAll(true)
+            assert(saved.correctionHistory[1].characterKey==ns.LAR.CharacterIdentity().key)
+            CoreEvent("BAG_UPDATE_DELAYED"); ns.LAR.CheckAll(true)
             assert(saved.done.pet1==nil and saved.completionCorrections.pet1)
-            ns.FA.SLASH.correctachievement("pet1 resume")
-            local pending=ns.FA.ProgressionDiagnostics.PendingCorrection()
+            ns.LAR.SLASH.correctachievement("pet1 resume")
+            local pending=ns.LAR.ProgressionDiagnostics.PendingCorrection()
             assert(pending.action=="resume" and pending.token~=token)
-            ns.FA.SLASH.correctachievement("pet1 resume confirm "..token)
-            ns.FA.CheckAll(true)
+            ns.LAR.SLASH.correctachievement("pet1 resume confirm "..token)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1==nil and saved.completionCorrections.pet1)
-            ns.FA.SLASH.correctachievement("pet1 resume confirm "..pending.token)
+            ns.LAR.SLASH.correctachievement("pet1 resume confirm "..pending.token)
             assert(saved.completionCorrections.pet1==nil and saved.done.pet1==nil)
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1 and saved.characterPetItems==evidence and evidence[12345])
             assert(#saved.correctionHistory==2 and saved.correctionHistory[2].action=="resume")
             assert(saved.done.explore855==234567 and saved.done.first==1730000000)
-            assert(saved.history[1]=="keep" and ns.FA.Account().chars["another-character"].done.pet1==345678 and #calls==0)
+            assert(saved.history[1]=="keep" and ns.LAR.Account().chars["another-character"].done.pet1==345678 and #calls==0)
         ''')
 
     def test_unknown_identity_unknown_key_and_broad_reset_cannot_clear_saved_data(self):
         self.h.execute('''
-            local db,done,history=ForeverAchievementsCharDB,saved.done,saved.history
-            ns.FA.SLASH.correctachievement("does-not-exist")
+            local db,done,history=LegacyAchievementsReforgedCharDB,saved.done,saved.history
+            ns.LAR.SLASH.correctachievement("does-not-exist")
             currentName=nil
-            ns.FA.SLASH.correctachievement("pet1")
-            SlashCmdList.FOREVERACHIEVEMENTS("reset")
-            assert(ForeverAchievementsCharDB==db and saved.done==done and saved.history==history)
+            ns.LAR.SLASH.correctachievement("pet1")
+            SlashCmdList.LEGACYACHIEVEMENTSREFORGED("reset")
+            assert(LegacyAchievementsReforgedCharDB==db and saved.done==done and saved.history==history)
             assert(saved.done.pet1==123456 and saved.done.explore855==234567 and saved.done.first==1730000000)
             assert(saved.history[1]=="keep" and saved.explored.zone.old and #calls==0)
         ''')
@@ -685,19 +685,19 @@ class AwardDiagnosticTests(unittest.TestCase):
 
     def test_default_off_does_not_retain_award_diagnostics(self):
         self.h.execute('''
-            assert(#ns.FA.ProgressionDiagnostics.records==0)
+            assert(#ns.LAR.ProgressionDiagnostics.records==0)
             bagItems[0]={12345}
             CoreEvent("PLAYER_LOGIN"); FlushTimers()
-            assert(saved.done.pet1 and #ns.FA.ProgressionDiagnostics.records==0)
+            assert(saved.done.pet1 and #ns.LAR.ProgressionDiagnostics.records==0)
             assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
     def test_enabled_diagnostic_preserves_event_character_and_positive_condition_evidence(self):
         self.h.execute('''
-            ns.FA.SLASH.progressdebug("on")
+            ns.LAR.SLASH.progressdebug("on")
             bagItems[0]={12345}
             CoreEvent("PLAYER_LOGIN"); FlushTimers()
-            local records=ns.FA.ProgressionDiagnostics.records
+            local records=ns.LAR.ProgressionDiagnostics.records
             assert(saved.done.pet1 and #records>0)
             local award
             for _,record in ipairs(records) do if record.key=="pet1" and record.awarded then award=record end end
@@ -706,11 +706,11 @@ class AwardDiagnosticTests(unittest.TestCase):
             assert(ReportContains(award,"current-character companion items"))
             assert(award.current==1 and award.required==1 and award.progressKnown)
             assert(type(award.condition)=="string" and award.condition:find(">=",1,true))
-            assert(award.characterKey==ns.FA.CharacterIdentity().key)
+            assert(award.characterKey==ns.LAR.CharacterIdentity().key)
             local before=#records
-            ns.FA.SLASH.progressdebug("off")
+            ns.LAR.SLASH.progressdebug("off")
             saved.done.pet1=nil
-            ns.FA.CheckAll(true)
+            ns.LAR.CheckAll(true)
             assert(saved.done.pet1 and #records==before and saved.history[1]=="keep" and #calls==0)
         ''')
 
@@ -718,17 +718,17 @@ class AwardDiagnosticTests(unittest.TestCase):
         self.h.execute('''
             SecretTestValue=setmetatable({}, {__tostring=function() error("Secret diagnostic conversion") end})
             C_Container.GetContainerNumSlots=function() return SecretTestValue end
-            ns.FA.SLASH.progressdebug("on")
-            ns.FA.CheckAll(true)
-            ns.FA.SLASH.inspectachievement("pet1")
+            ns.LAR.SLASH.progressdebug("on")
+            ns.LAR.CheckAll(true)
+            ns.LAR.SLASH.inspectachievement("pet1")
             assert(saved.done.pet1==nil and saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
         ''')
 
     def test_diagnostic_history_is_bounded_and_retains_the_latest_observation(self):
         self.h.execute('''
-            ns.FA.SLASH.progressdebug("on")
-            for i=1,80 do ns.FA.CheckAll(true,"DIAGNOSTIC_SAMPLE_"..i) end
-            local records=ns.FA.ProgressionDiagnostics.records
+            ns.LAR.SLASH.progressdebug("on")
+            for i=1,80 do ns.LAR.CheckAll(true,"DIAGNOSTIC_SAMPLE_"..i) end
+            local records=ns.LAR.ProgressionDiagnostics.records
             assert(#records==64 and records[#records].event=="DIAGNOSTIC_SAMPLE_80")
             assert(records[#records].current==0 and records[#records].required==1)
             assert(not records[#records].awarded and saved.done.pet1==nil)

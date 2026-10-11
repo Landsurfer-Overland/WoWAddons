@@ -3,12 +3,12 @@
 --  earned, comparing, titles, guild announcements and the account overview.
 -------------------------------------------------------------------------------
 local _, ns = ...
-local FA = ns.FA
-local TAG, secret = FA.TAG, FA.secret
-local PREFIX = "FAch"
+local LAR = ns.LAR
+local TAG, secret = LAR.TAG, LAR.secret
+local PREFIX = "LAR"
 local LINK_COLOR = "ff2ec4b6"
 
-local function Settings() return FA.Settings() end
+local function Settings() return LAR.Settings() end
 
 -- Forever characters have a surname, and the client keeps it where the realm
 -- normally goes: UnitFullName gives "Tne", "Pojajach" and whispers only reach
@@ -21,7 +21,7 @@ local function FullName(unit)
     if surname and not secret(surname) and surname ~= "" then return name .. "-" .. surname end
     return name
 end
-FA.FullName = FullName
+LAR.FullName = FullName
 
 local function First(name) return name and name:match("^([^%-]+)") end
 local function Key(name) return name end
@@ -42,44 +42,44 @@ frame:SetScript("OnEvent", function(_, event, ...) handlers[event](...) end)
 --  Titles
 -------------------------------------------------------------------------------
 local TITLED = {}
-for _, a in ipairs(FA.ALL) do if a.title then TITLED[#TITLED + 1] = a end end
+for _, a in ipairs(LAR.ALL) do if a.title then TITLED[#TITLED + 1] = a end end
 
 -- Titles this character has earned.
-function FA.EarnedTitles()
+function LAR.EarnedTitles()
     local out = {}
     for _, a in ipairs(TITLED) do
-        if FA.DB().done[a.key] and FA.Available(a) then out[#out + 1] = a end
+        if LAR.DB().done[a.key] and LAR.Available(a) then out[#out + 1] = a end
     end
     return out
 end
 
 -- The chosen title as a format string ("%s the Insane"), if still earned.
-function FA.CurrentTitle()
-    local key = FA.DB().title
-    local a = key and FA.BY_KEY[key]
-    if a and a.title and FA.DB().done[key] then return a.title end
+function LAR.CurrentTitle()
+    local key = LAR.DB().title
+    local a = key and LAR.BY_KEY[key]
+    if a and a.title and LAR.DB().done[key] then return a.title end
 end
 
 -------------------------------------------------------------------------------
 --  Links: "[ach:Name]" in chat turns into a clickable link
 -------------------------------------------------------------------------------
 local BY_NAME = {}
-for _, a in ipairs(FA.ALL) do
+for _, a in ipairs(LAR.ALL) do
     local k = a.name:lower()
     -- Series tiers share a name: the link points at the first tier still
     -- missing for the reader, which is what they would look up.
     BY_NAME[k] = BY_NAME[k] or a
 end
 
-FA.LINK.fn = function(a)
-    return ("|c%s|Haddon:ForeverAchievements:%s|h[%s]|h|r"):format(LINK_COLOR, a.key, a.name)
+LAR.LINK.fn = function(a)
+    return ("|c%s|Haddon:LegacyAchievementsReforged:%s|h[%s]|h|r"):format(LINK_COLOR, a.key, a.name)
 end
 
 local function Filter(_, _, msg, ...)
     if type(msg) ~= "string" or secret(msg) or not msg:find("[ach:", 1, true) then return false end
     local out = msg:gsub("%[ach:([^%]]+)%]", function(name)
         local a = BY_NAME[name:lower()]
-        if a then return FA.LINK.fn(a) end
+        if a then return LAR.LINK.fn(a) end
     end)
     if out ~= msg then return false, out, ... end
     return false
@@ -97,37 +97,37 @@ end
 -- Clicking a link: the achievement in the item tooltip; shift-click opens it.
 local lastLink, lastLinkTime = nil, 0
 local function OnLink(link)
-    local key = type(link) == "string" and link:match("^addon:ForeverAchievements:(.+)$")
+    local key = type(link) == "string" and link:match("^addon:LegacyAchievementsReforged:(.+)$")
     if not key then return end
     if key == lastLink and GetTime() - lastLinkTime < 0.2 then return end
     lastLink, lastLinkTime = key, GetTime()
-    local a = FA.BY_KEY[key]
+    local a = LAR.BY_KEY[key]
     if not a then return end
     if IsShiftKeyDown() then
-        FA.OpenSearch(a.name)
+        LAR.OpenSearch(a.name)
         return
     end
-    local r, g, b = FA.Kit.Accent()
+    local r, g, b = LAR.Kit.Accent()
     local tt = ItemRefTooltip
     tt:SetOwner(UIParent, "ANCHOR_PRESERVE")
     tt:ClearLines()
     tt:AddLine(a.name, 1, 1, 1)
     tt:AddLine(a.desc, nil, nil, nil, true)
     if a.pts and a.pts > 0 then tt:AddLine(a.pts .. " points", r, g, b) end
-    local done = FA.Earned(a.key)
+    local done = LAR.Earned(a.key)
     if done then
         tt:AddLine("You earned it on " .. date("%d.%m.%Y", done), r, g, b)
     else
         local cur, need = a.progress()
-        local progress = FA.ProgressKnown(cur, need) and ("%s / %s"):format(cur, need) or "Unavailable"
+        local progress = LAR.ProgressKnown(cur, need) and ("%s / %s"):format(cur, need) or "Unavailable"
         tt:AddLine("Your progress: " .. progress, 0.8, 0.8, 0.8)
     end
-    tt:AddLine(ns.OriginalUI and ns.OriginalUI.IsEnabled() and "Shift-click the link to open Forever Achievements"
+    tt:AddLine(ns.OriginalUI and ns.OriginalUI.IsEnabled() and "Shift-click the link to open Legacy Achievements Reforged"
         or "Open the Legacy panel to browse achievements.", 0.55, 0.55, 0.55, true)
     tt:Show()
 end
 if EventRegistry and EventRegistry.RegisterCallback then
-    EventRegistry:RegisterCallback("SetItemRef", function(_, link) OnLink(link) end, "ForeverAchievements")
+    EventRegistry:RegisterCallback("SetItemRef", function(_, link) OnLink(link) end, "LegacyAchievementsReforged")
 end
 if SetItemRef then hooksecurefunc("SetItemRef", function(link) OnLink(link) end) end
 
@@ -152,8 +152,8 @@ local function Broadcast(msg)
 end
 
 local function HelloMsg()
-    local pts, _, n = FA.TotalPoints()
-    return table.concat({ "HI", pts, n, FA.CurrentTitle() or "" }, "\t")
+    local pts, _, n = LAR.TotalPoints()
+    return table.concat({ "HI", pts, n, LAR.CurrentTitle() or "" }, "\t")
 end
 
 local peers = {}    -- [short name] = { pts, count, title, time }
@@ -162,7 +162,7 @@ local incoming = {} -- [sender] = keys while a compare answer arrives
 local pendingCompare
 
 -- Exact "Name-Surname" first; a bare first name matches only when unambiguous.
-function FA.Peer(name)
+function LAR.Peer(name)
     if not name then return end
     if peers[name] then return peers[name] end
     if name:find("-", 1, true) then return end
@@ -178,7 +178,7 @@ end
 
 local function AnswerCompare(sender)
     local keys = {}
-    for key in pairs(FA.DB().done) do keys[#keys + 1] = key end
+    for key in pairs(LAR.DB().done) do keys[#keys + 1] = key end
     local chunk, chunks = {}, {}
     local size = 0
     for _, key in ipairs(keys) do
@@ -208,9 +208,9 @@ On("CHAT_MSG_ADDON", function(prefix, msg, channel, sender)
             Send(HelloMsg(), "WHISPER", sender)
         end
     elseif kind == "EARN" then
-        local a = FA.BY_KEY[a1 or ""]
+        local a = LAR.BY_KEY[a1 or ""]
         if a and Settings().showOthers ~= false then
-            print(TAG .. " " .. Display(short) .. " earned " .. FA.LINK.fn(a))
+            print(TAG .. " " .. Display(short) .. " earned " .. LAR.LINK.fn(a))
         end
         if peers[short] then peers[short].count = peers[short].count + 1 end
     elseif kind == "REQ" then
@@ -223,23 +223,23 @@ On("CHAT_MSG_ADDON", function(prefix, msg, channel, sender)
         if pendingCompare and (pendingCompare == short or First(pendingCompare) == First(short)
             and not (pendingCompare:find("-", 1, true) and short:find("-", 1, true))) then
             pendingCompare = nil
-            FA.COMPARE.name, FA.COMPARE.done = Display(short), incoming[short] or {}
+            LAR.COMPARE.name, LAR.COMPARE.done = Display(short), incoming[short] or {}
             incoming[short] = nil
             local n = 0
-            for _ in pairs(FA.COMPARE.done) do n = n + 1 end
-            print(TAG .. (" comparing with %s (%d earned). /fach compare off to stop."):format(Display(short), n))
-            FA.ShowTab(FA.DB().tab ~= "summary" and FA.DB().tab or "general")
+            for _ in pairs(LAR.COMPARE.done) do n = n + 1 end
+            print(TAG .. (" comparing with %s (%d earned). /lar compare off to stop."):format(Display(short), n))
+            LAR.ShowTab(LAR.DB().tab ~= "summary" and LAR.DB().tab or "general")
         end
     end
 end)
 
 -- Ask another player with the addon for what they have earned.
-function FA.RequestCompare(name)
+function LAR.RequestCompare(name)
     if not name or name == "" then
         if UnitIsPlayer("target") and not secret(UnitIsPlayer("target")) then name = FullName("target") end
     end
     if not name or name == "" or secret(name) then
-        print(TAG .. " target a player or type /fach compare Name-Surname.")
+        print(TAG .. " target a player or type /lar compare Name-Surname.")
         return
     end
     -- Typed as "Tne Pojajach": the whisper target needs "Tne-Pojajach".
@@ -251,22 +251,22 @@ function FA.RequestCompare(name)
     C_Timer.After(6, function()
         if pendingCompare == name then
             pendingCompare = nil
-            print(TAG .. " no answer from " .. Display(name) .. ": they may not run Forever Achievements.")
+            print(TAG .. " no answer from " .. Display(name) .. ": they may not run Legacy Achievements Reforged.")
         end
     end)
 end
 
-function FA.StopCompare()
-    FA.COMPARE.name, FA.COMPARE.done = nil, nil
-    FA.Refresh()
+function LAR.StopCompare()
+    LAR.COMPARE.name, LAR.COMPARE.done = nil, nil
+    LAR.Refresh()
 end
 
-FA.SLASH.compare = function(rest)
+LAR.SLASH.compare = function(rest)
     if rest:lower() == "off" then
-        FA.StopCompare()
+        LAR.StopCompare()
         print(TAG .. " comparing stopped.")
     else
-        FA.RequestCompare(rest)
+        LAR.RequestCompare(rest)
     end
 end
 
@@ -287,7 +287,7 @@ if ns.OriginalUI and ns.OriginalUI.IsEnabled() and Menu and Menu.ModifyMenu then
             end
             if IsMe(name) then return end
             root:CreateDivider()
-            root:CreateButton("Compare achievements", function() FA.RequestCompare(name) end)
+            root:CreateButton("Compare achievements", function() LAR.RequestCompare(name) end)
         end)
     end
 end
@@ -312,8 +312,8 @@ local function SnapshotField(object, key)
     if ok and SnapshotSafe(value) then return value end
 end
 local function SnapshotIdentity()
-    if type(FA.CharacterIdentity) ~= "function" then return nil end
-    local ok, identity = pcall(FA.CharacterIdentity)
+    if type(LAR.CharacterIdentity) ~= "function" then return nil end
+    local ok, identity = pcall(LAR.CharacterIdentity)
     if not ok or SnapshotField(identity, "verified") ~= true then return nil end
     local key, name, surname, realm = SnapshotText(SnapshotField(identity, "key")), SnapshotText(SnapshotField(identity, "name")),
         SnapshotText(SnapshotField(identity, "surname")), SnapshotText(SnapshotField(identity, "realm"))
@@ -324,13 +324,13 @@ local function SnapshotIdentity()
         guid = guid, verified = true }
 end
 local function saveCharacter()
-    if type(FA.CharacterScope) == "function" then
-        local ok, scope = pcall(FA.CharacterScope)
+    if type(LAR.CharacterScope) == "function" then
+        local ok, scope = pcall(LAR.CharacterScope)
         if not ok or scope ~= true then return false, "Character progress attribution unavailable" end
     end
     local identity = SnapshotIdentity()
     if not identity then return false, "Character identity unavailable" end
-    local db, account = FA.DB(), FA.Account()
+    local db, account = LAR.DB(), LAR.Account()
     local done = {}
     for k, v in pairs(db.done) do done[k] = v end
     -- Derive character points from the current character's authored custom
@@ -338,13 +338,13 @@ local function saveCharacter()
     -- this snapshot's completion, count, or point total.
     local pts, n, pointsAvailable, countAvailable, seen = 0, 0, true, true, {}
     local completionStates = {}
-    for _, a in ipairs(FA.ALL) do
-        if not a.native and not seen[a.key] and FA.Available(a) == true then
+    for _, a in ipairs(LAR.ALL) do
+        if not a.native and not seen[a.key] and LAR.Available(a) == true then
             seen[a.key] = true
             local savedCompletion = done[a.key]
             local timestamp = SnapshotNumber(savedCompletion)
             local completed
-            if type(FA.CompletionStatus) == "function" then completed = FA.CompletionStatus(a.key)
+            if type(LAR.CompletionStatus) == "function" then completed = LAR.CompletionStatus(a.key)
             elseif timestamp and timestamp > 0 then completed = true
             elseif savedCompletion == nil then completed = false end
             completionStates[a.key] = completed == true and "verified" or completed == false and "incomplete" or "unknown"
@@ -379,7 +379,7 @@ local function saveCharacter()
         name = identity.name .. (identity.surname and identity.surname ~= "" and " " .. identity.surname or ""),
         surname = identity.surname, realm = identity.realm, class = class, level = level,
         pts = pointsAvailable and pts or nil, pointsAvailable = pointsAvailable, pointType = "character",
-        count = n, countAvailable = countAvailable, last = time(), done = done, title = FA.CurrentTitle(),
+        count = n, countAvailable = countAvailable, last = time(), done = done, title = LAR.CurrentTitle(),
         characterKey = identity.key, identityVersion = 1, identity = identity, completionScope = "character",
         completionValidationVersion = 1, completionStates = completionStates,
     }
@@ -388,16 +388,16 @@ end
 local function SaveCharacter()
     -- Share identity/completion observations across the bounded snapshot pass;
     -- exporting history must not repeat unit API reads for every definition.
-    if type(FA.WithProgressSnapshot) == "function" then return FA.WithProgressSnapshot(saveCharacter) end
+    if type(LAR.WithProgressSnapshot) == "function" then return LAR.WithProgressSnapshot(saveCharacter) end
     return saveCharacter()
 end
-FA.SaveCharacter = SaveCharacter
+LAR.SaveCharacter = SaveCharacter
 
 -------------------------------------------------------------------------------
 --  Earning: tell the guild and group, keep the overview current
 -------------------------------------------------------------------------------
 local sendChat = (C_ChatInfo and C_ChatInfo.SendChatMessage) or SendChatMessage
-table.insert(FA.EARN_HOOKS, function(a)
+table.insert(LAR.EARN_HOOKS, function(a)
     SaveCharacter()
     Broadcast("EARN\t" .. a.key)
     if Settings().announce and IsInGuild() and not a.native then

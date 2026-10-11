@@ -243,7 +243,7 @@ class Iteration5NativeControllerTests(unittest.TestCase):
             tree.protected=true; inCombat=true
             c:SetSizePreset('Large')
             assert(writes==0)
-            ns.FA.SLASH.legacyui('off')
+            ns.LAR.SLASH.legacyui('off')
             assert(c.restorePending and c.cover:IsVisible() and writes==0)
             tree.protected=false; inCombat=false
             for _,frame in ipairs(frames) do

@@ -28,10 +28,10 @@ existing fallback and are reported.
 
 Changed files:
 
-- `ForeverAchievements/Integrations/LegacyController.lua`: new `BeginOpening` and
+- `LegacyAchievementsReforged/Integrations/LegacyController.lua`: new `BeginOpening` and
   `RestoreOpening`; integrates them into `Attach`/`OnShow`, `Refresh`, `Release`
   and the interrupted-opening path in `DeferCombat`.
-- `ForeverAchievements/ForeverAchievements.toc`: version only.
+- `LegacyAchievementsReforged/LegacyAchievementsReforged.toc`: version only.
 - `tests/test_legacy_wrath_ui.py`: permits the reversible native root opacity setter.
 - `tests/test_legacy_opening.py`: handoff visibility, final selection, repeated
   opening on all native pages, frame reuse, early close/disable, build/mount/
@@ -52,7 +52,7 @@ not measure live client rendering or prove the reported flash is gone in-game.
 ## Manual client checks
 
 Install the complete addon folder, preserve WTF/SavedVariables, then `/reload`.
-Enable replacement with `/fa legacyui on` outside combat.
+Enable replacement with `/lar legacyui on` outside combat.
 
 1. Open Legacy normally: the stock screen should not briefly appear. Close and
    reopen several times, including the first open after another `/reload`.
@@ -62,7 +62,7 @@ Enable replacement with `/fa legacyui on` outside combat.
 4. Gain aggro with the custom panel open, leave combat, then close/reopen. Check
    for protected-action errors, fallback messages and unexpected stock appearance.
 5. Close immediately after opening; verify deferred work does not reopen it.
-6. Use `/fa legacyui off`: native opening and closing should work normally with
+6. Use `/lar legacyui off`: native opening and closing should work normally with
    the original opacity. Re-enable and repeat. If gamepad input is available,
    verify native gamepad mode and the return to mouse/keyboard input.
 
