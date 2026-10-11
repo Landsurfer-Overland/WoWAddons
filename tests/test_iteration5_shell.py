@@ -161,20 +161,20 @@ class Iteration5ShellTests(unittest.TestCase):
         self.assertEqual(window.get('inherits'), 'BackdropTemplate')
         header = window.find('.//' + URI + 'Frame[@name="$parentHeader"]')
         self.assertEqual(header.find(URI + 'Size/' + URI + 'AbsDimension').get('y'), '118')
-        for suffix, width, height in [('Left', '512', '106'), ('Right', '215', '100')]:
+        for suffix, width, height in [('Left', '147', '106'), ('Right', '147', '106'), ('RoofLeft', '216', '106'), ('RoofRight', '216', '106')]:
             region = header.find('.//' + URI + f'Texture[@name="$parent{suffix}"]')
             size = region.find(URI + 'Size/' + URI + 'AbsDimension')
             self.assertEqual((size.get('x'), size.get('y')), (width, height))
-        for suffix, x in [('PointBorder', '-174'), ('LegacyPointBorder', '174')]:
+        for suffix, x in [('PointBorder', '-140'), ('LegacyPointBorder', '140')]:
             plaque = header.find('.//' + URI + f'Texture[@name="$parent{suffix}"]')
             self.assertEqual(plaque.find('.//' + URI + 'Offset').get('x'), x)
         titles = [header.find('.//' + URI + f'FontString[@name="$parent{suffix}"]')
                   for suffix in ['Title', 'LegacyTitle']]
         self.assertEqual([title.get('text') for title in titles], ['Achievement Points', 'Legacy Points'])
-        self.assertEqual([title.get('inherits') for title in titles], ['GameFontNormalLarge'] * 2)
+        self.assertEqual([title.get('inherits') for title in titles], ['GameFontNormal'] * 2)
         crest = header.find('.//' + URI + 'Texture[@name="$parentCrest"]')
         self.assertEqual(crest.get('file'), r'Interface\AchievementFrame\UI-Achievement-Shields-NoPoints')
-        self.assertEqual(crest.find(URI + 'Size').attrib, {'x': '66', 'y': '64'})
+        self.assertEqual(crest.find(URI + 'Size').attrib, {'x': '80', 'y': '80'})
         self.assertEqual(crest.find(URI + 'TexCoords').attrib,
                          {'left': '0', 'right': '.5', 'top': '0', 'bottom': '.5'})
 

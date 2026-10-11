@@ -1332,42 +1332,66 @@
           <Layer level="BACKGROUND">
             <Texture name="$parentLeft" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="512" y="106" />
+                <AbsDimension x="147" y="106" />
               </Size>
               <Anchors>
-                <Anchor point="BOTTOMLEFT" />
+                <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMLEFT">
+                  <Offset x="0" y="0" />
+                </Anchor>
               </Anchors>
-              <TexCoords left="0" right="1" top="0" bottom="0.4140625" />
+              <TexCoords left="0.150390625" right="0.4375" top="0" bottom="0.4140625" />
+            </Texture>
+            <Texture name="$parentRoofLeft" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="216" y="106" />
+              </Size>
+              <Anchors>
+                <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMLEFT">
+                  <Offset x="147" y="0" />
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0.4375" right="0.859375" top="0" bottom="0.4140625" />
+            </Texture>
+            <Texture name="$parentRoofRight" file="Interface\AchievementFrame\UI-Achievement-Header">
+              <Size>
+                <AbsDimension x="216" y="106" />
+              </Size>
+              <Anchors>
+                <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
+                  <Offset x="-147" y="0" />
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0.859375" right="0.4375" top="0" bottom="0.4140625" />
             </Texture>
             <Texture name="$parentRight" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="215" y="100" />
+                <AbsDimension x="147" y="106" />
               </Size>
               <Anchors>
-                <Anchor point="BOTTOMLEFT" relativeTo="$parentLeft" relativePoint="BOTTOMRIGHT">
-                  <Offset x="0" y="-6" />
+                <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT">
+                  <Offset x="0" y="0" />
                 </Anchor>
               </Anchors>
-              <TexCoords left="0" right="0.419921875" top="0.4140625" bottom="0.8046875" />
+              <TexCoords left="0.4375" right="0.150390625" top="0" bottom="0.4140625" />
             </Texture>
           </Layer>
           <Layer level="BORDER">
             <Texture name="$parentPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="134" y="39" />
+                <AbsDimension x="116" y="39" />
               </Size>
               <Anchors>
                 <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
-                  <Offset x="-174" y="19" />
+                  <Offset x="-140" y="16" />
                 </Anchor>
               </Anchors>
               <TexCoords left=".455078125" right=".64453125" top="0.4140625" bottom="0.56640625" />
             </Texture>
-            <FontString name="$parentTitle" inherits="GameFontNormalLarge" text="Achievement Points">
-              <Size x="188" y="18" />
+            <FontString name="$parentTitle" inherits="GameFontNormal" text="Achievement Points">
+              <Size x="168" y="18" />
               <Anchors>
                 <Anchor point="TOP" relativeTo="FAWrathAchievementFrameHeaderPointBorder" relativePoint="TOP">
-                  <Offset x="0" y="11" />
+                  <Offset x="0" y="8" />
                 </Anchor>
               </Anchors>
             </FontString>
@@ -1399,11 +1423,11 @@
             </Texture>
             <Texture name="$parentLegacyPointBorder" file="Interface\AchievementFrame\UI-Achievement-Header">
               <Size>
-                <AbsDimension x="134" y="39" />
+                <AbsDimension x="116" y="39" />
               </Size>
               <Anchors>
                 <Anchor point="BOTTOM" relativeTo="FAWrathAchievementFrameHeader" relativePoint="BOTTOM">
-                  <Offset x="174" y="19" />
+                  <Offset x="140" y="16" />
                 </Anchor>
               </Anchors>
               <TexCoords left=".455078125" right=".64453125" top="0.4140625" bottom="0.56640625" />
@@ -1426,11 +1450,11 @@
               </Anchors>
               <TexCoords left=".64453125" right=".6796875" top=".4140625" bottom=".56640625" />
             </Texture>
-            <FontString name="$parentLegacyTitle" inherits="GameFontNormalLarge" text="Legacy Points">
-              <Size x="188" y="18" />
+            <FontString name="$parentLegacyTitle" inherits="GameFontNormal" text="Legacy Points">
+              <Size x="168" y="18" />
               <Anchors>
                 <Anchor point="TOP" relativeTo="FAWrathAchievementFrameHeaderLegacyPointBorder" relativePoint="TOP">
-                  <Offset x="0" y="11" />
+                  <Offset x="0" y="8" />
                 </Anchor>
               </Anchors>
             </FontString>
@@ -1474,11 +1498,20 @@
               </Anchors>
               <TexCoords left="0" right="0.625" top="0" bottom="0.625" />
             </Texture>
-            <Texture name="$parentCrest" file="Interface\AchievementFrame\UI-Achievement-Shields-NoPoints">
-              <Size x="66" y="64" />
+            <Texture name="$parentCrestSurround" file="Interface\AchievementFrame\UI-Achievement-Shields" hidden="true">
+              <Size x="80" y="80" />
               <Anchors>
                 <Anchor point="BOTTOM">
-                  <Offset x="0" y="9" />
+                  <Offset x="0" y="14" />
+                </Anchor>
+              </Anchors>
+              <TexCoords left="0" right=".5" top="0" bottom=".5" />
+            </Texture>
+            <Texture name="$parentCrest" file="Interface\AchievementFrame\UI-Achievement-Shields-NoPoints">
+              <Size x="80" y="80" />
+              <Anchors>
+                <Anchor point="CENTER" relativeTo="$parentCrestSurround" relativePoint="CENTER">
+                  <Offset x="0" y="0" />
                 </Anchor>
               </Anchors>
               <TexCoords left="0" right=".5" top="0" bottom=".5" />

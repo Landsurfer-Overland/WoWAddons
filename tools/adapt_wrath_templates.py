@@ -131,14 +131,30 @@ for node in header.iter():
 frames.append(header)
 header.find(tag('Size') + '/' + tag('AbsDimension')).set('y', '118')
 
+# The original roof was asymmetric around a single counter. Mirror native
+# pixel-sized crops to give two counters one centered pediment and shoulders.
+roof_layer = next(layer for layer in header.find(tag('Layers')) if layer.get('level') == 'BACKGROUND')
+for old in list(roof_layer): roof_layer.remove(old)
+for name, width, point, relative, x, left, right in [
+        ('Left', 147, 'BOTTOMLEFT', 'BOTTOMLEFT', 0, 77 / 512, 224 / 512),
+        ('RoofLeft', 216, 'BOTTOMLEFT', 'BOTTOMLEFT', 147, 224 / 512, 440 / 512),
+        ('RoofRight', 216, 'BOTTOMRIGHT', 'BOTTOMRIGHT', -147, 440 / 512, 224 / 512),
+        ('Right', 147, 'BOTTOMRIGHT', 'BOTTOMRIGHT', 0, 224 / 512, 77 / 512)]:
+    roof = ET.SubElement(roof_layer, tag('Texture'), {
+        'name': '$parent' + name, 'file': 'Interface\\AchievementFrame\\UI-Achievement-Header'})
+    ET.SubElement(ET.SubElement(roof, tag('Size')), tag('AbsDimension'), {'x': str(width), 'y': '106'})
+    anchor = ET.SubElement(ET.SubElement(roof, tag('Anchors')), tag('Anchor'), {'point': point, 'relativePoint': relative})
+    ET.SubElement(anchor, tag('Offset'), {'x': str(x), 'y': '0'})
+    ET.SubElement(roof, tag('TexCoords'), {'left': str(left), 'right': str(right), 'top': '0', 'bottom': '0.4140625'})
+
 # Two matching Wrath point counters fit within the existing roof. They use the
 # original point-border and tiny-shield artwork, not another outer frame.
 border = header.find('.//' + tag('Texture') + "[@name='$parentPointBorder']")
-border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '134')
-border.find('.//' + tag('Offset')).set('x', '-174')
-border.find('.//' + tag('Offset')).set('y', '19')
+border.find(tag('Size') + '/' + tag('AbsDimension')).set('x', '116')
+border.find('.//' + tag('Offset')).set('x', '-140')
+border.find('.//' + tag('Offset')).set('y', '16')
 # Keep the original 18px plaque ends at their native scale. Only the plain
-# center grows from 97px to 134px; the visible border remains 170px overall.
+# center grows from 97px to 116px; each 152px plaque sits inside the pediment.
 border.find(tag('TexCoords')).set('left', '.455078125')
 border.find(tag('TexCoords')).set('right', '.64453125')
 border_layer = next(layer for layer in header.find(tag('Layers')) if border in list(layer))
@@ -153,11 +169,11 @@ for suffix, point, relative_point, left, right in [
     ET.SubElement(end, tag('TexCoords'), {
         'left': left, 'right': right, 'top': '.4140625', 'bottom': '.56640625'})
 title = header.find('.//' + tag('FontString') + "[@name='$parentTitle']")
-title.find(tag('Size')).set('x', '188')
+title.find(tag('Size')).set('x', '168')
 title.find(tag('Size')).set('y', '18')
-title.find('.//' + tag('Offset')).set('y', '11')
+title.find('.//' + tag('Offset')).set('y', '8')
 title.set('text', 'Achievement Points')
-title.set('inherits', 'GameFontNormalLarge')
+title.set('inherits', 'GameFontNormal')
 points = header.find('.//' + tag('FontString') + "[@name='$parentPoints']")
 points.set('inherits', 'GameFontHighlightLarge')
 points.find(tag('Size')).set('y', '20')
@@ -175,21 +191,28 @@ for name, replacement in [('PointBorder', 'LegacyPointBorder'),
             if value == '$parentPointBorder': value = '$parentLegacyPointBorder'
             if value == '$parentPoints': value = '$parentLegacyPoints'
             node.set('relativeTo', value)
-    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '174')
+    if name == 'PointBorder': item.find('.//' + tag('Offset')).set('x', '140')
     if name == 'Title':
         item.set('text', 'Legacy Points')
     layer = next(layer for layer in header.find(tag('Layers')) if header.find('.//*[@name="$parent' + name + '"]') in list(layer))
     layer.append(item)
 
-# A neutral, native-size achievement seal anchors the two independent totals.
+# A centered native shield and laurel surround seats the faction crest in the roof.
 # The client has separate character/guild rows; use the same player-row crop as
 # the achievement cards and avoid enlarging the lower-resolution tiny shield.
 artwork = next(layer for layer in header.find(tag('Layers')) if layer.get('level') == 'ARTWORK')
+surround = ET.SubElement(artwork, tag('Texture'), {
+    'name': '$parentCrestSurround', 'file': 'Interface\\AchievementFrame\\UI-Achievement-Shields', 'hidden': 'true'})
+ET.SubElement(surround, tag('Size'), {'x': '80', 'y': '80'})
+ET.SubElement(ET.SubElement(ET.SubElement(surround, tag('Anchors')), tag('Anchor'), {'point': 'BOTTOM'}),
+              tag('Offset'), {'x': '0', 'y': '14'})
+ET.SubElement(surround, tag('TexCoords'), {'left': '0', 'right': '.5', 'top': '0', 'bottom': '.5'})
 crest = ET.SubElement(artwork, tag('Texture'), {
     'name': '$parentCrest', 'file': 'Interface\\AchievementFrame\\UI-Achievement-Shields-NoPoints'})
-ET.SubElement(crest, tag('Size'), {'x': '66', 'y': '64'})
-ET.SubElement(ET.SubElement(ET.SubElement(crest, tag('Anchors')), tag('Anchor'), {'point': 'BOTTOM'}),
-              tag('Offset'), {'x': '0', 'y': '9'})
+ET.SubElement(crest, tag('Size'), {'x': '80', 'y': '80'})
+ET.SubElement(ET.SubElement(ET.SubElement(crest, tag('Anchors')), tag('Anchor'), {
+    'point': 'CENTER', 'relativeTo': '$parentCrestSurround', 'relativePoint': 'CENTER'}),
+              tag('Offset'), {'x': '0', 'y': '0'})
 ET.SubElement(crest, tag('TexCoords'), {'left': '0', 'right': '.5', 'top': '0', 'bottom': '.5'})
 
 close = deepcopy(original.find('./' + tag('Frames') + '/' + tag('Button') + "[@name='$parentCloseButton']"))

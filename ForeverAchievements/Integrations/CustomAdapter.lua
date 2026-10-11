@@ -118,7 +118,8 @@ local function catalog()
     local d = FA.DB()
     local characterScope = type(FA.CharacterScope) ~= "function" or first(FA.CharacterScope) == true
     local out = { categories = {}, records = {}, byKey = {}, points = 0, possiblePoints = 0,
-        pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false }
+        pointsAvailable = true, possiblePointsAvailable = true, available = true, partial = false,
+        unverifiedPointRecords = 0 }
     local labels, seen = {}, {}
     local zones, continents = explorationMetadata()
     local completedElsewhere = otherCharacterCompletions()
@@ -191,15 +192,24 @@ local function catalog()
                     out.byKey[row.key] = row
                     out.possiblePoints = out.possiblePoints + (row.points or 0)
                     if row.completed then out.points = out.points + (row.points or 0) end
-                    if row.completed == nil then out.pointsAvailable = false end
+                    if row.completed == nil then
+                        out.pointsAvailable = false
+                        out.unverifiedPointRecords = out.unverifiedPointRecords + 1
+                    end
                     if row.points == nil then
                         out.possiblePointsAvailable = false
-                        if row.completed then out.pointsAvailable = false end
+                        if row.completed then
+                            out.pointsAvailable = false
+                            out.unverifiedPointRecords = out.unverifiedPointRecords + 1
+                        end
                     end
                 end
             end
         end
     end
+    -- Keep the verified subtotal visible without presenting an uncertain
+    -- aggregate as definitive or attributing a foreign database to this player.
+    out.confirmedPoints = characterScope and out.points or nil
     if not out.pointsAvailable then out.points = nil end
     if not out.possiblePointsAvailable then out.possiblePoints = nil end
     return out

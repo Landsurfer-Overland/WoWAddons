@@ -294,13 +294,13 @@ class Iteration3UITests(unittest.TestCase):
         window = next(e for e in root if e.get("name") == "FAWrathWindowTemplate")
         borders = [e for e in window.iter(URI + "Texture") if e.get("name") in ("$parentPointBorder", "$parentLegacyPointBorder")]
         offsets = [e.find(".//" + URI + "Offset").get("x") for e in borders]
-        self.assertEqual(offsets, ["-174", "174"])
+        self.assertEqual(offsets, ["-140", "140"])
         self.assertEqual(borders[0].find(URI + "Size/" + URI + "AbsDimension").attrib,
                          borders[1].find(URI + "Size/" + URI + "AbsDimension").attrib)
         self.check("""
             view.model.custom.points=nil; view.model.native.points=nil; view:SetModel(view.model)
-            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='Unavailable')
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='Unavailable')
+            assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
+            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
         """)
 
 

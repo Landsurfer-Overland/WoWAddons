@@ -10,18 +10,28 @@ from test_legacy_wrath_ui import ADDON, Harness, URI
 
 
 class CrestHarness(Harness):
-    """Initialize the inspected XML crest fields omitted by the general double."""
+    """Load header texture/font geometry omitted by the general client double."""
     def child(self, parent, element):
         child = super().child(parent, element)
-        if element.get('name') == '$parentCrest':
-            child.SetTexture(child, element.get('file'))
+        if parent.GetName(parent) == 'FAWrathAchievementFrameHeader':
+            if element.get('file'): child.SetTexture(child, element.get('file'))
             size = element.find(URI + 'Size')
-            child.SetSize(child, float(size.get('x')), float(size.get('y')))
+            if size is not None:
+                size = size.find(URI + 'AbsDimension') if size.find(URI + 'AbsDimension') is not None else size
+                child.SetSize(child, float(size.get('x', '0')), float(size.get('y', '0')))
             coordinates = element.find(URI + 'TexCoords')
-            child.SetTexCoord(child, *(float(coordinates.get(key)) for key in ['left', 'right', 'top', 'bottom']))
+            if coordinates is not None:
+                child.SetTexCoord(child, *(float(coordinates.get(key)) for key in ['left', 'right', 'top', 'bottom']))
+            child.SetShown(child, element.get('hidden') != 'true')
             anchor = element.find('.//' + URI + 'Anchor')
-            offset = anchor.find(URI + 'Offset')
-            child.SetPoint(child, anchor.get('point'), parent, anchor.get('point'), float(offset.get('x')), float(offset.get('y')))
+            if anchor is not None:
+                offset = anchor.find(URI + 'Offset')
+                if offset is not None and offset.find(URI + 'AbsDimension') is not None: offset = offset.find(URI + 'AbsDimension')
+                target = anchor.get('relativeTo')
+                relative = self.g[target.replace('$parent', parent.GetName(parent))] if target else parent
+                child.SetPoint(child, anchor.get('point'), relative, anchor.get('relativePoint', anchor.get('point')),
+                               float(offset.get('x', '0')) if offset is not None else 0,
+                               float(offset.get('y', '0')) if offset is not None else 0)
         return child
 
 
@@ -169,12 +179,12 @@ class Iteration6ShellTests(unittest.TestCase):
         xml = ET.parse(ADDON / 'UI/WrathAchievementUI.xml').getroot()
         window = next(element for element in xml if element.get('name') == 'FAWrathWindowTemplate')
         header = window.find('.//' + URI + 'Frame[@name="$parentHeader"]')
-        for suffix, width, height in [('Left', '512', '106'), ('Right', '215', '100')]:
+        for suffix, width, height in [('Left', '147', '106'), ('Right', '147', '106'), ('RoofLeft', '216', '106'), ('RoofRight', '216', '106')]:
             roof = header.find('.//' + URI + f'Texture[@name="$parent{suffix}"]')
             self.assertEqual(roof.find(URI + 'Size/' + URI + 'AbsDimension').attrib, {'x': width, 'y': height})
-        for prefix, offset in [('PointBorder', '-174'), ('LegacyPointBorder', '174')]:
+        for prefix, offset in [('PointBorder', '-140'), ('LegacyPointBorder', '140')]:
             center = header.find('.//' + URI + f'Texture[@name="$parent{prefix}"]')
-            self.assertEqual(center.find(URI + 'Size/' + URI + 'AbsDimension').attrib, {'x': '134', 'y': '39'})
+            self.assertEqual(center.find(URI + 'Size/' + URI + 'AbsDimension').attrib, {'x': '116', 'y': '39'})
             self.assertEqual(center.find('.//' + URI + 'Offset').get('x'), offset)
             self.assertEqual(center.find(URI + 'TexCoords').get('left'), '.455078125')
             self.assertEqual(center.find(URI + 'TexCoords').get('right'), '.64453125')
@@ -184,7 +194,7 @@ class Iteration6ShellTests(unittest.TestCase):
                 self.assertEqual(end.find('.//' + URI + 'Anchor').get('relativeTo'), '$parent' + prefix)
         crest = header.find('.//' + URI + 'Texture[@name="$parentCrest"]')
         self.assertEqual(crest.get('file'), r'Interface\AchievementFrame\UI-Achievement-Shields-NoPoints')
-        self.assertEqual(crest.find(URI + 'Size').attrib, {'x': '66', 'y': '64'})
+        self.assertEqual(crest.find(URI + 'Size').attrib, {'x': '80', 'y': '80'})
 
 
 class Iteration6PresetControllerTests(unittest.TestCase):
@@ -239,11 +249,12 @@ class Iteration6FactionCrestTests(unittest.TestCase):
                 h = self.make("factionReads=0; function UnitFactionGroup(unit) assert(unit=='player'); factionReads=factionReads+1; return '" + faction + "' end;")
                 h.execute("""
                     assert(factionReads==1)
-                    assert(crest:GetWidth()==66 and crest:GetHeight()==66)
+                    assert(crest:GetWidth()==50 and crest:GetHeight()==50)
                     assert(crest.coords[1]==.0625 and crest.coords[2]==.9375)
                     assert(crest.coords[3]==.0625 and crest.coords[4]==.9375)
                     local point,parent,relative,x,y=crest:GetPoint(1)
-                    assert(point=='BOTTOM' and parent==FAWrathAchievementFrameHeader and relative=='BOTTOM' and x==0 and y==9)
+                    assert(point=='CENTER' and parent==FAWrathAchievementFrameHeaderCrestSurround and relative=='CENTER' and x==0 and y==0)
+                    assert(parent:IsShown())
                     local frameCount=#frames
                     crestView:Layout(1024,720); crestView:Layout(768,500)
                     assert(factionReads==1 and #frames==frameCount and #calls==0)
@@ -263,10 +274,11 @@ class Iteration6FactionCrestTests(unittest.TestCase):
                 h = self.make(api)
                 h.execute("""
                     assert(crest.textureValue=='Interface\\\\AchievementFrame\\\\UI-Achievement-Shields-NoPoints')
-                    assert(crest:GetWidth()==66 and crest:GetHeight()==64)
+                    assert(crest:GetWidth()==80 and crest:GetHeight()==80)
                     assert(crest.coords[1]==0 and crest.coords[2]==.5 and crest.coords[3]==0 and crest.coords[4]==.5)
                     local point,parent,relative,x,y=crest:GetPoint(1)
-                    assert(point=='BOTTOM' and parent==FAWrathAchievementFrameHeader and x==0 and y==9)
+                    assert(point=='CENTER' and parent==FAWrathAchievementFrameHeaderCrestSurround and x==0 and y==0)
+                    assert(not parent:IsShown())
                     assert(#calls==0 and saved.done.first==1730000000)
                 """)
 
@@ -286,7 +298,7 @@ class Iteration6FactionCrestTests(unittest.TestCase):
         """)
         h.execute("""
             assert(crest.textureValue=='Interface\\\\AchievementFrame\\\\UI-Achievement-Shields-NoPoints')
-            assert(crest:GetWidth()==66 and crest:GetHeight()==64)
+            assert(crest:GetWidth()==80 and crest:GetHeight()==80)
             assert(crest.coords[1]==0 and crest.coords[2]==.5 and crest.coords[4]==.5)
             assert(#calls==0 and saved.done.first==1730000000)
         """)

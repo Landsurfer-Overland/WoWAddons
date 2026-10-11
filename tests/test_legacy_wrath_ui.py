@@ -1275,7 +1275,7 @@ class ControllerTests(unittest.TestCase):
             ns.FA.SLASH.legacyui("on")
             local ui=ns.LegacyUIController.ui
             assert(ui.notice:GetText():find("unavailable"))
-            assert(ui.nativePoints:GetText():find("Unavailable"))
+            assert(ui.nativePoints:GetText()=="—")
             assert(ns.LegacyUIController.cover:IsVisible())
         ''')
 
@@ -1418,8 +1418,18 @@ class PackagingTests(unittest.TestCase):
             # Iteration 6 splits each original plaque into fixed ends and a
             # widened center. Validate exact subregions, not arbitrary crops.
             name = texture.get("name", "")
+            owner = parents.get(parents.get(parents.get(texture)))
+            if owner is not None and owner.get('name') == '$parentHeader' and name in ('$parentLeft', '$parentRight', '$parentRoofLeft', '$parentRoofRight'):
+                expected = {'$parentLeft': (77/512, 224/512, 147), '$parentRight': (224/512, 77/512, 147),
+                            '$parentRoofLeft': (224/512, 440/512, 216), '$parentRoofRight': (440/512, 224/512, 216)}
+                left, right, width = expected[name]
+                self.assertEqual({k: float(v) for k, v in e.attrib.items()},
+                                 {'left': left, 'right': right, 'top': 0, 'bottom': 106/256})
+                size = texture.find(URI + 'Size/' + URI + 'AbsDimension')
+                self.assertEqual((int(size.get('x')), int(size.get('y'))), (width, 106))
+                continue
             if name.startswith(("$parentPointBorder", "$parentLegacyPointBorder")):
-                left, right, width = (.455078125, .64453125, 134)
+                left, right, width = (.455078125, .64453125, 116)
                 if name.endswith("Left"):
                     left, right, width = (.419921875, .455078125, 18)
                 elif name.endswith("Right"):

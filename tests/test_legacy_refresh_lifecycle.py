@@ -343,7 +343,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             ns.FA.SLASH.legacyui("on"); DrainTimers()
             local c=ns.LegacyUIController
             local builds=buildCalls
-            assert(c.currencyObserved and c.currencyValue==nil and c.ui.nativePoints:GetText()=="Unavailable")
+            assert(c.currencyObserved and c.currencyValue==nil and c.ui.nativePoints:GetText()=="—")
             for i=1,4 do EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo"); DrainTimers() end
             assert(buildCalls==builds)
             C_MajorFactions.GetCurrentRenownLevel=function() return 21 end
@@ -351,7 +351,7 @@ class LegacyRefreshLifecycleTests(unittest.TestCase):
             assert(buildCalls==builds+1 and c.ui.nativePoints:GetText()=="21")
             C_MajorFactions.GetCurrentRenownLevel=function() error("Renown unavailable") end
             EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo"); DrainTimers()
-            assert(buildCalls==builds+2 and c.ui.nativePoints:GetText()=="Unavailable")
+            assert(buildCalls==builds+2 and c.ui.nativePoints:GetText()=="—")
             EventRegistry:TriggerEvent("Legacy.UpdateCurrencyInfo"); DrainTimers()
             assert(buildCalls==builds+2 and #calls==0)
         ''')

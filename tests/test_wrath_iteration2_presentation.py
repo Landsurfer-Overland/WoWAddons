@@ -88,7 +88,7 @@ class Iteration2PresentationTests(unittest.TestCase):
             view.model.custom.points, view.model.native.points = 345, nil
             view:SetModel(view.model)
             assert(FAWrathAchievementFrameHeaderPoints:GetText() == "345")
-            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText() == "Unavailable")
+            assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText() == "—")
         """)
         xml = ET.parse(ADDON / "UI/WrathAchievementUI.xml").getroot()
         window = next(e for e in xml if e.get("name") == "FAWrathWindowTemplate")
