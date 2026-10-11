@@ -55,8 +55,21 @@ function C:CancelQueuedWork()
     self.attachPending = false
     if self.ui and type(self.ui.CancelPending) == "function" then pcall(self.ui.CancelPending, self.ui) end
 end
+function C:DeferCombat()
+    self.pending = true
+    if self.restorePending then return end
+    self.state = self.bridge and "Enabled; updates deferred during combat" or "Waiting for combat to end"
+end
 function C:Release(state)
     self:CancelQueuedWork()
+    if combat() and self.bridge then
+        -- Restoration changes native page geometry and visibility too. A real
+        -- disable/fallback request waits for combat; entering combat never
+        -- requests restoration in the first place.
+        self.restorePending = true
+        self.state = "Restoration pending: " .. state .. "; combat"
+        return false
+    end
     self.busy = true
     if self.dragging and self.cover then
         -- Drag cleanup is best effort. Native restoration must still run if
@@ -209,8 +222,7 @@ function C:Refresh(reason)
     if gamepad() then self:Release("Native interface in gamepad mode"); return end
     if not self.root or not shown(self.root) then return false end
     if combat() then
-        self.pending = true
-        self:Release("Waiting for combat to end")
+        self:DeferCombat()
         return false
     end
     -- An immediate opening/selection pass consumes earlier queued work. Its
@@ -260,6 +272,7 @@ function C:Refresh(reason)
 end
 function C:QueueRefresh()
     if not enabled() or not self.root or not shown(self.root) or self.queued then return end
+    if combat() then self:DeferCombat(); return end
     local timer = R.Field(C_Timer, "After")
     if type(timer) ~= "function" then
         if not self.busy then self:Fail("Deferred refresh scheduling unavailable") end
@@ -306,6 +319,7 @@ function C:CurrencyChanged(payload)
     self:Schedule("native")
 end
 function C:QueueAttach()
+    if combat() then self:DeferCombat(); return end
     if self.attachQueued then return end
     local timer = R.Field(C_Timer, "After")
     if type(timer) ~= "function" then
@@ -328,12 +342,16 @@ function C:Close()
     local root = self.root
     if not root then return end
     if combat() and B.Blocked(root) then
-        self:Fail("Native close is protected during combat"); return
+        self.closePending = true
+        self:DeferCombat()
+        return
     end
+    self.closePending = false
     if type(HideUIPanel) == "function" then HideUIPanel(root) else root:Hide() end
 end
 function C:NativeSelection()
     if self.mounting or not enabled() or not self.bridge or not shown(self.root) then return end
+    if combat() then self:Dirty("mount"); self:DeferCombat(); return end
     -- CallbackRegistry stores callbacks by owner, not registration order.
     -- Read the final currentPage after every native callback has completed.
     if self.selectionQueued then return end
@@ -347,6 +365,7 @@ function C:NativeSelection()
         if lifecycle ~= self.lifecycle then return end
         self.selectionQueued = false
         if not enabled() or not self.bridge or not shown(self.root) then return end
+        if combat() then self:Dirty("mount"); self:DeferCombat(); return end
         local id = R.Number(R.Field(self.root, "currentPage"))
         local view = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
         if self.ui.tab == view then self:Refresh("mount"); return end
@@ -371,10 +390,10 @@ function C:InputHooks()
     self.inputReady = true
 end
 function C:Attach()
+    if combat() and enabled() then self:DeferCombat(); return end
     if self.attaching or self.busy then self.attachPending = true; self:QueueAttach(); return end
     if self.restorePending and not self:Release(enabled() and "Waiting for native Legacy frame" or "Disabled") then return end
     if not enabled() then self:Release("Disabled"); return end
-    if combat() then self.pending = true; self.state = "Waiting for combat to end"; return end
     if not self:Guard(function() self:InputHooks() end) then return end
     if gamepad() then self:Release("Native interface in gamepad mode"); return end
     local root, page = LegacySystemFrame, R.Field(LegacySystemFrame, "ChallengesPage")
@@ -415,11 +434,29 @@ function C:Attach()
                     self:Dirty("open")
                     -- Let ShowChallenges/native callbacks finish selecting
                     -- their final page before building or rendering a model.
-                    self:QueueAttach()
+                    if combat() then
+                        self:DeferCombat()
+                        -- Reuse an existing presentation only. Never mount or
+                        -- initialize native pages while the client is locked.
+                        if self.bridge and not self.restorePending and self.cover and not B.Blocked(self.cover) then
+                            self:Guard(function() self.cover:Show() end)
+                        end
+                    else self:QueueAttach() end
                 end
             end)
             root:HookScript("OnHide", function()
-                if root == self.root then self:Release(enabled() and "Enabled; native window closed" or "Disabled") end
+                if root ~= self.root then return end
+                if combat() then
+                    -- The client/user may close the native root in combat.
+                    -- Hide our independent cover without restoring native
+                    -- geometry; retain the bridge and all navigation state.
+                    self:CancelQueuedWork()
+                    if self.cover and not B.Blocked(self.cover) then
+                        self:Guard(function() self.cover:Hide() end)
+                    end
+                    if enabled() then self:DeferCombat()
+                    else self:Release("Disabled") end
+                else self:Release(enabled() and "Enabled; native window closed" or "Disabled") end
             end)
             root:HookScript("OnSizeChanged", function() if root == self.root then self:Schedule("layout") end end)
             self.hooked[root] = true
@@ -454,7 +491,12 @@ function C:Attach()
             local id = R.Number(R.Field(root, "currentPage"))
             self.ui.tab = id == 1 and "rewards" or id == 3 and "trees" or "achievements"
         end
-        if not shown(root) then self.state = "Enabled; native window closed" end
+        if not shown(root) then
+            -- A cover which could not hide during lockdown must now follow
+            -- the still-closed native root; do not reopen either window.
+            if shown(self.cover) then self.cover:Hide() end
+            self.state = "Enabled; native window closed"
+        end
         self:Refresh("pending")
     end)
     self.attaching = false
@@ -490,12 +532,18 @@ for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED",
     pcall(events.RegisterEvent, events, event)
 end
 events:SetScript("OnEvent", function(_, event)
+    if event == "PLAYER_REGEN_ENABLED" and C.closePending then
+        C:Guard(function() C:Close() end)
+    end
     if event == "PLAYER_REGEN_ENABLED" and C.restorePending then
         C:Release(enabled() and "Waiting for native Legacy frame" or "Disabled")
     end
     if not enabled() then return end
     if event == "PLAYER_REGEN_DISABLED" then
-        C.pending = true; C:Release("Waiting for combat to end")
+        if C.ui and (C.ui.searchQueued or C.ui.renderQueued or C.ui.pendingRender) then C.dirtyRender = true end
+        C:CancelQueuedWork()
+        C:Dirty("mount")
+        C:DeferCombat()
     elseif event == "INPUT_DEVICE_INTERFACE_TRANSITION" then
         if gamepad() then C:Release("Native interface in gamepad mode") else C:QueueAttach() end
     elseif event == "PLAYER_LOGIN" or event == "ADDON_LOADED" or event == "PLAYER_REGEN_ENABLED" then C:Attach()
