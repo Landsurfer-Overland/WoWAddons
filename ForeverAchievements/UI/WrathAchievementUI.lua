@@ -475,8 +475,6 @@ function U.Create(cover, guard, refresh, callbacks)
     header:SetScript("OnDragStop", function() guard(function()
         cover:StopMovingOrSizing(); if self.callbacks.onPositionSave then self.callbacks.onPositionSave(cover) end
     end) end)
-    header:SetScript("OnEnter", function() guard(function() self:PointsTooltip(header) end) end)
-    header:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     close.owner = self
     self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27)
     self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69)
@@ -719,7 +717,7 @@ function U.Create(cover, guard, refresh, callbacks)
     end) end)
     U.CreateCategoryHeading(self)
     -- Explicit method table keeps our controller out of Blizzard globals.
-    for _, name in ipairs({ "Fit", "Layout", "DismissMenus", "CategoryHeading", "PointsTooltip", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
+    for _, name in ipairs({ "Fit", "Layout", "DismissMenus", "CategoryHeading", "SetTab", "SetModel", "Render", "QueueRender", "CancelPending", "RenderCategories", "RenderCard", "MeasureCard", "RenderList", "RenderStatistics", "Heading", "SummaryBar" }) do self[name] = U[name] end
     self:Layout(U.PRESETS.Standard[1], U.PRESETS.Standard[2])
     return self
 end
@@ -757,6 +755,9 @@ function U.Layout(self, width, height, suppressRender)
     self.contentWidth = self.contentPanelWidth - 22
     self.contentHeight = height - 98
     self.categoryHeight = height - 58
+    -- Preset geometry only: hierarchy never changes button size or spacing.
+    self.categoryRowHeight = width >= 900 and 40 or 36
+    self.categoryRowGap = height >= 650 and 12 or width >= 900 and 10 or 6
     self.nativeHost:SetSize(width - 50, height - 46)
     self.categoryScroll:SetSize(self.sidebarWidth - 26, self.categoryHeight)
     self.categoryChild:SetWidth(self.sidebarWidth - 26)
@@ -809,26 +810,6 @@ function U.SetTab(self, view, notify)
     end
     perfFinish(token)
 end
-function U.PointsTooltip(self, anchor)
-    if not self.model or not GameTooltip then return end
-    local custom, native = self.model.custom, self.model.native
-    GameTooltip:SetOwner(anchor, "ANCHOR_TOP")
-    GameTooltip:SetText("Achievement Points")
-    if custom.points ~= nil then
-        GameTooltip:AddLine(tostring(custom.points) .. " points earned on this character.", 1, 1, 1, true)
-    elseif custom.confirmedPoints ~= nil then
-        GameTooltip:AddLine(tostring(custom.confirmedPoints) .. " verified points earned on this character.", 1, 1, 1, true)
-        GameTooltip:AddLine("+ marks a verified subtotal. Some achievement completions or point values are unverified; their points are excluded.", 1, .82, 0, true)
-        if custom.unverifiedPointRecords then
-            local count = custom.unverifiedPointRecords
-            GameTooltip:AddLine(tostring(count) .. (count == 1 and " achievement record" or " achievement records") .. " awaiting verification.", 1, .82, 0, true)
-        end
-    else
-        GameTooltip:AddLine("Current-character points could not be verified. Saved progress has been preserved.", 1, .82, 0, true)
-    end
-    GameTooltip:AddLine("Legacy Points: " .. (native.points ~= nil and tostring(native.points) or "Unavailable"), .63, .79, 1, true)
-    GameTooltip:Show()
-end
 function U.SetModel(self, model)
     self.model = model
     self.modelGeneration = (self.modelGeneration or 0) + 1
@@ -878,15 +859,17 @@ function U.RenderCategories(self)
             b.expandButton:SetScript("OnClick", U.CategoryExpand)
         end
         local indent = math.min(depth, 3) * 14
-        local height = depth == 0 and 29 or 26
-        b:SetSize(self.categoryScroll:GetWidth() - indent - 5, height)
-        b:SetPoint("TOPLEFT", indent, -y)
+        local height = self.categoryRowHeight
+        b:SetSize(self.categoryScroll:GetWidth() - 8, height)
+        b:SetPoint("TOPLEFT", 4, -y)
         b.owner, b.category, b.depth = self, cat, depth
         b.navigation = statistics and "statistics" or "achievements"
         b.expandButton.owner = self
         b.expandButton:SetSize(18, height - 4)
-        b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 21, 0)
-        b.label:SetWidth(b:GetWidth() - 25); b.label:SetWordWrap(false)
+        b.expandButton:ClearAllPoints(); b.expandButton:SetPoint("LEFT", 3 + indent, 0)
+        b.connector:ClearAllPoints(); b.connector:SetPoint("LEFT", 4 + indent, 0)
+        b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 21 + indent, 0)
+        b.label:SetWidth(b:GetWidth() - 25 - indent); b.label:SetWordWrap(false)
         b.label:SetFontObject(depth == 0 and GameFontNormal or GameFontNormalSmall)
         b.label:SetText(cat.name)
         b.label:SetTextColor(depth == 0 and 1 or .88, depth == 0 and .82 or .72, depth == 0 and 0 or .35)
@@ -896,7 +879,7 @@ function U.RenderCategories(self)
         show(b.expandButton, hasChildren)
         b.expandButton.label:SetText(expanded[cat.key] and "−" or "+")
         b:Show()
-        y = y + height + (depth == 0 and 3 or 1)
+        y = y + height + self.categoryRowGap
         if expanded[cat.key] then for _, child in ipairs(cat.children) do visit(child, depth + 1) end end
     end
     for _, cat in ipairs(catalog and catalog.roots or {}) do visit(cat, 0) end

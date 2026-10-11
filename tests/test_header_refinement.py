@@ -35,8 +35,7 @@ class HeaderPointRefinementTests(unittest.TestCase):
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
             assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='16')
             FAWrathAchievementFrameHeader:Fire('OnEnter')
-            assert(tooltipLines[2]:find('10 verified points') and tooltipLines[3]:find('their points are excluded'))
-            assert(tooltipLines[4]:find('1 achievement record awaiting') and tooltipLines[5]=='Legacy Points: 16')
+            assert(#tooltipLines==0 and not GameTooltip.visible)
             local lowerBound,_,_,_,known=ns.FA.TotalPoints()
             assert(lowerBound==10 and known==false)
             assert(saved.done==done and saved.history==history and saved.done.explore855==123456 and #calls==0)
@@ -51,7 +50,7 @@ class HeaderPointRefinementTests(unittest.TestCase):
             assert(model.custom.points==20 and model.custom.confirmedPoints==20 and model.custom.unverifiedPointRecords==0)
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='20')
             FAWrathAchievementFrameHeader:Fire('OnEnter')
-            assert(tooltipLines[2]=='20 points earned on this character.' and #tooltipLines==3)
+            assert(#tooltipLines==0 and not GameTooltip.visible)
             assert(saved.done.explore855==123456 and saved.done.explore802==123400 and #calls==0)
         ''')
 
@@ -63,7 +62,7 @@ class HeaderPointRefinementTests(unittest.TestCase):
             assert(model.custom.points==nil and model.custom.confirmedPoints==nil)
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='—')
             FAWrathAchievementFrameHeader:Fire('OnEnter')
-            assert(tooltipLines[2]:find('could not be verified'))
+            assert(#tooltipLines==0 and not GameTooltip.visible)
             assert(saved.done.explore802==123400 and saved.history[1]=='keep' and #calls==0)
         ''')
 
@@ -78,7 +77,7 @@ class HeaderPointRefinementTests(unittest.TestCase):
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='0+' and saved.done.explore802==123400 and #calls==0)
         ''')
 
-    def test_tooltip_and_repeated_render_use_cached_totals_without_catalog_work(self):
+    def test_hover_without_tooltip_and_repeated_render_do_not_do_catalog_work(self):
         self.h.execute('''
             saved.done.explore855=123456; saved.done.explore802=123400
             local model=BindHeader(); local frameCount=#frames
@@ -86,7 +85,7 @@ class HeaderPointRefinementTests(unittest.TestCase):
             ns.CustomAchievementAdapter.Catalog=function() error('Hover rescanned achievements') end
             for i=1,20 do
                 FAWrathAchievementFrameHeader:Fire('OnEnter')
-                assert(GameTooltip.visible and GameTooltip.owner==FAWrathAchievementFrameHeader)
+                assert(not GameTooltip.visible and #tooltipLines==0)
                 FAWrathAchievementFrameHeader:Fire('OnLeave'); assert(not GameTooltip.visible)
                 view:Render()
                 assert(view.model==model and FAWrathAchievementFrameHeaderPoints:GetText()=='10+')
@@ -103,7 +102,22 @@ class HeaderPointRefinementTests(unittest.TestCase):
             assert(FAWrathAchievementFrameHeaderLegacyPoints:GetText()=='—')
             assert(FAWrathAchievementFrameHeaderPoints:GetText()=='10')
             FAWrathAchievementFrameHeader:Fire('OnEnter')
-            assert(tooltipLines[#tooltipLines]=='Legacy Points: Unavailable' and #calls==0)
+            assert(#tooltipLines==0 and not GameTooltip.visible and #calls==0)
+        ''')
+
+    def test_header_hover_has_no_handlers_and_leaves_unrelated_tooltips_alone(self):
+        self.h.execute('''
+            BindHeader()
+            local header=FAWrathAchievementFrameHeader
+            assert(header:GetScript('OnEnter')==nil and header:GetScript('OnLeave')==nil)
+            assert(view.PointsTooltip==nil)
+            GameTooltip.visible=true
+            GameTooltip.owner=UIParent
+            tooltipLines={'Unrelated tooltip'}
+            header:Fire('OnEnter'); header:Fire('OnLeave')
+            assert(GameTooltip.visible and GameTooltip.owner==UIParent)
+            assert(#tooltipLines==1 and tooltipLines[1]=='Unrelated tooltip')
+            assert(#calls==0)
         ''')
 
 

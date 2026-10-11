@@ -90,12 +90,12 @@ class Iteration5CategoryTests(unittest.TestCase):
         self.check('''
             categoryButton('general'):Fire('OnClick')
             local parent,child=categoryButton('general'),categoryButton('general:progression')
-            assert(parent:GetHeight()==29 and child:GetHeight()==26)
-            assert(child.depth==1 and child.points[1][4]==14)
-            assert(child:GetWidth()==parent:GetWidth()-14)
+            assert(parent:GetHeight()==40 and child:GetHeight()==40)
+            assert(child.depth==1 and child.points[1][4]==4)
+            assert(child:GetWidth()==parent:GetWidth())
             assert(child.connector:IsShown() and not parent.connector:IsShown())
             assert(parent.label:GetFontObject()==GameFontNormal and child.label:GetFontObject()==GameFontNormalSmall)
-            assert(parent.expandButton:GetHeight()==25 and child.expandButton:GetHeight()==22)
+            assert(parent.expandButton:GetHeight()==36 and child.expandButton:GetHeight()==36)
             assert(child.label:GetWidth()>100 and child.label.wordWrap==false)
         ''')
 
@@ -109,6 +109,48 @@ class Iteration5CategoryTests(unittest.TestCase):
             for i=1,40 do categoryButton('general'):Fire('OnClick') end
             assert(#frames==before and view.model==catalog and not view.expanded.general)
             assert(renderCalls==42 and refreshCalls==0 and #timers==0 and #calls==0)
+        ''')
+
+    def test_uniform_category_geometry_and_margins_on_each_size(self):
+        self.create_view()
+        self.check('''
+            view.expanded.general=true
+            view:Render()
+            local model=view.model
+            ns.CustomAchievementAdapter.Catalog=function() error('Sizing rescanned catalog') end
+            ns.LegacyAdapter.Catalog=ns.CustomAchievementAdapter.Catalog
+            for _,name in ipairs({'Compact','Standard','Large','Compact'}) do
+                local size=ns.WrathAchievementUI.PRESETS[name]
+                view:Layout(size[1],size[2])
+                local previous,foundChild
+                for _,button in ipairs(view.categories) do
+                    if button:IsShown() then
+                        assert(button:GetWidth()==view.categoryScroll:GetWidth()-8)
+                        assert(button:GetHeight()==view.categoryRowHeight and button:GetHeight()>=36)
+                        assert(button.points[1][4]==4)
+                        assert(button.label.points[1][4]==21+math.min(button.depth,3)*14)
+                        if previous then
+                            assert(previous:GetBottom()-button:GetTop()==view.categoryRowGap)
+                        end
+                        if button.depth>0 then foundChild=true end
+                        previous=button
+                    end
+                end
+                assert(foundChild and view.expanded.general and view.model==model)
+                assert(view.categoryChild:GetHeight()>=view.categoryHeight and #calls==0)
+            end
+        ''')
+
+    def test_cached_sidebar_does_not_resize_rows_or_allocate_frames_on_repeat_render(self):
+        self.create_view()
+        self.check('''
+            view.expanded.general=true; view:Render()
+            local count=#frames
+            for _,button in ipairs(view.categories) do
+                button.SetSize=function() error('Unchanged sidebar resized rows') end
+            end
+            for i=1,30 do view:RenderCategories() end
+            assert(#frames==count and refreshCalls==0 and #calls==0)
         ''')
 
     def test_statistics_parent_navigation_uses_its_independent_expansion_state(self):
