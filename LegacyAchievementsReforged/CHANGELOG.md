@@ -1,5 +1,11 @@
 # Legacy Achievements Reforged
 
+## 0.5.1-alpha-alert-test2 — testing branch
+
+- Replace the inherited addon-list/minimap icon with an original gold hammer
+  and anvil emblem for Legacy Achievements Reforged.
+- Artwork-only change; achievement behavior and alert settings are unchanged.
+
 ## 0.5.1-alpha-alert-test1 — testing branch
 
 - Classic gold achievement popup with icon, shield, fade, glow and shine.

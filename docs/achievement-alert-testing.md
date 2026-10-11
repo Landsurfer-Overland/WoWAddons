@@ -1,6 +1,6 @@
 # Achievement alert test build
 
-Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test1`.
+Branch: `achievement-alerts-test`. Version: `0.5.1-alpha-alert-test2`.
 This branch can be installed for testing without changing `main` or creating a
 release tag. The existing workflow builds a downloadable branch artifact after
 checks; actual GitHub releases require a version tag. No CurseForge upload is
@@ -36,6 +36,9 @@ events or create a second popup for those events.
 1. Install the test ZIP over the current `LegacyAchievementsReforged` folder.
    Retain your WTF/SavedVariables, then `/reload`. A player still on a previous
    addon identity should first use the existing [migration guide](save-migration.md).
+   This build also replaces the inherited addon-list/minimap artwork with the
+   project's own gold hammer-and-anvil icon. Restart the client if it still shows
+   a cached old texture, then check the AddOns list again.
 2. Open **Settings → AddOns → Legacy Achievements Reforged**, or `/lar settings`.
    Older clients use their Interface → AddOns category. A standalone owned page
    is available if neither settings API exists.
