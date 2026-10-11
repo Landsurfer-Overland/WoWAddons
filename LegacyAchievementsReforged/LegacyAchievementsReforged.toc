@@ -4,7 +4,7 @@
 ## Author: Landsurfer-Overland
 ## X-Original-Author: Piotr
 ## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
-## Version: 0.5.0-alpha
+## Version: 0.5.1-alpha-alert-test1
 ## SavedVariables: LegacyAchievementsReforgedDB
 ## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish
@@ -30,6 +30,8 @@ Views.lua
 Minimap.lua
 Themes.lua
 Welcome.lua
+UI\AchievementAlerts.lua
+UI\AddonSettings.lua
 Diagnostics\LegacyInspector.lua
 Integrations\LegacyAdapter.lua
 Integrations\Performance.lua

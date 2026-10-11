@@ -1980,8 +1980,11 @@ local function Complete(a)
     d.tracked[a.key] = nil
     print(TAG .. " earned: " .. LINK.fn(a))
     if Settings().toasts ~= false then
-        queue[#queue + 1] = a
-        if not showing then ShowNextToast() end
+        if ns.AchievementAlerts then ns.AchievementAlerts.Enqueue(a)
+        else
+            queue[#queue + 1] = a
+            if not showing then ShowNextToast() end
+        end
     end
     for _, fn in ipairs(EARN_HOOKS) do pcall(fn, a) end
     if Settings().screenshot and Screenshot then C_Timer.After(1, Screenshot) end
@@ -3492,6 +3495,8 @@ SlashCmdList.LEGACYACHIEVEMENTSREFORGED = function(input)
             { "/lar inspectachievement <key>", "inspect an achievement condition without granting completion" },
             { "/lar correctachievement <key>", "preview a token-confirmed correction for this character only" },
             { "/lar money report", "inspect exact monetary sources, units and configured copper thresholds" },
+            { "/lar settings", "open addon settings and achievement alert previews" },
+            { "/lar alert test|sound|stop", "preview achievement effects without awarding progress" },
             { "/lar help", "this list" },
             { "/reforged or /legacyachievements", "aliases for /lar (work with every command above)" },
         }) do
@@ -3574,13 +3579,17 @@ ns.LAR = {
     end,
     -- A sample toast, for the settings page.
     PreviewToast = function()
+        if ns.AchievementAlerts then return ns.AchievementAlerts.Preview() end
         queue[#queue + 1] = { name = "Legacy Achievements Reforged", icon = 132347, pts = 10 }
         if not showing then ShowNextToast() end
     end,
     IsShown = function() return win and win:IsShown() end,
     Hide = function() if win then win:Hide() end end,
     -- The toast is built again with the next achievement.
-    ResetToast = function() if not showing then toast = nil end end,
+    ResetToast = function()
+        if ns.AchievementAlerts then return ns.AchievementAlerts.Reposition() end
+        if not showing then toast = nil end
+    end,
     -- Switches the window to a tab.
     ShowTab = function(key)
         if not Open() then return false end

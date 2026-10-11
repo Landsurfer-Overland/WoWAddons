@@ -20,6 +20,8 @@ two achievement controllers. Source saves and their backups remain intact.
 
 ## Commands
 
+- `/lar settings` — addon settings, including achievement popup/sound previews.
+- `/lar alert test|sound|stop` — test notifications without awarding progress.
 - `/lar legacyui on|off` — enable the unified interface or restore native Legacy.
 - `/lar legacyui size compact|standard|large` — choose a window size.
 - `/lar legacyui reset` — reset window position without changing progress.
@@ -30,6 +32,14 @@ two achievement controllers. Source saves and their backups remain intact.
 Feats of Strength contains **Legacy Point Achievements**, a searchable view of
 confirmed Legacy Point rewards. Original category assignments and totals remain
 unchanged. Unverified progress is kept separate from verified completion.
+
+This branch is the **achievement-alerts-test** build (`0.5.1-alpha-alert-test1`).
+Its popup uses the classic gold banner, short fade-in, gold glow, sweeping shine,
+timed fade-out and selected client sound. The settings page is available through
+the client's AddOns settings or `/lar settings`; the quarantined alpha window
+is not needed. See the [alert testing guide](docs/achievement-alert-testing.md).
+`main` remains the published `0.5.0-alpha` build. No release tag is pushed for
+this experiment, so it does not publish a GitHub/CurseForge release automatically.
 
 ## Development and publishing
 
