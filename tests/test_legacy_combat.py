@@ -207,7 +207,7 @@ class LegacyCombatTests(unittest.TestCase):
             local c=ns.LegacyUIController; local messageCount=#messages; local nativeHides=rootHides
             LegacySystemFrame.protected=true; inCombat=true; ControllerEvent('PLAYER_REGEN_DISABLED')
             for i=1,12 do c.ui.callbacks.onClose() end
-            assert(c.closePending and c.pending and c.cover:IsVisible() and LegacySystemFrame:IsShown())
+            assert(c.closePending and c.pending and not c.cover:IsVisible() and LegacySystemFrame:IsShown())
             assert(rootHides==nativeHides and restoreCalls==0 and #timers==0)
             assert(not c.restorePending and c.lastError==nil and #messages==messageCount)
             LegacySystemFrame.protected=false; inCombat=false

@@ -393,10 +393,14 @@ function U.TabClick(self)
     end)
 end
 function U.CloseClick(self)
-    action(self, function(owner) if owner.callbacks.onClose then owner.callbacks.onClose() end end)
+    -- Closing has its own controller guard: a protected content subtree must
+    -- not prevent recording the user's request to close after lockdown.
+    local owner = self.owner
+    if owner and owner.callbacks.onClose then owner.callbacks.onClose() end
 end
-local function scroll(parent, name, width, height, x, y)
+local function scroll(parent, name, width, height, x, y, guard)
     local s = CreateFrame("ScrollFrame", name, parent)
+    guard = guard or function(fn) return fn() end
     s:SetSize(width, height); s:SetPoint("TOPLEFT", x, y)
     local child = CreateFrame("Frame", name .. "Child", s)
     child:SetSize(width, height); s:SetScrollChild(child)
@@ -426,18 +430,18 @@ local function scroll(parent, name, width, height, x, y)
             button["Set" .. state .. "Texture"](button, texture)
         end
         button:SetScript("OnClick", function()
-            clampScroll(s, child, s:GetVerticalScroll() + (direction == "Up" and -44 or 44))
+            guard(function() clampScroll(s, child, s:GetVerticalScroll() + (direction == "Up" and -44 or 44)) end)
         end)
         return button
     end
     bar.up, bar.down = arrow("Up"), arrow("Down")
     s.faScrollbar = bar
     bar:SetScript("OnValueChanged", function(_, value)
-        if not bar.syncing then clampScroll(s, child, value) end
+        if not bar.syncing then guard(function() clampScroll(s, child, value) end) end
     end)
     s:EnableMouseWheel(true)
-    s:SetScript("OnMouseWheel", function(_, delta) clampScroll(s, child, s:GetVerticalScroll() - delta * 44) end)
-    s:HookScript("OnVerticalScroll", function() syncScrollbar(s, child) end)
+    s:SetScript("OnMouseWheel", function(_, delta) guard(function() clampScroll(s, child, s:GetVerticalScroll() - delta * 44) end) end)
+    s:HookScript("OnVerticalScroll", function() guard(function() syncScrollbar(s, child) end) end)
     syncScrollbar(s, child)
     return s, child
 end
@@ -470,14 +474,18 @@ function U.Create(cover, guard, refresh, callbacks)
     close:SetFrameLevel(self.nativeHost:GetFrameLevel() + 50)
     header:RegisterForDrag("LeftButton")
     header:SetScript("OnDragStart", function() guard(function()
-        cover:StartMoving(); if self.callbacks.onDragStart then self.callbacks.onDragStart() end
+        if self.callbacks.onDragStart and self.callbacks.onDragStart() == false then return end
+        cover:StartMoving()
     end) end)
     header:SetScript("OnDragStop", function() guard(function()
-        cover:StopMovingOrSizing(); if self.callbacks.onPositionSave then self.callbacks.onPositionSave(cover) end
+        if self.callbacks.onDragStop then self.callbacks.onDragStop()
+        else
+            cover:StopMovingOrSizing(); if self.callbacks.onPositionSave then self.callbacks.onPositionSave(cover) end
+        end
     end) end)
     close.owner = self
-    self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27)
-    self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69)
+    self.categoryScroll, self.categoryChild = scroll(self.root, "FAWrathCategoryScroll", 169, 442, 28, -27, guard)
+    self.contentScroll, self.contentChild = scroll(self.root, "FAWrathContentScroll", 496, 402, 234, -69, guard)
     self.measureFont = font(self.contentChild, "FAWrathAchievementDescriptionFont"); self.measureFont:Hide()
     self.contentScroll:HookScript("OnVerticalScroll", function()
         if self.rendering or self.scrollRendering or self.suppressScroll or not self.model then return end
@@ -588,22 +596,22 @@ function U.Create(cover, guard, refresh, callbacks)
         for _, choice in ipairs(self.filterChoices) do show(choice.check, choice.value == value) end
     end
     self.setFilter("All")
-    self.filterDismiss:SetScript("OnClick", function() self.filterMenu:Hide() end)
-    self.filterMenu:SetScript("OnHide", function()
+    self.filterDismiss:SetScript("OnClick", function() guard(function() self.filterMenu:Hide() end) end)
+    self.filterMenu:SetScript("OnHide", function() guard(function()
         self.filterDismiss:Hide()
         if type(self.filterMenu.EnableKeyboard) == "function" then self.filterMenu:EnableKeyboard(false) end
-    end)
+    end) end)
     if type(self.filterMenu.EnableKeyboard) == "function" and type(self.filterMenu.SetPropagateKeyboardInput) == "function" then
-        self.filterMenu:SetScript("OnKeyDown", function(menu, key)
+        self.filterMenu:SetScript("OnKeyDown", function(menu, key) guard(function()
             menu:SetPropagateKeyboardInput(key ~= "ESCAPE")
             if key == "ESCAPE" then menu:Hide() end
-        end)
-        self.filterMenu:SetScript("OnShow", function(menu)
+        end) end)
+        self.filterMenu:SetScript("OnShow", function(menu) guard(function()
             menu:SetPropagateKeyboardInput(true); menu:EnableKeyboard(true)
-        end)
+        end) end)
     end
-    self.filterButton:SetScript("OnHide", function() self.filterMenu:Hide() end)
-    self.root:HookScript("OnHide", function() self.filterMenu:Hide() end)
+    self.filterButton:SetScript("OnHide", function() guard(function() self.filterMenu:Hide() end) end)
+    self.root:HookScript("OnHide", function() guard(function() self.filterMenu:Hide() end) end)
     self.filterButton:SetScript("OnClick", function()
         guard(function()
             if self.filterMenu:IsShown() then self.filterMenu:Hide()
@@ -691,22 +699,22 @@ function U.Create(cover, guard, refresh, callbacks)
         end) end)
         self.sizeChoices[i] = choice
     end
-    self.sizeDismiss:SetScript("OnClick", function() self.sizeMenu:Hide() end)
-    self.sizeMenu:SetScript("OnHide", function()
+    self.sizeDismiss:SetScript("OnClick", function() guard(function() self.sizeMenu:Hide() end) end)
+    self.sizeMenu:SetScript("OnHide", function() guard(function()
         self.sizeDismiss:Hide()
         if type(self.sizeMenu.EnableKeyboard) == "function" then self.sizeMenu:EnableKeyboard(false) end
-    end)
+    end) end)
     if type(self.sizeMenu.EnableKeyboard) == "function" and type(self.sizeMenu.SetPropagateKeyboardInput) == "function" then
-        self.sizeMenu:SetScript("OnKeyDown", function(menu, key)
+        self.sizeMenu:SetScript("OnKeyDown", function(menu, key) guard(function()
             menu:SetPropagateKeyboardInput(key ~= "ESCAPE")
             if key == "ESCAPE" then menu:Hide() end
-        end)
-        self.sizeMenu:SetScript("OnShow", function(menu)
+        end) end)
+        self.sizeMenu:SetScript("OnShow", function(menu) guard(function()
             menu:SetPropagateKeyboardInput(true); menu:EnableKeyboard(true)
-        end)
+        end) end)
     end
-    self.sizeButton:SetScript("OnHide", function() self.sizeMenu:Hide() end)
-    self.root:HookScript("OnHide", function() self.sizeMenu:Hide() end)
+    self.sizeButton:SetScript("OnHide", function() guard(function() self.sizeMenu:Hide() end) end)
+    self.root:HookScript("OnHide", function() guard(function() self.sizeMenu:Hide() end) end)
     self.sizeButton:SetScript("OnClick", function() guard(function()
         if self.sizeMenu:IsShown() then self.sizeMenu:Hide()
         else

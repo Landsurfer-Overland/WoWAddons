@@ -5,6 +5,10 @@ local R = ns.LegacyReadOnly
 local B = {}
 B.__index = B
 ns.LegacyWindowBridge = B
+local function locked()
+    local r = R.Call(InCombatLockdown)
+    return r and r[1] == true
+end
 function B.Blocked(frame)
     if not frame then return true end
     for _, method in ipairs({ "IsForbidden", "IsProtected" }) do
@@ -117,12 +121,14 @@ function B:Check()
     end
 end
 function B:Select(id)
+    assert(not locked(), "Native Legacy selection deferred during combat")
     if R.Field(self.root, "currentPage") ~= id then
         invoke(EventRegistry, "TriggerEvent", "Legacy.SelectPage", id)
     end
     assert(R.Field(self.root, "currentPage") == id, "Native page selection did not complete")
 end
 function B:Suppress(mounted)
+    assert(not locked(), "Native Legacy suppression deferred during combat")
     self:Check()
     self.active = true -- failures after this point must attempt restoration
     local mouse = R.Method(self.root, "IsMouseEnabled")
@@ -134,6 +140,7 @@ function B:Suppress(mounted)
     end
 end
 function B:Mount(view, host)
+    assert(not locked(), "Native Legacy mounting deferred during combat")
     local id = view == "rewards" and 1 or view == "trees" and 3 or 2
     local data = self.pages[id]
     self:Check()
@@ -163,6 +170,7 @@ function B:Mount(view, host)
 end
 function B:Restore()
     if not self.active then return true end
+    if locked() then return false, "Native Legacy restoration deferred during combat" end
     -- Preflight before replaying state. A rejected restore keeps the working
     -- replacement visible until restoration is legal, avoiding a blank UI.
     local ok, err = pcall(function() self:Check() end)

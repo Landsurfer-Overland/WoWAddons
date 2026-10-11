@@ -143,6 +143,51 @@ function C:Guard(fn)
     if not ok then self:Fail(err) end
     return ok
 end
+function C:PresentationAllowed()
+    if not combat() then return true end
+    for _, frame in ipairs({ self.cover, self.ui and self.ui.root, self.ui and self.ui.nativeHost }) do
+        if B.Blocked(frame) then
+            self.dirtyRender = true
+            self:DeferCombat()
+            return false
+        end
+    end
+    return true
+end
+function C:CombatSample(event, addon, operation)
+    if not self.combatDiagnostics then return end
+    self.combatSamples = self.combatSamples or {}
+    local text = event .. " combat=" .. tostring(combat()) .. " rootShown=" .. tostring(shown(self.root))
+        .. " coverShown=" .. tostring(shown(self.cover)) .. " coverRestricted=" .. tostring(B.Blocked(self.cover))
+        .. " closePending=" .. tostring(self.closePending == true)
+    local points = self.ui and self.ui.nativePoints
+    if points then
+        local visible = R.Method(points, "IsVisible")
+        text = text .. " pointsVisible=" .. tostring(visible and visible[1] == true)
+    end
+    addon, operation = R.Text(addon), R.Text(operation)
+    if addon then text = text .. " addon=" .. addon:sub(1, 100) end
+    if operation then text = text .. " operation=" .. operation:sub(1, 200) end
+    if #self.combatSamples >= 16 then table.remove(self.combatSamples, 1) end
+    self.combatSamples[#self.combatSamples + 1] = text
+end
+function C:StartDrag()
+    -- Native pages are anchored to our host. Moving the cover moves that
+    -- dependency chain, even when the cover itself is an ordinary frame.
+    if combat() then return false end
+    self.dragging = true
+    return true
+end
+function C:FinishDrag()
+    if not self.dragging then return end
+    if combat() then self.positionPending = true; return end
+    self.cover:StopMovingOrSizing()
+    self.positionPending = false
+    if self.positionResetPending then
+        self.positionResetPending, self.dragging = false, false
+        self:RestorePosition()
+    else self:SavePosition() end
+end
 local anchors = { TOPLEFT = { 0, 1 }, TOP = { .5, 1 }, TOPRIGHT = { 1, 1 }, LEFT = { 0, .5 },
     CENTER = { .5, .5 }, RIGHT = { 1, .5 }, BOTTOMLEFT = { 0, 0 }, BOTTOM = { .5, 0 }, BOTTOMRIGHT = { 1, 0 } }
 function C:Preset()
@@ -152,6 +197,7 @@ function C:Preset()
     return name, sizes[name]
 end
 function C:RestorePosition()
+    if combat() then self.positionPending = true; return end
     if not self.cover or self.dragging then return end
     local saved = FA.Settings().legacyUIPosition
     local point, relativePoint = R.Text(R.Field(saved, "point")), R.Text(R.Field(saved, "relativePoint"))
@@ -171,6 +217,7 @@ function C:RestorePosition()
     self.cover:SetPoint(point, UIParent, relativePoint, x, y)
 end
 function C:SavePosition()
+    if combat() then self.positionPending = true; return end
     self.dragging = false
     if not self.cover then return end
     local r = R.Method(self.cover, "GetPoint", 1)
@@ -234,8 +281,12 @@ end
 function C:ResetPosition()
     FA.Settings().legacyUIPosition = nil
     if self.cover then
-        self.cover:StopMovingOrSizing(); self.dragging = false
-        if not combat() then self:Guard(function() self:RestorePosition() end) end
+        if combat() then self.positionPending, self.positionResetPending = true, true; self:DeferCombat()
+        else
+            self.positionResetPending = false
+            self.cover:StopMovingOrSizing(); self.dragging = false
+            self:Guard(function() self:RestorePosition() end)
+        end
     end
     notify("Window position reset. Achievement progress is preserved.")
 end
@@ -332,6 +383,9 @@ function C:Schedule(reason)
     self:QueueRefresh()
 end
 function C:CurrencyChanged(payload)
+    -- Combat-only secret/unavailable reads must not replace the last observed
+    -- currency or initiate a provider refresh. Re-read normally after regen.
+    if combat() then self:Dirty("native"); self:DeferCombat(); return end
     local r = R.Call(ns.LegacyAdapter.TotalPoints)
     local value = r and R.Number(r[1])
     local currencyChanged = false
@@ -376,15 +430,25 @@ function C:QueueAttach()
     timer(0, run)
 end
 function C:Close()
+    self:CombatSample("Close request")
     local root = self.root
     if not root then return end
     if combat() and B.Blocked(root) then
         self.closePending = true
+        -- The independent owned presentation may still close immediately.
+        if self.cover and not B.Blocked(self.cover) then self.cover:Hide() end
         self:DeferCombat()
         return
     end
     self.closePending = false
-    if type(HideUIPanel) == "function" then HideUIPanel(root) else root:Hide() end
+    -- HideUIPanel also updates Blizzard's protected panel manager. Testing
+    -- only root:IsProtected() does not make that API safe in combat.
+    if combat() then
+        self.panelClosePending = true -- reconcile Blizzard panel bookkeeping after regen
+        root:Hide()
+    elseif type(HideUIPanel) == "function" then HideUIPanel(root)
+    else root:Hide() end
+    if not combat() then self.panelClosePending = false end
 end
 function C:NativeSelection()
     if self.mounting or not enabled() or not self.bridge or not shown(self.root) then return end
@@ -455,11 +519,15 @@ function C:Attach()
             self.cover:SetFrameLevel(root:GetFrameLevel() + 10)
         end
         if not self.ui then
-            self.ui = ns.WrathAchievementUI.Create(self.cover, function(fn) return self:Guard(fn) end,
+            self.ui = ns.WrathAchievementUI.Create(self.cover, function(fn)
+                if not self:PresentationAllowed() then return false end
+                return self:Guard(fn)
+            end,
                 function() self:Refresh("custom") end, {
                     onTab = function() self:Refresh("tab"); return true end,
-                    onClose = function() self:Close() end,
-                    onDragStart = function() self.dragging = true end,
+                    onClose = function() self:Guard(function() self:Close() end) end,
+                    onDragStart = function() return self:StartDrag() end,
+                    onDragStop = function() self:FinishDrag() end,
                     onPositionSave = function() self:SavePosition() end,
                     onSizePresetCycle = function() self:CycleSizePreset() end,
                     onSizePreset = function(name) return self:SetSizePreset(name) end,
@@ -468,6 +536,7 @@ function C:Attach()
         if not self.hooked[root] then
             root:HookScript("OnShow", function()
                 if enabled() and root == LegacySystemFrame then
+                    self.panelClosePending = false -- a new native open supersedes closed-panel cleanup
                     self:CancelQueuedWork()
                     self:Dirty("open")
                     -- Let ShowChallenges/native callbacks finish selecting
@@ -476,7 +545,7 @@ function C:Attach()
                         self:DeferCombat()
                         -- Reuse an existing presentation only. Never mount or
                         -- initialize native pages while the client is locked.
-                        if self.bridge and not self.restorePending and self.cover and not B.Blocked(self.cover) then
+                        if self.bridge and not self.restorePending and not self.closePending and self.cover and not B.Blocked(self.cover) then
                             self:Guard(function() self.cover:Show() end)
                         end
                     elseif not B.Blocked(root) then
@@ -567,14 +636,38 @@ FA.SLASH.legacyui = function(input)
         if C:SetSizePreset(input:match("^size%s+(.+)$")) then notify("Window size: " .. C:Preset()) end
     else notify(C.state .. ". Use /fa legacyui on|off, size compact|standard|large, reset, or unmapped.") end
 end
+FA.SLASH.combatdebug = function(input)
+    input = R.Text(input) or ""
+    input = input:lower():match("^%s*(.-)%s*$")
+    if input == "on" then C.combatDiagnostics, C.combatSamples = true, {}; notify("Combat diagnostics on (session only).")
+    elseif input == "off" then C.combatDiagnostics = false; notify("Combat diagnostics off.")
+    elseif input == "reset" then C.combatSamples = {}; notify("Combat diagnostics reset.")
+    elseif input == "report" or input == "" then
+        C:CombatSample("Report")
+        notify("Combat diagnostics " .. (C.combatDiagnostics and "on" or "off") .. "; last 16 observations maximum.")
+        for _, sample in ipairs(C.combatSamples or {}) do notify(sample) end
+    else notify("Use /fa combatdebug on|off|report|reset.") end
+end
 local events = CreateFrame("Frame")
 for _, event in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED",
+    "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN",
     "INPUT_DEVICE_INTERFACE_TRANSITION", "ACHIEVEMENT_EARNED", "CRITERIA_UPDATE", "CRITERIA_COMPLETE",
     "RECEIVED_ACHIEVEMENT_LIST", "MAJOR_FACTION_RENOWN_LEVEL_CHANGED", "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED" }) do
     pcall(events.RegisterEvent, events, event)
 end
-events:SetScript("OnEvent", function(_, event)
-    if event == "PLAYER_REGEN_ENABLED" and C.closePending then
+events:SetScript("OnEvent", function(_, event, ...)
+    if event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
+        C:CombatSample(event, ...)
+        return -- This notification is not a presentation failure or data change.
+    end
+    if event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then C:CombatSample(event) end
+    if event == "PLAYER_REGEN_ENABLED" and C.positionPending then
+        C:Guard(function()
+            if C.dragging then C:FinishDrag()
+            else C.positionPending, C.positionResetPending = false, false; C:RestorePosition() end
+        end)
+    end
+    if event == "PLAYER_REGEN_ENABLED" and (C.closePending or C.panelClosePending) then
         C:Guard(function() C:Close() end)
     end
     if event == "PLAYER_REGEN_ENABLED" and C.restorePending then
@@ -582,6 +675,7 @@ events:SetScript("OnEvent", function(_, event)
     end
     if not enabled() then return end
     if event == "PLAYER_REGEN_DISABLED" then
+        if C.dragging then C.positionPending = true end
         if C.ui and (C.ui.searchQueued or C.ui.renderQueued or C.ui.pendingRender) then C.dirtyRender = true end
         C:CancelQueuedWork()
         C:Dirty("mount")
