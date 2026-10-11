@@ -86,7 +86,7 @@ local function Row(i)
     return row
 end
 
-local function Update()
+local function update()
     local d = FA.DB()
     local list = {}
     for key in pairs(d.tracked or {}) do
@@ -125,6 +125,12 @@ local function Update()
     for i = #list + 1, #rows do rows[i]:Hide() end
     tracker:SetHeight(28 + #list * ROW)
     tracker:Show()
+end
+local function Update()
+    -- Related tracked tiers share observations for this update only. A later
+    -- ticker/event pass gets fresh data through the existing snapshot scope.
+    if FA.WithProgressSnapshot then return FA.WithProgressSnapshot(update) end
+    return update()
 end
 FA.UpdateTracker = Update
 

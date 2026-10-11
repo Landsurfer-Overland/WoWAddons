@@ -2527,6 +2527,13 @@ do
     end
     local faller = CreateFrame("Frame", "ForeverAchievementsFallTracker")
     faller:SetScript("OnUpdate", function()
+        -- Confirmation already preserves any existing completion. Avoid the
+        -- seven per-frame API reads once there is nothing left to award, but
+        -- recheck the current DB so a correction/character change can resume.
+        if DB().done.fall then
+            if grounded or falling or pending then reset() end
+            return
+        end
         local current = sample()
         if not current then reset(); return end
         local previous = falling or grounded

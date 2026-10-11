@@ -535,8 +535,11 @@ function C:Attach()
         end
         if not self.hooked[root] then
             root:HookScript("OnShow", function()
+                if root == self.root and root == LegacySystemFrame then
+                    -- A newer native open supersedes any earlier deferred close.
+                    self.closePending, self.panelClosePending = false, false
+                end
                 if enabled() and root == LegacySystemFrame then
-                    self.panelClosePending = false -- a new native open supersedes closed-panel cleanup
                     self:CancelQueuedWork()
                     self:Dirty("open")
                     -- Let ShowChallenges/native callbacks finish selecting

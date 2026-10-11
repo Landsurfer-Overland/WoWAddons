@@ -71,17 +71,17 @@ local function otherCharacterCompletions()
             and R.Field(snapshot, "completionScope") == "character" and not sameCharacter(current, identity) then
             local done = R.Field(snapshot, "done")
             if type(done) == "table" and R.Safe(done) then
+                local states = R.Field(snapshot, "completionStates")
+                local validationVersion = R.Field(snapshot, "completionValidationVersion")
+                local display = identity.name .. (identity.surname and identity.surname ~= "" and (" " .. identity.surname) or "")
+                if identity.realm ~= current.realm then display = display .. " @ " .. identity.realm end
                 for savedKey, timestamp in pairs(done) do
-                    local states = R.Field(snapshot, "completionStates")
-                    local validationVersion = R.Field(snapshot, "completionValidationVersion")
                     local reviewed = savedKey == "explore855" or savedKey == "exploreKal" or savedKey == "worldexplorer"
                     local verified = validationVersion == 1 and R.Field(states, savedKey) == "verified"
                         or validationVersion == nil and not reviewed
                     if R.Text(savedKey) and completionTime(timestamp) and verified then
                         local names = other[savedKey]
                         if not names then names = {}; other[savedKey] = names end
-                        local display = identity.name .. (identity.surname and identity.surname ~= "" and (" " .. identity.surname) or "")
-                        if identity.realm ~= current.realm then display = display .. " @ " .. identity.realm end
                         names[display] = true
                     end
                 end

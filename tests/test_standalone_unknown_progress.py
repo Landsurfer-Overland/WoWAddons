@@ -128,6 +128,42 @@ class UnknownProgressConsumerTests(unittest.TestCase):
     def setUp(self):
         self.h = ConsumerHarness()
 
+    def test_tracker_tiers_share_reads_per_update_and_next_pass_is_fresh(self):
+        self.h.load("Tracker.lua")
+        self.h.execute('''
+            local reads,value=0,"7"
+            GetStatistic=function(id) assert(id==98); reads=reads+1; return value end
+            local db=ns.FA.DB()
+            for _,key in ipairs({"q50","q100","q500"}) do db.tracked[key]=true end
+            ns.FA.UpdateTracker()
+            assert(reads==1 and TrackerRow("q50").value:GetText()=="7/50")
+            assert(TrackerRow("q100").value:GetText()=="7/100" and TrackerRow("q500").value:GetText()=="7/500")
+            value="8"; ns.FA.UpdateTracker()
+            assert(reads==2 and TrackerRow("q50").value:GetText()=="8/50")
+            value=nil; ns.FA.UpdateTracker()
+            assert(reads==3 and TrackerRow("q50").value:GetText()=="Unavailable")
+            assert(TrackerRow("q100").value:GetText()=="Unavailable" and TrackerRow("q500").value:GetText()=="Unavailable")
+            assert(db.tracked.q50 and db.tracked.q100 and db.tracked.q500)
+            assert(db.done.first==1730000000 and db.history[1]=="keep" and #calls==0)
+        ''')
+
+    def test_tracker_snapshot_does_not_leak_after_progress_error(self):
+        self.h.load("Tracker.lua")
+        self.h.execute('''
+            local reads,value=0,"7"
+            GetStatistic=function(id) assert(id==98); reads=reads+1; return value end
+            local a=ns.FA.BY_KEY.q50
+            local progress=a.progress
+            ns.FA.DB().tracked.q50=true
+            a.progress=function() ns.FA.StatText(98); error("Injected progress failure") end
+            local ok,reason=pcall(ns.FA.UpdateTracker)
+            assert(not ok and reason:find("Injected progress failure") and reads==1)
+            a.progress=progress; value="9"
+            ns.FA.UpdateTracker()
+            assert(reads==2 and TrackerRow("q50").value:GetText()=="9/50")
+            assert(saved.done.first==1730000000 and saved.history[1]=="keep" and #calls==0)
+        ''')
+
     def test_real_quest_and_loremaster_unknowns_sort_and_render_without_filled_bars(self):
         self.h.execute('''
             GetStatistic=function() error("Statistics API unavailable") end

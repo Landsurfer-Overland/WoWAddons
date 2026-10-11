@@ -176,6 +176,40 @@ class MeasuredFallTests(unittest.TestCase):
             assert(saved.history[1]=="keep" and #calls==0)
         ''')
 
+    def test_completed_ticks_skip_sample_apis_and_resume_with_fresh_baseline(self):
+        self.h.execute('''
+            saved.done.fall=444444; saved.fall=true
+            local evidence={kind="existing evidence"}; saved.fallEvidence=evidence
+            local reads=0
+            for _,name in ipairs({"UnitPosition","GetTime","IsFalling","UnitIsDeadOrGhost","IsFlying","UnitOnTaxi","IsSwimming"}) do
+                local original=_G[name]
+                _G[name]=function(...) reads=reads+1; return original(...) end
+            end
+            for i=1,100 do TickFall(10+i*.001,120,false) end
+            assert(reads==0 and saved.done.fall==444444 and saved.fallEvidence==evidence and #timers==0)
+            -- Resume observation after a targeted correction; no inherited baseline.
+            saved.done.fall=nil; saved.fall=nil; saved.fallEvidence=nil
+            TickFall(11,119,true); TickFall(11.1,40,false); FlushTimers()
+            assert(saved.done.fall==nil and saved.fallEvidence==nil and reads>0)
+            TickFall(20,120,false); TickFall(20.1,119,true)
+            TickFall(20.2,80,true); TickFall(20.3,55,false)
+            testClock=20.8; FlushTimers()
+            assert(saved.done.fall and saved.fallEvidence.drop==65 and saved.history[1]=="keep")
+        ''')
+
+    def test_completed_guard_clears_pending_confirmation_and_new_character_baseline(self):
+        self.h.execute('''
+            LandMeasuredFall(40); assert(#timers==1)
+            saved.done.fall=444444; local old=saved
+            TickFall(10.4,40,false)
+            ForeverAchievementsCharDB={done={},tracked={},history={"new character"}}
+            testClock=10.8; FlushTimers()
+            assert(old.done.fall==444444 and old.fallEvidence==nil)
+            TickFall(11,120,true); TickFall(11.1,40,false); FlushTimers()
+            assert(ForeverAchievementsCharDB.done.fall==nil and ForeverAchievementsCharDB.fallEvidence==nil)
+            assert(old.history[1]=="keep" and #calls==0)
+        ''')
+
 
 if __name__ == "__main__":
     unittest.main()

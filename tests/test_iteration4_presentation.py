@@ -40,6 +40,30 @@ class Iteration4PresentationTests(unittest.TestCase):
     def check(self, code):
         self.h.execute(code)
 
+    def test_relationship_sort_excludes_unrelated_rows_but_retains_catalog_and_priority(self):
+        self.check('''
+            local w,wn=ZonePair(802,'Westfall'); local e,en=ZonePair(776,'Elwynn Forest')
+            local moon,mn=ZonePair(855,'Moonglade'); local absent=ZonePair(760,'Alterac Mountains')
+            local rows={moon,absent,e,w}
+            for i=1,300 do rows[#rows+1]=CustomRow('unrelated'..i,'general','GENERAL',nil) end
+            SetCustomRows(rows)
+            local sort=table.sort; local candidateSorts=0
+            table.sort=function(list,compare)
+                if list[1] and list[1].exploration then
+                    candidateSorts=candidateSorts+1
+                    assert(#list==3)
+                    for _,row in ipairs(list) do assert(row.exploration.kind=='zone' and row.exploration.zoneID~=760) end
+                end
+                return sort(list,compare)
+            end
+            local model=ns.LegacyPresentation.Build(nil,ZoneCatalog({wn,en,mn}))
+            assert(candidateSorts==1 and relationReads==6 and #model.relationships==3)
+            assert(model.relationships[1].nativeID==802 and model.relationships[2].nativeID==776 and model.relationships[3].nativeID==855)
+            assert(model.byKey[absent.key].source=='custom' and #model.records==304)
+            for i=1,300 do assert(model.byKey['custom:unrelated'..i]) end
+            assert(#calls==0)
+        ''')
+
     def test_parent_lists_direct_assignments_but_counts_include_descendants(self):
         self.check('''
             local general=CustomRow("prof75","professions","PROFESSIONS","prof")

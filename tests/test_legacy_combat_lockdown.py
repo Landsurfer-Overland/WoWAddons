@@ -174,6 +174,30 @@ class CombatLockdownTests(unittest.TestCase):
             assert(c.cover:IsVisible() and LegacySystemFrame:IsShown() and c.lastError==nil and #calls==0)
         ''')
 
+    def test_new_native_open_supersedes_protected_close_with_replacement_on_or_off(self):
+        for replacement in (True, False):
+            with self.subTest(replacement=replacement):
+                self.setUp()
+                self.h.enable()
+                self.check('''
+                    local c=ns.LegacyUIController
+                    LegacySystemFrame.protected=true
+                    inCombat=true; ControllerEvent('PLAYER_REGEN_DISABLED'); c:Close()
+                    assert(c.closePending and not c.cover:IsShown())
+                ''')
+                if not replacement:
+                    self.check("ns.FA.SLASH.legacyui('off')")
+                self.check('''
+                    LegacySystemFrame:Hide(); LegacySystemFrame:Show(); DrainTimers()
+                    local c=ns.LegacyUIController
+                    assert(not c.closePending and not c.panelClosePending and LegacySystemFrame:IsShown())
+                    if settings.legacyUI then assert(c.cover:IsVisible()) end
+                    LegacySystemFrame.protected=false; inCombat=false
+                    ControllerEvent('PLAYER_REGEN_ENABLED'); DrainTimers()
+                    assert(LegacySystemFrame:IsShown() and c.lastError==nil)
+                    assert(saved.done.first==1730000000 and saved.history[1]=='keep' and #calls==0)
+                ''')
+
     def test_blocked_action_diagnostics_are_opt_in_bounded_and_do_not_activate_fallback(self):
         self.h.enable()
         self.check('''

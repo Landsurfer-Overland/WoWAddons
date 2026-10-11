@@ -596,7 +596,12 @@ function P.Build(page, nativeCatalog)
         budget = { remaining = math.min(256, P.MAX_RELATION_READS), results = {} }
         relationSnapshots[native] = budget
     end
-    local candidates = arrayCopy(custom.records or {})
+    local candidates = {}
+    for _, original in ipairs(custom.records or {}) do
+        local zone = original.exploration
+        local nativeID = zone and zone.kind == "zone" and (R.ID(zone.zoneID) or EXTRA_ZONE_IDS[original.savedKey])
+        if nativeID and nativeByID[nativeID] then candidates[#candidates + 1] = original end
+    end
     local priority = { [802] = 1, [776] = 2, [855] = 3 }
     table.sort(candidates, function(a, b)
         local az, bz = a.exploration, b.exploration
