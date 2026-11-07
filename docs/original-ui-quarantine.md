@@ -1,5 +1,11 @@
 # Original alpha UI quarantine
 
+Current launcher update: `Minimap.lua` now registers a launcher for native
+Challenges / the enabled Reforged replacement at all levels. It does not call
+the archived alpha openers. The historical non-registration and absent-button
+checks below describe the quarantine build, not the current minimap launcher.
+Use the [current minimap checks](../tests/README.md) for that entry point.
+
 Build: `0.4.18-alpha-quarantine1`. Includes the previous combat, logical-fit,
 opening-flash and header fixes.
 
@@ -55,3 +61,4 @@ combat, header, performance and progression tests. Lua 5.1 syntax passed for
 28 files; packaging passed for 29 TOC references and four XML files. Isolated
 core initialization loaded 322 definitions and passed 14 behavior assertions.
 Actual in-game display, login and client restrictions require verification.
+
