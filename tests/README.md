@@ -177,6 +177,12 @@ target disappearance, correction holds and read-only diagnostic behavior.
 The [build-70862 audit](../docs/client-api-audit.md) contains the complete coverage
 inventory, source pins, assumptions and in-game acceptance checks.
 
+`test_dungeon_recovery.py` adds 20 actual-core regressions based on the reported
+account-wide OR criterion 19213/117733 and missing boss statistic. They cover
+Hall/Ragefire isolation, explicit player-confirmed recovery, exact instance
+context, new native transitions, login/old-account exclusion, alias mapping,
+correction holds, malformed data, character switches and later GUID readiness.
+
 These fixtures do not emulate actual game rendering, asset lookup, native protected
 frame behavior, input/gamepad focus, server reward or trait progression, animation
 timing, or SavedVariables disk writes. Passing them is not an in-game validation

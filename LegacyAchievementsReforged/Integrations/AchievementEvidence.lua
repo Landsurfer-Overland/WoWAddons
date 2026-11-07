@@ -69,23 +69,45 @@ local function dungeonCriteria()
     return out
 end
 dungeonCriteria = LAR.CacheProgressRead("native-dungeon-evidence", dungeonCriteria)
+E.DungeonCriteria = dungeonCriteria
+
+-- Observed in build 70862: one account criterion intentionally covers either
+-- instance. The ID and label establish alternatives, not which one was run.
+local sharedDungeonCriteria = {
+    [62031] = { [19213] = true }, [64016] = { [117733] = true },
+}
+function E.MatchBoss(dungeon, boss, row)
+    local key = dungeon.key or ("dungeon" .. tostring(dungeon.id))
+    local shared = sharedDungeonCriteria[row.achievementID]
+    if shared and shared[row.criteriaID] and normalize(row.name) == "ragefirechasmorhallofthanes" then
+        return key == "dungeonThanes" or key == "dungeon629", "shared-dungeon"
+    end
+    if row.type == 0 and boss[2] and row.assetID == boss[2] then return true, "creature-id" end
+    if normalize(row.name) == normalize(boss[1]) then return true, "boss-name" end
+    if #dungeon.bosses == 1 and normalize(row.name) == normalize(dungeon.name) then return true, "dungeon-name" end
+    return false
+end
 
 function E.Boss(dungeon, boss)
+    local record = E.PersonalBoss and E.PersonalBoss(dungeon, boss)
+    if record then
+        LAR.SetProgressEvidence(dungeon.key or ("dungeon" .. tostring(dungeon.id)), record.source, {
+            achievementID = record.achievementID, criteriaID = record.criteriaID, inferred = true,
+            nativeScope = record.nativeScope, attribution = record.kind, currentCharacter = true })
+        return true
+    end
     for _, row in ipairs(dungeonCriteria()) do
-        if row.personal and row.completed == true then
-            local exact = row.type == 0 and boss[2] and row.assetID == boss[2]
-            local byName = normalize(row.name) == normalize(boss[1])
+        local matches, kind = E.MatchBoss(dungeon, boss, row)
+        if row.personal and row.completed == true and matches and kind ~= "shared-dungeon" then
+            local exact = kind == "creature-id"
             -- Bounded inference: a completed named dungeon in Spelunker proves
             -- its sole authored final boss, never an entire multi-boss roster.
-            local byDungeon = #dungeon.bosses == 1 and normalize(row.name) == normalize(dungeon.name)
-            if exact or byName or byDungeon then
-                LAR.SetProgressEvidence(dungeon.key or ("dungeon" .. tostring(dungeon.id)),
-                    exact and "native boss criterion" or "native named criterion (objective inference)", {
-                        achievementID = row.achievementID, criteriaID = row.criteriaID, assetID = row.assetID,
-                        criterion = row.name, inferred = not exact,
-                        currentCharacter = true, clientBuild = E.build })
-                return true
-            end
+            LAR.SetProgressEvidence(dungeon.key or ("dungeon" .. tostring(dungeon.id)),
+                exact and "native boss criterion" or "native named criterion (objective inference)", {
+                    achievementID = row.achievementID, criteriaID = row.criteriaID, assetID = row.assetID,
+                    criterion = row.name, inferred = not exact,
+                    currentCharacter = true, clientBuild = E.build })
+            return true
         end
     end
     return false
@@ -134,8 +156,11 @@ end
 function E.Report(input)
     input = (input or ""):match("^%s*(.-)%s*$")
     local build = R.Call(GetBuildInfo)
+    local version = R.Call(C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata,
+        "LegacyAchievementsReforged", "Version")
     print(LAR.TAG .. " API check: client=" .. tostring(build and build[1] or "unavailable")
-        .. " build=" .. tostring(build and build[2] or "unavailable") .. "; reviewed=" .. E.build)
+        .. " build=" .. tostring(build and build[2] or "unavailable") .. "; addon="
+        .. tostring(version and R.Text(version[1]) or "unavailable") .. "; reviewed=" .. E.build)
     if input == "" then
         for _, api in ipairs({ { "GetAchievementInfo", GetAchievementInfo },
             { "GetAchievementCriteriaInfo", GetAchievementCriteriaInfo }, { "GetStatistic", GetStatistic },
@@ -176,15 +201,21 @@ function E.Report(input)
                 end
                 if a.dungeon then
                     for _, row in ipairs(dungeonCriteria()) do
-                        local matches = normalize(row.name) == normalize(a.dungeon.name)
+                        local matches, kind = false, nil
                         for _, boss in ipairs(a.dungeon.bosses) do
-                            matches = matches or normalize(row.name) == normalize(boss[1])
-                                or row.type == 0 and boss[2] and row.assetID == boss[2]
+                            local match, matchKind = E.MatchBoss(a.dungeon, boss, row)
+                            if match then matches, kind = true, matchKind end
                         end
                         if matches then
                             print(LAR.TAG .. " native=" .. row.achievementID .. " criterion=" .. tostring(row.criteriaID)
                                 .. " " .. row.name .. " complete=" .. tostring(row.completed)
-                                .. " personal=" .. tostring(row.personal) .. " scope=" .. row.scope .. " asset=" .. tostring(row.assetID))
+                                .. " personal=" .. tostring(row.personal) .. " scope=" .. row.scope .. " asset=" .. tostring(row.assetID)
+                                .. " match=" .. tostring(kind))
+                            local corroborated = E.PersonalBoss and E.PersonalBoss(a.dungeon, a.dungeon.bosses[1])
+                            if row.completed and not corroborated and (not row.personal or kind == "shared-dungeon") then
+                                print(LAR.TAG .. " Native progress needs character/dungeon attribution."
+                                    .. " If you personally completed this dungeon: /lar recover " .. a.key)
+                            end
                         end
                     end
                 end

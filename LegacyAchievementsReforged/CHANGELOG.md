@@ -1,5 +1,19 @@
 # Legacy Achievements Reforged
 
+## 0.5.2-alpha.2 — shared dungeon criterion recovery
+
+- Reproduce the live build-70862 record: account-wide Novice Spelunker criterion
+  19213 (alias 117733) is "Ragefire Chasm or Hall of Thanes", with no NPC asset.
+  Recognize its exact alternatives without granting both dungeons.
+- Attribute future newly completed native criteria using a matching active
+  instance and native completion event/observed false-to-true transition.
+  Login, visiting an instance and already-complete account data alone do not count.
+- Add `/lar recover <single-boss dungeon key> [confirm]`. A completed matching
+  native record is required; confirmed recovery is explicitly player-reported,
+  stored per character, and preserves dates/correction holds/native progress.
+- Show addon version and shared-criterion matches in API diagnostics. Add
+  regressions for account scope, alternative isolation and character identity.
+
 ## 0.5.2-alpha.1 — client API audit test build
 
 - Review all 322 definitions (263 custom and 59 native imports) against the

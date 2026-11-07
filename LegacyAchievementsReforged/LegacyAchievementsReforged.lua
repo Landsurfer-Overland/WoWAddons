@@ -2088,7 +2088,7 @@ On("PLAYER_LOGIN", function()
     -- Achievements added in a new version are taken in quietly once (no
     -- toast storm for what was already true); two passes so the continent
     -- and Loremaster metas see the zones and continents earned in the first.
-    local DATA_VERSION = 10 -- quietly recover newly readable native history
+    local DATA_VERSION = 11 -- quietly recover newly readable native history
     local d = DB()
     if (d.dataVersion or (d.initialised and 1 or 0)) < DATA_VERSION then
         local before = Count(d.done)
@@ -3597,6 +3597,7 @@ ns.LAR = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
     CharacterScope = Proof.CharacterScope, CompletionAttribution = Proof.CompletionAttribution,
+    BindCharacter = Proof.BindCharacter, CharacterEvidenceMatches = Proof.CharacterEvidenceMatches,
     CompletionStatus = Proof.CompletionStatus,
     WithProgressSnapshot = Proof.WithEvaluation,
     CacheProgressRead = Proof.CacheRead, SetProgressEvidence = Proof.SetProgressEvidence,

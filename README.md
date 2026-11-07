@@ -32,6 +32,7 @@ two achievement controllers. Source saves and their backups remain intact.
 - `/lar settings` — addon settings, including achievement popup/sound previews.
 - `/lar minimap show|hide` — show or hide the minimap launcher.
 - `/lar apicheck [key|dungeons|native|all]` — inspect client API availability and achievement evidence.
+- `/lar recover <dungeon key> [confirm]` — preview or record personally confirmed completion backed by a native criterion.
 - `/lar alert test|sound|stop` — test notifications without awarding progress.
 - `/lar legacyui on|off` — enable the unified interface or restore native Legacy.
 - `/lar legacyui size compact|standard|large` — choose a window size.
@@ -64,13 +65,19 @@ the installable addon; no research proposals are implemented by this release.
 
 ## Development and publishing
 
-The **0.5.2-alpha.1 API-audit testing branch** targets Forever **1.60.1.70862**.
+The **0.5.2-alpha.2 API-audit testing branch** targets Forever **1.60.1.70862**.
 It adds personal native-evidence recovery for custom achievements, current skill
 API support, coalesced criteria updates and `/lar apicheck` diagnostics.
 See the [full audit and in-game checks](docs/client-api-audit.md) and the
 [complete 322-definition inventory](docs/research/client-70862-achievement-audit.json).
 This is a source-reviewed test build; content IDs and live character results
 still require the documented in-game checks.
+Account-wide criteria can combine alternatives: Novice Spelunker's "Ragefire
+Chasm or Hall of Thanes" does not identify the dungeon or character. Future
+completion events can be attributed using instance context. For an old run you
+personally completed, `/lar recover dungeonThanes` previews the available native
+record; adding `confirm` records your report for this character. This is labeled
+player-confirmed recovery, not a server-verified personal boss statistic.
 
 Python 3.11 and `pip install -r requirements-dev.txt` provide the Lua 5.1 test
 runtime. Run `python -B -m unittest discover -s tests` and

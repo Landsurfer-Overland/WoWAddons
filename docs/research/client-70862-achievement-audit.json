@@ -55,7 +55,10 @@
         "GetAchievementNumCriteria",
         "GetAchievementCriteriaInfo",
         "UnitIsDead",
-        "UnitGUID"
+        "UnitGUID",
+        "IsInInstance",
+        "GetInstanceInfo",
+        "GetRealZoneText"
       ],
       "refreshEvents": [
         "PLAYER_LOGIN",
@@ -66,8 +69,8 @@
         "BOSS_KILL",
         "UPDATE_INSTANCE_INFO"
       ],
-      "historicalCoverage": "Personal native criteria/statistics, then confirmed observed kills",
-      "assumptions": "Named single-boss dungeon completion can infer final-boss defeat; no multi-boss blanket credit; legacy head-quest fallback remains approximate"
+      "historicalCoverage": "Personal native criteria/statistics, context-bound native events or explicitly player-confirmed recovery, then observed kills",
+      "assumptions": "Shared account/OR criteria cannot identify the dungeon or character alone; recovery attestation and event context are labeled inferences; no multi-boss blanket credit; legacy head-quest fallback remains approximate"
     },
     "emotes": {
       "apis": [
@@ -355,7 +358,7 @@
       "assumptions": "Previously dropped professions cannot be reconstructed without exact native evidence"
     }
   },
-  "nativeFallbackPolicy": "Only matching reference ID AND normalized title AND wasEarnedByMe=true. Dungeon fallback separately checks personal Spelunker criteria; named single-boss dungeon completion is an explicit objective inference.",
+  "nativeFallbackPolicy": "Only matching reference ID AND normalized title AND wasEarnedByMe=true. Dungeon fallback checks personal Spelunker criteria; shared account/OR criteria require exact instance/event context or explicit per-character player-confirmed recovery. Named single-boss completion and context/recovery are labeled inferences.",
   "total": 322,
   "custom": 263,
   "nativeImports": 59,

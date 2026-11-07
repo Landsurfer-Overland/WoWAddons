@@ -1,6 +1,6 @@
 # Achievement API audit — Forever 1.60.1.70862
 
-Reviewed November 7, 2026. Test build: **0.5.2-alpha.1**.
+Reviewed November 7, 2026. Test build: **0.5.2-alpha.2**.
 
 The audit inventories **all 322 production definitions: 263 custom achievements
 and 59 legacy native imports**. Seven custom definitions remain explicitly
@@ -32,6 +32,34 @@ at runtime; the 59 imported definitions are historical configured records, not a
 claim that the current native client contains only 59 achievements.
 
 ## Changes implemented
+
+### Live-client correction: shared account criterion
+
+The initial fallback assumed separate named, personally attributable dungeon
+criteria. A live build-70862 diagnostic disproved that assumption for Hall:
+Novice Spelunker 62031 uses criterion **19213**, named **"Ragefire Chasm or Hall
+of Thanes"**, with **account scope** and **no NPC asset ID**. Its 64016 alias uses
+criterion **117733**. Statistic **63573** returned `--`. These are three distinct
+limits: alternative-objective mapping, character attribution and missing kill
+history. The initial tests did not model this combination and missed the bug.
+
+The updated mapping recognizes both alternatives, but a completed OR criterion
+does not grant both, even when the whole Spelunker meta is personally earned.
+Future native completion events inside a matching instance, or a known
+false-to-true transition in that instance, can record character-bound context
+evidence. This is a labeled context inference, not a new personal server flag.
+Login, visiting the dungeon with an old true account flag, generic updates of an
+unchanged flag, and events in an unrelated instance cannot supply that evidence.
+
+For an already-completed run, `/lar recover dungeonThanes` previews the completed
+native record. `/lar recover dungeonThanes confirm` explicitly attests that this
+character completed Hall. It records **player-confirmed recovery** separately
+from native data and uses the normal custom award evaluator. Recovery requires
+a matching completed criterion, applies only to the selected single-boss dungeon,
+does not change statistic 63573 or award Ragefire, and respects correction holds.
+The attestation is bound to character identity/GUID readiness; it is not copied
+to other characters. This is necessary because the API output alone cannot
+reconstruct which character completed which alternative in the earlier run.
 
 ### Native evidence can recover custom achievement credit
 
@@ -144,15 +172,16 @@ new mechanics or content evidence justifying re-enabling them.
 
 ## In-game diagnostics and acceptance checks
 
-Install the complete **0.5.2-alpha.1** addon folder and keep SavedVariables.
+Install the complete **0.5.2-alpha.2** addon folder and keep SavedVariables.
 The minimap launcher on this branch enables/opens the combined pane below 25.
 
 1. Run `/lar apicheck` to record the actual client build and API availability.
 2. On the character that completed Hall of Thanes, run
    `/lar apicheck dungeonThanes`. It prints progress, evidence source/inference,
    statistic 63573, and matching native criterion IDs/completion/scope.
-   After the quiet login reconciliation, verified personal completion should
-   award the custom achievement without requiring another run.
+   Personally attributable completion should reconcile after login. A shared
+   account criterion requires recorded personal context or the explicit recovery
+   above; it cannot be silently assigned to this character.
 3. If no matching native row is found, run `/lar apicheck native`. This prints
    the configured native dungeon criteria so the exact IDs/names can be mapped
    from this character's real data. A missing/ambiguous record is not proof of a

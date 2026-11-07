@@ -104,9 +104,9 @@ FAMILIES = {
     "fishing": (["GetStatistic", "IsFishingLoot", "GetLootSlotLink", "GetLootSourceInfo"], ["LOOT_OPENED", "LOOT_CLOSED", "CRITERIA_UPDATE"],
                 "Native statistics plus observed fishing windows", "Existing skill-minus-one floor and window/item units are approximate; retained, not newly verified"),
     "quickfish": (["QuickFishDB.log", "QuickFishDB.rares"], ["LOOT_CLOSED"], "Optional dependency's existing catch log", "Dependency log is account-wide; not a native per-character lifetime counter"),
-    "dungeons": (["GetStatistic", "GetAchievementInfo", "GetAchievementNumCriteria", "GetAchievementCriteriaInfo", "UnitIsDead", "UnitGUID"],
+    "dungeons": (["GetStatistic", "GetAchievementInfo", "GetAchievementNumCriteria", "GetAchievementCriteriaInfo", "UnitIsDead", "UnitGUID", "IsInInstance", "GetInstanceInfo", "GetRealZoneText"],
                  ["CRITERIA_UPDATE", "CRITERIA_COMPLETE", "CRITERIA_EARNED", "ENCOUNTER_END", "BOSS_KILL", "UPDATE_INSTANCE_INFO"],
-                 "Personal native criteria/statistics, then confirmed observed kills", "Named single-boss dungeon completion can infer final-boss defeat; no multi-boss blanket credit; legacy head-quest fallback remains approximate"),
+                 "Personal native criteria/statistics, context-bound native events or explicitly player-confirmed recovery, then observed kills", "Shared account/OR criteria cannot identify the dungeon or character alone; recovery attestation and event context are labeled inferences; no multi-boss blanket credit; legacy head-quest fallback remains approximate"),
     "reputation": (["C_Reputation.GetFactionDataByID", "GetFactionInfoByID"], ["UPDATE_FACTION"], "Current reputation or observed maximum", "Authored faction IDs, caps and account-wide reputation require live checks"),
     "pvp-statistics": (["GetStatistic", "GetPVPLifetimeStats"], ["PLAYER_PVP_KILLS_CHANGED", "UPDATE_BATTLEFIELD_SCORE", "UPDATE_BATTLEFIELD_STATISTIC"],
                        "Native PvP statistics", "Legacy statistic IDs/units require live verification"),
@@ -196,7 +196,7 @@ def audit():
             "evidencePolicies": {name: dict(apis=values[0], refreshEvents=["PLAYER_LOGIN", *values[1]],
                                            historicalCoverage=values[2], assumptions=values[3])
                                  for name, values in sorted(FAMILIES.items())},
-            "nativeFallbackPolicy": "Only matching reference ID AND normalized title AND wasEarnedByMe=true. Dungeon fallback separately checks personal Spelunker criteria; named single-boss dungeon completion is an explicit objective inference.",
+            "nativeFallbackPolicy": "Only matching reference ID AND normalized title AND wasEarnedByMe=true. Dungeon fallback checks personal Spelunker criteria; shared account/OR criteria require exact instance/event context or explicit per-character player-confirmed recovery. Named single-boss completion and context/recovery are labeled inferences.",
             "total": len(rows), "custom": sum(not r["native"] for r in rows),
             "nativeImports": sum(r["native"] for r in rows), "families": dict(sorted(Counter(r["family"] for r in rows).items())),
             "achievements": rows}
