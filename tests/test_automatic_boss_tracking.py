@@ -148,6 +148,29 @@ class AutomaticBossTrackingTests(unittest.TestCase):
             assert(ns.AutomaticBossTracking.attempts==4)
         ''')
 
+    def test_initial_empty_catalog_is_retried_when_server_metadata_arrives(self):
+        self.check('''
+            assert(not ns.AutomaticBossTracking.Discover())
+            assert(ns.AutomaticBossTracking.state~="Ready")
+            AddStat(910001,"Durgen Dirgehammer Kills (Hall of Thanes)","1")
+            assert(ns.AutomaticBossTracking.Discover())
+            assert(saved.done.dungeonThanes and ns.AutomaticBossTracking.attempts==2)
+        ''')
+
+    def test_missing_metadata_does_not_freeze_discovery_as_ready(self):
+        self.check('''
+            AddStat(910001,"Durgen Dirgehammer Kills (Hall of Thanes)","1")
+            local info=GetAchievementInfo
+            local ready=false
+            GetAchievementInfo=function(id,index)
+                if id==900 and index and not ready then return nil end
+                return info(id,index)
+            end
+            assert(not ns.AutomaticBossTracking.Discover() and not saved.done.dungeonThanes)
+            ready=true
+            assert(ns.AutomaticBossTracking.Discover() and saved.done.dungeonThanes)
+        ''')
+
     def test_catalog_scan_defers_during_combat_and_resumes_after_regen(self):
         self.check('''
             AddStat(910001,"Durgen Dirgehammer Kills (Hall of Thanes)","1")

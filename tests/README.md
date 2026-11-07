@@ -183,7 +183,7 @@ Hall/Ragefire isolation, explicit player-confirmed recovery, exact instance
 context, new native transitions, login/old-account exclusion, alias mapping,
 correction holds, malformed data, character switches and later GUID readiness.
 
-`test_automatic_boss_tracking.py` adds 17 regressions for the permanent path:
+`test_automatic_boss_tracking.py` adds 19 regressions for the permanent path:
 the sixth encounter payload, dead/live unit distinction, existing account ticks,
 automatic login history discovery/new IDs, counter scope/identity, late native
 API readiness, bounded/combat-deferred scans, exact corpse GUIDs, character

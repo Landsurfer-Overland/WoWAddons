@@ -53,6 +53,7 @@ function B.Discover()
                 scanned = scanned + 1
                 local data = R.Call(GetAchievementInfo, category, index)
                 local id, name = data and R.ID(data[1]), data and R.Text(data[2])
+                if not id or not name then partial = true end
                 local matches = name and labels[normalize(name)]
                 if id and not seen[id] and matches and R.HasFlag(data[9], ACHIEVEMENT_FLAGS_ACCOUNT) == false then
                     seen[id] = true
@@ -65,7 +66,9 @@ function B.Discover()
         else partial = true end
         if scanned >= 2500 then if i < #categories then partial = true end; break end
     end
-    B.scanned, B.state = scanned, partial and "Partial native statistics catalog" or "Ready"
+    B.scanned = scanned
+    if scanned == 0 then B.state = "Native statistics catalog not ready"; return false end
+    B.state = partial and "Partial native statistics catalog" or "Ready"
     LAR.CheckAll(true, "AUTOMATIC_BOSS_HISTORY_DISCOVERY")
     return not partial
 end
