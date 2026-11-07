@@ -1,6 +1,23 @@
 # Legacy Achievements Reforged
 
-## 0.5.1-alpha.1 — current build
+## 0.5.2-alpha.1 — client API audit test build
+
+- Review all 322 definitions (263 custom and 59 native imports) against the
+  Forever 1.60.1.70862 UI source and document assumptions and live-test gaps.
+- Recover dungeon credit from personal native Spelunker criteria, including
+  a bounded final-boss inference for a named single-boss dungeon.
+- Use matching personal native completions as fallbacks for custom definitions;
+  preserve completion dates, point values, saved keys and correction holds.
+- Refresh custom awards on native criteria updates, spells, recipes and instance
+  updates, coalescing bursts into one evaluation. Quietly backfill on upgrade.
+- Support C_SkillInfo skill ranks and the namespaced player-spell API. Reject
+  explicitly account-wide statistics, ambiguous numeric strings and credit
+  inferred solely from a disappearing living target.
+- Add `/lar apicheck <key>|dungeons|all` for in-game evidence diagnostics.
+- Includes the combined-pane minimap launcher from the preceding testing branch.
+  No release tag or CurseForge publication is created by this branch.
+
+## 0.5.1-alpha.1
 
 - Correct GitHub artifact uploading to include the hidden `.release` directory,
   allowing the installable ZIP and checksum to reach the prerelease job.
@@ -93,3 +110,4 @@
   separate point counters, native Rewards/Trees, and combat/performance fixes.
 - Includes a separate non-destructive save migration tool in the repository;
   existing players should follow the migration guide before the first login.
+

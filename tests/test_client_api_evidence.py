@@ -134,6 +134,13 @@ class ClientAPIEvidenceTests(unittest.TestCase):
             ns.LAR.BY_KEY.dungeonThanes.progress(); assert(count==2)
         ''')
 
+    def test_personal_native_completion_keeps_checklist_consistent(self):
+        self.check('''
+            nativeRecords[645]={name="Scholomance",completed=true,flags=0,mine=true,criteria={}}
+            local a=ns.LAR.BY_KEY.dungeon645
+            assert(a.progress()==2 and a.has("Darkmaster Gandling") and a.has("Ras Frostwhisper"))
+        ''')
+
     def test_oversized_and_secret_native_criteria_are_not_read_as_complete(self):
         self.check('''
             SelectAchievements("dungeonThanes")
@@ -189,6 +196,35 @@ class ClientAPIEvidenceTests(unittest.TestCase):
             end
             GetStatistic=function() return "1,000" end
             ns.LAR.CheckAll(true); assert(saved.done.wsgWin)
+        ''')
+
+    def test_account_statistic_cannot_supply_character_victories(self):
+        self.check('''
+            SelectAchievements("wsgWin")
+            GetStatistic=function() return "100" end
+            nativeRecords[105]={name="Battleground statistic",completed=false,flags=ACHIEVEMENT_FLAGS_ACCOUNT,criteria={}}
+            ns.LAR.CheckAll(true); assert(not saved.done.wsgWin)
+            nativeRecords[105].flags=0
+            ns.LAR.CheckAll(true); assert(saved.done.wsgWin)
+        ''')
+
+    def test_missing_statistic_is_unknown_and_explicit_zero_stays_known(self):
+        self.check('''
+            assert(ns.LAR.BY_KEY.wsgWin.progress()==nil)
+            assert(ns.LAR.BY_KEY.recipes25.progress()==nil)
+            GetStatistic=function() return "0" end
+            assert(ns.LAR.BY_KEY.wsgWin.progress()==0)
+            assert(ns.LAR.BY_KEY.recipes25.progress()==0)
+        ''')
+
+    def test_exact_native_criterion_earner_can_identify_personal_account_progress(self):
+        self.check('''
+            SelectAchievements("dungeonThanes")
+            local a=Spelunker("Hall of Thanes",true,ACHIEVEMENT_FLAGS_ACCOUNT,false)
+            a.criteria[1][6]="Alt OtherSurname"
+            ns.LAR.CheckAll(true); assert(not saved.done.dungeonThanes)
+            a.criteria[1][6]="Alt Surname"
+            ns.LAR.CheckAll(true); assert(saved.done.dungeonThanes)
         ''')
 
     def test_disappearing_living_target_is_not_a_kill_but_successful_encounter_is(self):

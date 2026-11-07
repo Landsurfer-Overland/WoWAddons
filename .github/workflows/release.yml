@@ -19,6 +19,7 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python tools/validate.py
       - run: python -B -m unittest discover -s tests
+      - run: python tools/audit_achievement_apis.py --check
       - name: Check release tag matches addon version
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -59,3 +60,4 @@ jobs:
           gh release create "$RELEASE_TAG" release/* --verify-tag --prerelease \
             --title "Legacy Achievements Reforged $RELEASE_TAG" \
             --notes "Alpha build. Existing players must migrate their saves before the first login; see docs/save-migration.md in the repository."
+

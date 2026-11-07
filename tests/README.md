@@ -168,6 +168,15 @@ Repeat with `/lar legacyui on` and `off`; verify points/progress are unchanged.
 
 ## Limits
 
+`test_client_api_evidence.py` checks the real core and native-evidence module:
+Hall of Thanes backfill, partial criteria events, alias/identity checks,
+character/account attribution, multi-boss and asset-type boundaries, exact
+personal native completion, snapshot freshness, invalid/secret/oversized data,
+namespaced skills/spells, numeric parsing, explicit zero versus unavailable,
+target disappearance, correction holds and read-only diagnostic behavior.
+The [build-70862 audit](../docs/client-api-audit.md) contains the complete coverage
+inventory, source pins, assumptions and in-game acceptance checks.
+
 These fixtures do not emulate actual game rendering, asset lookup, native protected
 frame behavior, input/gamepad focus, server reward or trait progression, animation
 timing, or SavedVariables disk writes. Passing them is not an in-game validation

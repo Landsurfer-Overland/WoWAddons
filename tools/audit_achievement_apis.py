@@ -68,11 +68,13 @@ for _,a in ipairs(ns.LAR.ALL) do
         local name,value=debug.getupvalue(a.progress,i)
         if not name then break end
         if name=='n' or name=='stat' or name=='factions' or name=='items' or name=='spells' or name=='skill' then facts[name]=value end
+        if name=='e' and type(value)=='table' then facts.nativeIDs=value.ids end
     end
     out[#out+1]={key=a.key,title=a.name,description=a.desc or '',category=category.category,
         section=category.section,referenceID=a.id,native=a.native==true,unsupported=a.unsupported==true,
         unsupportedReason=a.unsupportedReason,series=a.series,skill=a.skill,class=a.class,faction=a.faction,
-        points=a.pts,dungeon=a.dungeon,facts=facts,
+        points=a.pts,dungeon=a.dungeon,facts=facts,criteriaList=a.list,
+        dynamicCriteria=type(a.dynamicList)=='function',observedItems=type(a.seen)=='function',
         definition={file=info.source:gsub('^@',''),firstLine=info.linedefined,lastLine=info.lastlinedefined}}
 end
 return json(out)
@@ -119,6 +121,18 @@ FAMILIES = {
                ["ACHIEVEMENT_EARNED", "CRITERIA_UPDATE", "CRITERIA_COMPLETE", "CRITERIA_EARNED"],
                "Native achievement completion/progress", "Native adapter preserves character/account attribution; legacy imported rows are excluded from combined custom catalog"),
 }
+FAMILIES.update({
+    "emotes": (["UnitExists", "UnitName", "UnitIsPlayer", "DoEmote", "C_ChatInfo.PerformEmote"],
+               ["CHAT_MSG_TEXT_EMOTE"], "Observed /love target", "English target/emote names and secure hooks; no historical emote log"),
+    "observed-kills": (["UnitGUID", "UnitName", "UnitIsDead", "UnitIsTapDenied", "UnitClassification"],
+                       ["PLAYER_TARGET_CHANGED", "UNIT_HEALTH", "PLAYER_REGEN_ENABLED"],
+                       "Confirmed observed target death", "Combat fields can be restricted; a disappearing living target no longer counts"),
+    "books": (["ItemTextGetItem"], ["ITEM_TEXT_BEGIN"], "Observed opened book title", "English title roster; books read before tracking cannot be recovered"),
+    "consumables": (["C_Container.GetContainerItemInfo", "C_Item.GetItemInfoInstant", "C_Item.GetItemSpell", "C_Item.GetItemNameByID", "CursorHasItem"],
+                    ["BAG_UPDATE_DELAYED"], "Observed single-item bag decrease outside merchant/mail/trade/bank/auction", "Consumption is inferred; deletion or other bag changes can resemble eating; English food/drink classification"),
+    "loot-rolls": (["GetItemInfo"], ["CHAT_MSG_LOOT"], "Observed localized loot-roll result text", "Pattern/name attribution and item quality need live locale/surname tests; no historical roll log"),
+    "fall": (["UnitPosition", "UnitIsDeadOrGhost", "IsFalling"], ["FALL_LANDED"], "Measured, versioned character fall", "Requires readable position and survival samples; no old fall history"),
+})
 
 
 def export_catalog():
@@ -151,6 +165,12 @@ def family(row):
     if section == "RIDING": return "riding"
     if section == "MONEY": return "money"
     if section == "COLLECTIONS": return "collection"
+    if key == "critters": return "emotes"
+    if key == "books": return "books"
+    if key == "fall": return "fall"
+    if key == "pests" or key.startswith("rare") and section == "RARE ENEMIES": return "observed-kills"
+    if section == "FOOD & DRINK": return "consumables"
+    if section == "LOOT ROLLS": return "loot-rolls"
     if section == "LOREMASTER": return "loremaster"
     if row["category"] == "quests": return "quests"
     if section == "QUICK FISH": return "quickfish"
@@ -167,14 +187,16 @@ def audit():
     for row in rows:
         row["definition"]["file"] = str(Path(row["definition"]["file"]).relative_to(ROOT))
         group = family(row)
-        apis, events, history, assumptions = FAMILIES[group]
-        row.update(family=group, apis=apis, refreshEvents=["PLAYER_LOGIN", *events], historicalCoverage=history,
-                   assumptions=assumptions, validation="source-reviewed; in-game payload/content verification pending",
+        row.update(family=group, validation="source-reviewed; in-game payload/content verification pending",
                    personalNativeFallback=bool(row.get("referenceID") and not row["native"] and not row["unsupported"]))
     rows.sort(key=lambda r: r["key"])
     return {"schemaVersion": 1, "reviewDate": "2026-11-07", "clientBuild": BUILD, "clientSourceCommit": CLIENT_COMMIT,
             "scope": "Every production definition, including hidden/unsupported definitions and legacy native imports",
             "limits": "Source/API-contract audit; no live character or game-data database was accessible. An API declaration does not verify a content ID or historical coverage.",
+            "evidencePolicies": {name: dict(apis=values[0], refreshEvents=["PLAYER_LOGIN", *values[1]],
+                                           historicalCoverage=values[2], assumptions=values[3])
+                                 for name, values in sorted(FAMILIES.items())},
+            "nativeFallbackPolicy": "Only matching reference ID AND normalized title AND wasEarnedByMe=true. Dungeon fallback separately checks personal Spelunker criteria; named single-boss dungeon completion is an explicit objective inference.",
             "total": len(rows), "custom": sum(not r["native"] for r in rows),
             "nativeImports": sum(r["native"] for r in rows), "families": dict(sorted(Counter(r["family"] for r in rows).items())),
             "achievements": rows}

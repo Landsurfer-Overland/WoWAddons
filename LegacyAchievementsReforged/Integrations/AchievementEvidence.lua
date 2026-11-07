@@ -58,6 +58,7 @@ local function dungeonCriteria()
                             or account == false and parent.completed == false
                         for _, row in ipairs(criteria(id)) do
                             row.achievementID, row.personal = id, personal or criterionEarnedHere(row)
+                            row.scope = account == true and "account" or account == false and "character" or "unknown"
                             out[#out + 1] = row
                         end
                     end
@@ -117,6 +118,15 @@ for _, achievement in ipairs(LAR.ALL) do
             if r then return unpack(r, 1, r.n) end
             return nil, required
         end
+        if type(a.has) == "function" then
+            local originalHas = a.has
+            a.has = function(name)
+                for _, criterion in ipairs(a.list or {}) do
+                    if name == criterion and direct(a) then return true end
+                end
+                return originalHas(name)
+            end
+        end
         E.wrapped = E.wrapped + 1
     end
 end
@@ -127,10 +137,26 @@ function E.Report(input)
     print(LAR.TAG .. " API check: client=" .. tostring(build and build[1] or "unavailable")
         .. " build=" .. tostring(build and build[2] or "unavailable") .. "; reviewed=" .. E.build)
     if input == "" then
-        print(LAR.TAG .. " Use /lar apicheck <achievement key>|dungeons|all. This only reads progress.")
+        for _, api in ipairs({ { "GetAchievementInfo", GetAchievementInfo },
+            { "GetAchievementCriteriaInfo", GetAchievementCriteriaInfo }, { "GetStatistic", GetStatistic },
+            { "C_SkillInfo.GetSkillLineInfoByID", C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID },
+            { "C_SpellBook.IsSpellKnown", C_SpellBook and C_SpellBook.IsSpellKnown },
+            { "C_QuestLog.GetAllCompletedQuestIDs", C_QuestLog and C_QuestLog.GetAllCompletedQuestIDs },
+            { "C_Reputation.GetFactionDataByID", C_Reputation and C_Reputation.GetFactionDataByID } }) do
+            print(LAR.TAG .. " " .. api[1] .. ": " .. (type(api[2]) == "function" and "available" or "unavailable"))
+        end
+        print(LAR.TAG .. " Use /lar apicheck <achievement key>|dungeons|native|all. This only reads progress.")
         return
     end
     LAR.WithProgressSnapshot(function()
+        if input == "native" then
+            for _, row in ipairs(dungeonCriteria()) do
+                print(LAR.TAG .. " native=" .. row.achievementID .. " criterion=" .. tostring(row.criteriaID)
+                    .. " " .. row.name .. " complete=" .. tostring(row.completed)
+                    .. " personal=" .. tostring(row.personal) .. " scope=" .. row.scope .. " asset=" .. tostring(row.assetID))
+            end
+            return
+        end
         local found = false
         for _, a in ipairs(LAR.ALL) do
             if not a.native and (input == "all" or a.key == input or input == "dungeons" and a.dungeon) then
@@ -138,9 +164,15 @@ function E.Report(input)
                 local r = R.Call(a.progress)
                 print(LAR.TAG .. " " .. a.key .. " (" .. a.name .. "): " .. tostring(r and r[1] or "unavailable")
                     .. "/" .. tostring(r and r[2] or "unavailable"))
+                local evidence = LAR.ProgressEvidence(a.key)
+                if evidence then
+                    print(LAR.TAG .. " source=" .. evidence.source
+                        .. "; inferred=" .. tostring(evidence.observations.inferred == true))
+                end
                 if a.dungeon and a.dungeon.stat then
                     local stat = R.Call(GetStatistic, a.dungeon.stat)
-                    print(LAR.TAG .. " statistic " .. a.dungeon.stat .. "=" .. tostring(stat and R.Text(stat[1]) or "unavailable"))
+                    print(LAR.TAG .. " raw statistic " .. a.dungeon.stat .. "="
+                        .. tostring(stat and (R.Text(stat[1]) or R.Number(stat[1])) or "unavailable"))
                 end
                 if a.dungeon then
                     for _, row in ipairs(dungeonCriteria()) do
@@ -152,7 +184,7 @@ function E.Report(input)
                         if matches then
                             print(LAR.TAG .. " native=" .. row.achievementID .. " criterion=" .. tostring(row.criteriaID)
                                 .. " " .. row.name .. " complete=" .. tostring(row.completed)
-                                .. " personal=" .. tostring(row.personal) .. " asset=" .. tostring(row.assetID))
+                                .. " personal=" .. tostring(row.personal) .. " scope=" .. row.scope .. " asset=" .. tostring(row.assetID))
                         end
                     end
                 end

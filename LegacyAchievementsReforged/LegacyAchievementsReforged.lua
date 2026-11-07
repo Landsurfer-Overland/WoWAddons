@@ -456,6 +456,11 @@ local SECTIONS = {
 -- number, or a money string with coin icons.
 local function StatText(id)
     if type(GetStatistic) ~= "function" then return nil end
+    local metadata = Proof.EvaluationAPI("statistic-metadata", GetAchievementInfo, id)
+    local flags = metadata and Proof.PlainNumber(metadata[9])
+    local mask = Proof.PlainNumber(ACHIEVEMENT_FLAGS_ACCOUNT)
+    if metadata and Proof.PlainNumber(metadata[1]) == id and flags and flags >= 0 and flags == math.floor(flags)
+        and mask and mask > 0 and math.floor(flags / mask) % 2 == 1 then return nil end
     local ok, text = pcall(GetStatistic, id)
     if not ok or secret(text) then return nil end
     local numeric = Proof.PlainNumber(text)
@@ -1106,7 +1111,7 @@ end
 
 local function RecipeAch(key, id, name, n)
     return { key = key, id = id, series = "recipes", name = name, desc = "Learn " .. n .. " cooking recipes.", pts = 10,
-             progress = function() return math.min(StatNumber(STAT_RECIPES) or 0, n), n end }
+             progress = function() local count = StatNumber(STAT_RECIPES); return count and math.min(count, n), n end }
 end
 
 local DIPLOMAT = { "Orgrimmar", "Stormwind City" }
@@ -1518,7 +1523,7 @@ end
 
 local function StatAch(key, id, name, desc, stat, n, extra)
     local a = { key = key, id = id, name = name, desc = desc, pts = 10,
-                progress = function() return math.min(StatNumber(stat) or 0, n), n end }
+                progress = function() local count = StatNumber(stat); return count and math.min(count, n), n end }
     for k, v in pairs(extra or {}) do a[k] = v end
     return a
 end
@@ -3595,6 +3600,10 @@ ns.LAR = {
     CompletionStatus = Proof.CompletionStatus,
     WithProgressSnapshot = Proof.WithEvaluation,
     CacheProgressRead = Proof.CacheRead, SetProgressEvidence = Proof.SetProgressEvidence,
+    ProgressEvidence = function(key)
+        local evidence = Proof.evidence[key]
+        if evidence then return { source = evidence.source, observations = Proof.SafeObservations(evidence.observations) } end
+    end,
     ProgressionDiagnostics = Proof.trace,
     IsDebug = function() return debugOn end, -- /lar debug, for messages in the other files
     DB = DB, Account = AccountDB, Settings = Settings,
