@@ -149,12 +149,22 @@ for actual artwork, mask alignment, input, native functionality and timing.
 
 `test_original_ui_quarantine.py` executes actual retained consumers with the
 source policy disabled. It covers central/local slash opening, missing policy,
-minimap/broker non-registration with preserved preferences, welcome retries and
+missing minimap libraries with preserved preferences, welcome retries and
 seen state, binding/tracker/social entry points, retained tracking and tooltips,
 real Legacy controller opening, and explicit developer recovery. The existing
 standalone consumer harness enables the policy deliberately to keep testing
 the archived implementation rather than silently skipping its regressions.
 Follow the [client checks](../docs/original-ui-quarantine.md) after installing.
+
+`test_minimap.py` runs thirteen launcher scenarios plus real-controller opening
+check: level-one/zero-point entry without the gated native toggle, lazy native
+addon loading, combined open/close from fresh or disabled settings, switching an
+already-visible native pane into the combined pane, combat rejection, load failures,
+restricted frames, settings clicks, and saved visibility/position. The launcher
+never calls the archived alpha openers. Client checks: on a character below 25,
+left-click twice, open again and close with Escape; test right-click settings,
+dragging and `/reload`, `/lar minimap hide` then `show`, and a click in combat.
+Repeat with `/lar legacyui on` and `off`; verify points/progress are unchanged.
 
 ## Limits
 
@@ -164,3 +174,4 @@ timing, or SavedVariables disk writes. Passing them is not an in-game validation
 claim. Follow the [manual test plan](../LegacyAchievementsReforged/Integrations/README.md)
 for texture fidelity, UI-scale/scroll alignment, native interactions, taint, staged
 tree edits, input transitions, and restoration in the actual Forever client.
+

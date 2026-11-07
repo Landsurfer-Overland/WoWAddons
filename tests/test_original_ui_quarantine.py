@@ -33,17 +33,18 @@ class OriginalUIQuarantineTests(unittest.TestCase):
             assert(LegacyAchievementsReforgedWindow==nil)
         ''')
 
-    def test_minimap_and_broker_are_not_registered_or_preferences_changed(self):
+    def test_missing_minimap_libraries_preserve_preferences_and_alpha_quarantine(self):
         self.h.execute('''
             local settings=ns.LAR.Settings()
             settings.minimap={hide=false,minimapPos=123}
             settings.minimapShown=true
-            LibStub=function() error("Quarantined launcher accessed libraries") end
+            LibStub=nil
             before=#frames
         ''')
         self.h.load("Minimap.lua")
         self.h.execute('''
             assert(#frames==before and ns.LAR.SetMinimapShown==nil)
+            assert(type(ns.LAR.ToggleAchievements)=="function" and ns.LAR.Open()==false)
             local settings=ns.LAR.Settings()
             assert(settings.minimap.hide==false and settings.minimap.minimapPos==123)
             assert(settings.minimapShown==true)
@@ -153,3 +154,4 @@ class OriginalUIQuarantineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

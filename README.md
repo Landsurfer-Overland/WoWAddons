@@ -5,6 +5,13 @@ Landsurfer-Overland. Native Legacy Challenges and character achievements share
 one navigation hierarchy while retaining their separate progression and point
 calculations. Native Legacy Rewards and Legacy Trees remain available.
 
+The minimap button opens achievements even before the native menu unlocks at
+level 25. Left-click to open or close the screen, right-click for addon settings,
+and drag to reposition. Clicking the button enables and opens the combined
+Reforged interface, including on a fresh installation or when native Legacy is
+already open. Existing hidden-button and
+position preferences are preserved. Use `/lar minimap show` to restore the button.
+
 [CurseForge project](https://www.curseforge.com/wow/addons/legacy-achivements-reforged)
 
 ## Installation
@@ -23,6 +30,7 @@ two achievement controllers. Source saves and their backups remain intact.
 ## Commands
 
 - `/lar settings` — addon settings, including achievement popup/sound previews.
+- `/lar minimap show|hide` — show or hide the minimap launcher.
 - `/lar alert test|sound|stop` — test notifications without awarding progress.
 - `/lar legacyui on|off` — enable the unified interface or restore native Legacy.
 - `/lar legacyui size compact|standard|large` — choose a window size.
@@ -70,3 +78,4 @@ The quarantined alpha presentation is retained for future feature migration;
 it does not register its old window or launcher in normal use. Supplied Blizzard
 reference sources retain their original hashes. Rendering, client protections,
 and actual game API behavior still require in-game verification.
+
