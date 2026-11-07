@@ -1,0 +1,163 @@
+{
+  "build": "1.60.1.70862",
+  "branch": "forever",
+  "commit": "9dc84f0d3bbae1768ac3405b3716000bd93eda06",
+  "sourceDate": "2026-11-07T04:46:13Z",
+  "repository": "https://github.com/Gethe/wow-ui-source",
+  "sourceType": "Public mirror of client UI/API documentation, not a live game-data or character dump",
+  "files": [
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/AchievementInfoDocumentation.lua",
+      "gitBlobSHA": "3b0359fca41ce31f5aa4b78a83217ec58f804333",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/AchievementInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua",
+      "gitBlobSHA": "d8ccac7e60f0a575d5ca27fda9b6900a92f1c709",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ContainerDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterEventsDocumentation.lua",
+      "gitBlobSHA": "fed8dc5c9358e8ae03b48130a1958e5205bf4dea",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterEventsDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterEventsSharedDocumentation.lua",
+      "gitBlobSHA": "814e3d77e1d78c1eeb9ea71d04647f204705b889",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterEventsSharedDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/InstanceDocumentation.lua",
+      "gitBlobSHA": "2bee732e6de3c3ff6cf7aa70049bf3375956b8e3",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/InstanceDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/InstanceEncounterDocumentation.lua",
+      "gitBlobSHA": "2abf1d3f0b80fbc364c0d5641696b4676e9f110c",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/InstanceEncounterDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua",
+      "gitBlobSHA": "2ca379d4976dc3254c1bf24c4754a60f684740e5",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ItemDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/LootDocumentation.lua",
+      "gitBlobSHA": "00fc3dd960267d69577b931e0eb32e625720c7ea",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/LootDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/LootFrameDocumentation.lua",
+      "gitBlobSHA": "19de0a661051c5ad88e7b2ddc0da8895444412d4",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/LootFrameDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/MapExplorationDocumentation.lua",
+      "gitBlobSHA": "393cb1c0128fb0fd819262607f9ae2d6567bac4b",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/MapExplorationDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/MountJournalDocumentation.lua",
+      "gitBlobSHA": "bdbc077e82744a4af22f13c8b65317e6d5b84daf",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/MountJournalDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PetJournalInfoDocumentation.lua",
+      "gitBlobSHA": "0ec1f9e204b0f3b3dce28a5a5b357557ef990cb0",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/PetJournalInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerInfoDocumentation.lua",
+      "gitBlobSHA": "2559a6f69c93d265d206f82ad3d1f94a26c3b8c9",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/PlayerInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/PvpInfoDocumentation.lua",
+      "gitBlobSHA": "28e03c1a9a22c4246b6ed4c96b8f715f27df9ea3",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/PvpInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua",
+      "gitBlobSHA": "587006566ca7de68deeb8fb044f8e3bcbc999931",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/QuestLogDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ReputationInfoDocumentation.lua",
+      "gitBlobSHA": "9b7dcadb42131631e74f3b5b73be4564f609bc3f",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ReputationInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SkillInfoDocumentation.lua",
+      "gitBlobSHA": "354f760d086f3cc6d5fe2f33967092d6cd22dc94",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/SkillInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua",
+      "gitBlobSHA": "a7ed5b73985ddfa23d045e1bdbcc9713e9921a42",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellDocumentation.lua",
+      "gitBlobSHA": "9395b8da63a8a49ff073d18a847cb87c1dd235da",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUIDocumentation.lua",
+      "gitBlobSHA": "794ebc9d94989cab9c8205bc63f6a14ed47f3bbb",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUIDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUITypesDocumentation.lua",
+      "gitBlobSHA": "8bfb8bdbb810718b8c59a27d72d6dc15176f0625",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/TradeSkillUITypesDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua",
+      "gitBlobSHA": "620b28ad0cc57c13501a196a42c37b8398703a84",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallengeButton.lua",
+      "gitBlobSHA": "dd6f1e3688738352edaf7a6d6ed2141409128ad1",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallengeButton.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallenges.lua",
+      "gitBlobSHA": "fd9e1cb6ea383faed86a4ef49f42690edf76fa64",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallenges.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallengeDetailPane.lua",
+      "gitBlobSHA": "a2051dab902a920529a62177f49f5115569bdc23",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_LegacySystem/Blizzard_LegacyChallengeDetailPane.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/MapDocumentation.lua",
+      "gitBlobSHA": "247a3b2ddfbc4ecca0667fd5bacfeaeea7cfffae",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/MapDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua",
+      "gitBlobSHA": "0767f5042a47b9fd03621044cc94f26390e08e2b",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterInfoDocumentation.lua",
+      "gitBlobSHA": "33451dabcd3812d147e279c0b70c3955484e3b87",
+      "purpose": "ENCOUNTER_END sixth payload and native boss-kill event",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/RaidLocksDocumentation.lua",
+      "gitBlobSHA": "5ee1794809973f56b2feac8d2270ea0d08da20bd",
+      "purpose": "Reviewed; current lockout APIs are not treated as lifetime kill history",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/RaidLocksDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.lua",
+      "gitBlobSHA": "13b6f25d24bf99f7ccdbbe74d021fccd7c4c0b0e",
+      "purpose": "Native statistics-category enumeration contract; guarded on Forever runtime",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.lua"
+    }
+  ]
+}

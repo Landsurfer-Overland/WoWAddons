@@ -335,13 +335,31 @@ end
 local function MountCount() return Proof.CharacterCollection("characterMountItems", 5, { "mount10" }) end
 local function PetCount() return Proof.CharacterCollection("characterPetItems", 2, { "pet1", "pet15" }) end
 
+-- Build 70862 documents the namespaced skill table and player spell query.
+-- Keep older client fallbacks, but never use a pet spell bank as player proof.
+function Proof.SkillInfo(id)
+    local r = Proof.ReadAPI(C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID, id)
+    local info = r and r[1]
+    if type(info) ~= "table" or secret(info) then return nil end
+    local rank = Proof.PlainNumber(info.rank)
+    if Proof.PlainNumber(info.skillID) ~= id or not rank or rank < 0 or rank ~= math.floor(rank)
+        or secret(info.isHeader) or info.isHeader ~= false then return nil end
+    return rank
+end
+function Proof.KnowsSpell(id)
+    local result = Proof.ReadAPI(IsPlayerSpell, id)
+    if result and not secret(result[1]) and type(result[1]) == "boolean" then return result[1] end
+    result = Proof.ReadAPI(C_SpellBook and C_SpellBook.IsSpellKnown, id)
+    if result and not secret(result[1]) and type(result[1]) == "boolean" then return result[1] end
+end
+
 -- Classic riding: the Riding skill (75 apprentice, 150 journeyman), or the
 -- riding spells on clients that have them.
 local function RidingRank()
-    if IsPlayerSpell then
-        if IsPlayerSpell(33391) then return 150 end
-        if IsPlayerSpell(33388) then return 75 end
-    end
+    local native = Proof.SkillInfo(762)
+    if native then return native end
+    if Proof.KnowsSpell(33391) then return 150 end
+    if Proof.KnowsSpell(33388) then return 75 end
     if GetNumSkillLines and GetSkillLineInfo then
         for i = 1, GetNumSkillLines() do
             local name, isHeader, _, rank = GetSkillLineInfo(i)
@@ -438,15 +456,35 @@ local SECTIONS = {
 -- number, or a money string with coin icons.
 local function StatText(id)
     if type(GetStatistic) ~= "function" then return nil end
+    local metadata = Proof.EvaluationAPI("statistic-metadata", GetAchievementInfo, id)
+    local flags = metadata and Proof.PlainNumber(metadata[9])
+    local mask = Proof.PlainNumber(ACHIEVEMENT_FLAGS_ACCOUNT)
+    if metadata and Proof.PlainNumber(metadata[1]) == id and flags and flags >= 0 and flags == math.floor(flags)
+        and mask and mask > 0 and math.floor(flags / mask) % 2 == 1 then return nil end
     local ok, text = pcall(GetStatistic, id)
-    if not ok or type(text) ~= "string" or secret(text) then return nil end
+    if not ok or secret(text) then return nil end
+    local numeric = Proof.PlainNumber(text)
+    if numeric and numeric >= 0 and numeric == math.floor(numeric) then return tostring(numeric) end
+    if type(text) ~= "string" then return nil end
     return text
 end
 
 local function StatNumber(id)
     local text = StatText(id)
     if not text then return nil end
-    return tonumber((text:gsub("%D", "")))
+    text = text:gsub("\194\160", " "):gsub("\226\128\175", " "):match("^%s*(.-)%s*$")
+    if text:match("^%d+$") then return Proof.PlainNumber(tonumber(text)) end
+    -- Only unambiguous integer grouping. A fraction, decimal, money string or
+    -- unreadable placeholder cannot be stripped into a larger completion count.
+    local separator = text:match("%d([^%d])%d")
+    if separator ~= "," and separator ~= "." and separator ~= " " then return nil end
+    local parts = {}
+    for part in (text .. separator):gmatch("(.-)" .. (separator == "." and "%." or separator)) do
+        parts[#parts + 1] = part
+    end
+    if #parts < 2 or not parts[1]:match("^%d%d?%d?$") then return nil end
+    for i = 2, #parts do if not parts[i]:match("^%d%d%d$") then return nil end end
+    return Proof.PlainNumber(tonumber(table.concat(parts)))
 end
 
 local STAT_QUESTS, STAT_DAILIES = 98, 97
@@ -1006,6 +1044,10 @@ local SKILL_LINES = { [171] = "Alchemy", [164] = "Blacksmithing", [333] = "Encha
 -- Best rank ever reached per skill, so dropping a profession keeps the record.
 local function Skills()
     local best = DB().skills
+    for id, name in pairs(SKILL_LINES) do
+        local rank = Proof.SkillInfo(id)
+        if rank then best[name] = math.max(best[name] or 0, rank) end
+    end
     if GetNumSkillLines and GetSkillLineInfo then
         for i = 1, GetNumSkillLines() do
             local name, isHeader, _, rank = GetSkillLineInfo(i)
@@ -1014,8 +1056,8 @@ local function Skills()
             end
         end
     end
-    -- The Forever client has no skill line list: professions come from the
-    -- profession slots, named by skill line so the names match any locale.
+    -- Older clients may expose only profession slots. Numeric skill IDs keep
+    -- authored English keys independent of the player's display language.
     if GetProfessions and GetProfessionInfo then
         local slots = { GetProfessions() }
         for i = 1, 6 do
@@ -1069,7 +1111,7 @@ end
 
 local function RecipeAch(key, id, name, n)
     return { key = key, id = id, series = "recipes", name = name, desc = "Learn " .. n .. " cooking recipes.", pts = 10,
-             progress = function() return math.min(StatNumber(STAT_RECIPES) or 0, n), n end }
+             progress = function() local count = StatNumber(STAT_RECIPES); return count and math.min(count, n), n end }
 end
 
 local DIPLOMAT = { "Orgrimmar", "Stormwind City" }
@@ -1227,7 +1269,15 @@ local function DungeonAch(d)
     local names = {}
     for _, b in ipairs(d.bosses) do names[#names + 1] = b[1] end
     local function Killed(b)
-        if BossKilled(b) then return true end
+        if BossKilled(b) then
+            local evidence = DB().bossEvidence
+            evidence = type(evidence) == "table" and (evidence[b[2]] or evidence[b[1]])
+            Proof.SetProgressEvidence(d.key or ("dungeon" .. d.id),
+                type(evidence) == "table" and Proof.PlainText(evidence.source) or "previously recorded boss kill",
+                type(evidence) == "table" and evidence or {})
+            return true
+        end
+        if ns.NativeAchievementEvidence and ns.NativeAchievementEvidence.Boss(d, b) then return true end
         -- The kill statistic names the first boss: it covers kills from before the addon.
         if d.stat and b == d.bosses[1] and (StatNumber(d.stat) or 0) > 0 then return true end
         for _, id in ipairs(ns.BOSS_STATS[b[1]] or {}) do
@@ -1236,6 +1286,7 @@ local function DungeonAch(d)
         return false
     end
     return { key = d.key or ("dungeon" .. d.id), id = d.id, icon = d.icon, name = d.name, desc = d.desc, pts = 10,
+             dungeon = d,
              list = (d.all and #names > 1) and names or nil,
              has = function(n)
                  for _, b in ipairs(d.bosses) do if b[1] == n then return Killed(b) end end
@@ -1479,7 +1530,7 @@ end
 
 local function StatAch(key, id, name, desc, stat, n, extra)
     local a = { key = key, id = id, name = name, desc = desc, pts = 10,
-                progress = function() return math.min(StatNumber(stat) or 0, n), n end }
+                progress = function() local count = StatNumber(stat); return count and math.min(count, n), n end }
     for k, v in pairs(extra or {}) do a[k] = v end
     return a
 end
@@ -1606,7 +1657,7 @@ local function Owns(items, spells, key)
         if not amount or amount < 0 or amount ~= math.floor(amount) or d.owned[id] ~= nil then unknown = true end
     end
     for _, id in ipairs(spells or {}) do
-        local known = Proof.EvaluationAPI("known-player-spell", IsPlayerSpell, id)
+        local known = Proof.EvaluationAPI("known-player-spell", Proof.KnowsSpell, id)
         known = known and known[1]
         if not secret(known) and known == true then
             Proof.SetProgressEvidence(key, "current-character known spell", { characterKey = identity.key,
@@ -2044,7 +2095,7 @@ On("PLAYER_LOGIN", function()
     -- Achievements added in a new version are taken in quietly once (no
     -- toast storm for what was already true); two passes so the continent
     -- and Loremaster metas see the zones and continents earned in the first.
-    local DATA_VERSION = 9
+    local DATA_VERSION = 12 -- quietly recover newly readable native history
     local d = DB()
     if (d.dataVersion or (d.initialised and 1 or 0)) < DATA_VERSION then
         local before = Count(d.done)
@@ -2185,15 +2236,27 @@ end
 -- change. A slow tick backs the events up.
 local watchedTarget, watchedAlive, watchedName, watchedID
 
--- When the target vanishes on its own in combat (dead targets are cleared
--- automatically on many setups), a pest that was alive counts as slain:
--- in combat the client does not say whether it died.
-local function NoteBoss(id, unitName)
+-- Native encounter notifications establish a boss kill even when the target's
+-- combat fields were restricted or the player was targeting another unit.
+local function NoteBoss(id, unitName, evidence)
+    id, unitName = Proof.PlainNumber(id), Proof.PlainText(unitName)
     local key = (id and BOSS_IDS[id]) and id or (unitName and BOSS_BY_NAME[unitName])
-    if not key or DB().bosses[key] then return end
-    DB().bosses[key] = time()
+    local d = DB()
+    if not key or d.bosses[key] or not Proof.BindCharacter(d) then return false end
+    d.bosses[key] = time()
+    if type(evidence) == "table" then
+        if d.bossEvidence == nil then d.bossEvidence = {} end
+        if type(d.bossEvidence) == "table" then
+            local proof = Proof.SafeObservations(evidence)
+            proof.source = Proof.PlainText(evidence.source) or "native boss kill"
+            proof.characterKey = Proof.CharacterIdentity().key
+            proof.observedAt = d.bosses[key]
+            d.bossEvidence[key] = proof
+        end
+    end
     print(TAG .. " boss slain: " .. (BOSS_IDS[key] or unitName))
     CheckAll()
+    return true
 end
 
 local watchedRare
@@ -2216,14 +2279,8 @@ local function Tracked(id, name)
 end
 
 local function TargetGone()
-    if watchedTarget and watchedAlive and Tracked(watchedID, watchedName) then
-        local fighting = InCombatLockdown() or UnitAffectingCombat("player")
-        if secret(fighting) then fighting = true end
-        if fighting then
-            if debugOn then print(TAG .. " target cleared in combat: counting the kill") end
-            NoteKill(watchedID, watchedName)
-        end
-    end
+    -- Losing/clearing a living target does not establish its death. Native
+    -- criteria/statistics or a successful encounter can recover missed kills.
     watchedTarget, watchedAlive = nil, false
 end
 
@@ -2328,17 +2385,52 @@ On("UPDATE_BATTLEFIELD_STATUS", function()
     if GetBattlefieldWinner and GetBattlefieldWinner() ~= nil and RequestBattlefieldScoreData then RequestBattlefieldScoreData() end
 end)
 
-for _, e in ipairs({ "UPDATE_FACTION", "PLAYER_PVP_KILLS_CHANGED", "PLAYER_PVP_RANK_CHANGED", "ACHIEVEMENT_EARNED",
+for _, e in ipairs({ "UPDATE_FACTION", "PLAYER_PVP_KILLS_CHANGED", "PLAYER_PVP_RANK_CHANGED",
     "NEW_MOUNT_ADDED" }) do
     On(e, function() C_Timer.After(0.5, function() CheckAll() end) end)
 end
 
+-- Native criteria/statistic updates also drive custom awards. Coalesce bursts.
+function Proof.QueueNativeCheck()
+    Proof.nativeRefreshEvent = Proof.event or "native progress update"
+    if Proof.nativeRefreshQueued then return end
+    Proof.nativeRefreshQueued = true
+    local db = LegacyAchievementsReforgedCharDB
+    C_Timer.After(0.5, function()
+        Proof.nativeRefreshQueued = false
+        if db == LegacyAchievementsReforgedCharDB then CheckAll(nil, Proof.nativeRefreshEvent) end
+    end)
+end
+for _, event in ipairs({ "ACHIEVEMENT_EARNED", "CRITERIA_UPDATE", "CRITERIA_COMPLETE", "CRITERIA_EARNED",
+    "RECEIVED_ACHIEVEMENT_LIST", "UPDATE_INSTANCE_INFO", "SPELLS_CHANGED", "NEW_RECIPE_LEARNED",
+    "TRADE_SKILL_LIST_UPDATE", "UPDATE_BATTLEFIELD_STATISTIC" }) do
+    On(event, Proof.QueueNativeCheck)
+end
+
 -- Boss fights the client reports (the target may not be the boss at the end).
-On("ENCOUNTER_END", function(_, name, _, _, success)
-    if success == 1 and name and not secret(name) then NoteBoss(nil, name) end
+On("ENCOUNTER_END", function(encounterID, name, _, _, success, encounterUnitStatus)
+    if secret(success) or success ~= 1 then return end
+    -- Build 70862 supplies every engaged boss, independently of the selected
+    -- target or a shared account criterion. Only a defeated unit counts.
+    if not secret(encounterUnitStatus) and type(encounterUnitStatus) == "table" then
+        for i = 1, math.min(#encounterUnitStatus, 64) do
+            local unit = rawget(encounterUnitStatus, i)
+            if not secret(unit) and type(unit) == "table" then
+                local fields = Proof.ReadAPI(function() return unit.creatureID, unit.creatureName, unit.remainingHealthPercent end)
+                local id = fields and Proof.PlainNumber(fields[1])
+                local bossName = fields and Proof.PlainText(fields[2])
+                local health = fields and Proof.PlainNumber(fields[3])
+                if health == 0 then
+                    NoteBoss(id, bossName, { source = "native encounter boss-status list", encounterID = Proof.PlainNumber(encounterID),
+                        creatureID = id, remainingHealthPercent = 0, inferred = false })
+                end
+            end
+        end
+    end
+    if Proof.PlainText(name) then NoteBoss(nil, name, { source = "successful native encounter", encounterID = Proof.PlainNumber(encounterID), inferred = false }) end
 end)
-On("BOSS_KILL", function(_, name)
-    if name and not secret(name) then NoteBoss(nil, name) end
+On("BOSS_KILL", function(encounterID, name)
+    if Proof.PlainText(name) then NoteBoss(nil, name, { source = "native BOSS_KILL event", encounterID = Proof.PlainNumber(encounterID), inferred = false }) end
 end)
 
 -- Fishing: schools, the city diplomat and the rare fish, from the loot window.
@@ -3543,8 +3635,14 @@ ns.LAR = {
     TAG = TAG, Kit = Kit, secret = secret, Count = Count, ProgressKnown = ProgressKnown,
     CharacterIdentity = Proof.CharacterIdentity, ValidCompletionTime = Proof.ValidCompletionTime,
     CharacterScope = Proof.CharacterScope, CompletionAttribution = Proof.CompletionAttribution,
+    BindCharacter = Proof.BindCharacter, CharacterEvidenceMatches = Proof.CharacterEvidenceMatches,
     CompletionStatus = Proof.CompletionStatus,
     WithProgressSnapshot = Proof.WithEvaluation,
+    CacheProgressRead = Proof.CacheRead, SetProgressEvidence = Proof.SetProgressEvidence,
+    ProgressEvidence = function(key)
+        local evidence = Proof.evidence[key]
+        if evidence then return { source = evidence.source, observations = Proof.SafeObservations(evidence.observations) } end
+    end,
     ProgressionDiagnostics = Proof.trace,
     IsDebug = function() return debugOn end, -- /lar debug, for messages in the other files
     DB = DB, Account = AccountDB, Settings = Settings,
@@ -3553,6 +3651,7 @@ ns.LAR = {
     EARN_HOOKS = EARN_HOOKS, CHECK_HOOKS = CHECK_HOOKS, VIEWS = VIEWS, SLASH = SLASH, COMPARE = COMPARE, LINK = LINK,
     CheckAll = CheckAll, TotalPoints = TotalPoints, SeriesPoints = SeriesPoints, ToggleTrack = ToggleTrack,
     Money = Money, StatText = StatText, NpcID = NpcID, IsDrink = IsDrink,
+    StatisticCount = StatNumber, NoteBossKill = NoteBoss,
     -- Read-only seams for a later compatible quest-database adapter. No new
     -- Questie integration or imported quest catalog is introduced here.
     QuestTracking = { CompletedIDs = CompletedIDs, Count = QuestCount,
@@ -3600,3 +3699,4 @@ ns.LAR = {
         RefreshWindow()
     end,
 }
+

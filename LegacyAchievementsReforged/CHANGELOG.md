@@ -1,6 +1,50 @@
 # Legacy Achievements Reforged
 
-## 0.5.1-alpha.1 — current build
+## 0.5.2-alpha.3 — automatic personal boss tracking
+
+- Read build 70862's sixth ENCOUNTER_END argument: the defeated boss creature
+  list. Successful encounter credit no longer depends on the target, encounter
+  title, a new shared account criterion tick, or a confirmation command.
+- Automatically discover exact named, character-scoped boss-kill statistics
+  through native category APIs, revalidate their metadata, and backfill readable
+  history quietly. Missing/ambiguous account-only history remains unproven.
+- Add a bounded exact-GUID corpse-loot fallback for encounters without native
+  completion notifications. Record its loot-eligibility inference explicitly.
+- Preserve character-bound evidence, completion dates and correction holds.
+  Keep the manual repair command as an optional advanced tool, not a normal flow.
+
+## 0.5.2-alpha.2 — shared dungeon criterion recovery
+
+- Reproduce the live build-70862 record: account-wide Novice Spelunker criterion
+  19213 (alias 117733) is "Ragefire Chasm or Hall of Thanes", with no NPC asset.
+  Recognize its exact alternatives without granting both dungeons.
+- Attribute future newly completed native criteria using a matching active
+  instance and native completion event/observed false-to-true transition.
+  Login, visiting an instance and already-complete account data alone do not count.
+- Add `/lar recover <single-boss dungeon key> [confirm]`. A completed matching
+  native record is required; confirmed recovery is explicitly player-reported,
+  stored per character, and preserves dates/correction holds/native progress.
+- Show addon version and shared-criterion matches in API diagnostics. Add
+  regressions for account scope, alternative isolation and character identity.
+
+## 0.5.2-alpha.1 — client API audit test build
+
+- Review all 322 definitions (263 custom and 59 native imports) against the
+  Forever 1.60.1.70862 UI source and document assumptions and live-test gaps.
+- Recover dungeon credit from personal native Spelunker criteria, including
+  a bounded final-boss inference for a named single-boss dungeon.
+- Use matching personal native completions as fallbacks for custom definitions;
+  preserve completion dates, point values, saved keys and correction holds.
+- Refresh custom awards on native criteria updates, spells, recipes and instance
+  updates, coalescing bursts into one evaluation. Quietly backfill on upgrade.
+- Support C_SkillInfo skill ranks and the namespaced player-spell API. Reject
+  explicitly account-wide statistics, ambiguous numeric strings and credit
+  inferred solely from a disappearing living target.
+- Add `/lar apicheck <key>|dungeons|all` for in-game evidence diagnostics.
+- Includes the combined-pane minimap launcher from the preceding testing branch.
+  No release tag or CurseForge publication is created by this branch.
+
+## 0.5.1-alpha.1
 
 - Correct GitHub artifact uploading to include the hidden `.release` directory,
   allowing the installable ZIP and checksum to reach the prerelease job.
@@ -93,3 +137,4 @@
   separate point counters, native Rewards/Trees, and combat/performance fixes.
 - Includes a separate non-destructive save migration tool in the repository;
   existing players should follow the migration guide before the first login.
+

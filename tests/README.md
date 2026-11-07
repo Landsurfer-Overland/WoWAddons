@@ -168,6 +168,27 @@ Repeat with `/lar legacyui on` and `off`; verify points/progress are unchanged.
 
 ## Limits
 
+`test_client_api_evidence.py` checks the real core and native-evidence module:
+Hall of Thanes backfill, partial criteria events, alias/identity checks,
+character/account attribution, multi-boss and asset-type boundaries, exact
+personal native completion, snapshot freshness, invalid/secret/oversized data,
+namespaced skills/spells, numeric parsing, explicit zero versus unavailable,
+target disappearance, correction holds and read-only diagnostic behavior.
+The [build-70862 audit](../docs/client-api-audit.md) contains the complete coverage
+inventory, source pins, assumptions and in-game acceptance checks.
+
+`test_dungeon_recovery.py` adds 20 actual-core regressions based on the reported
+account-wide OR criterion 19213/117733 and missing boss statistic. They cover
+Hall/Ragefire isolation, explicit player-confirmed recovery, exact instance
+context, new native transitions, login/old-account exclusion, alias mapping,
+correction holds, malformed data, character switches and later GUID readiness.
+
+`test_automatic_boss_tracking.py` adds 19 regressions for the permanent path:
+the sixth encounter payload, dead/live unit distinction, existing account ticks,
+automatic login history discovery/new IDs, counter scope/identity, late native
+API readiness, bounded/combat-deferred scans, exact corpse GUIDs, character
+switches and duplicate-event dates. None of its positive cases use confirmation.
+
 These fixtures do not emulate actual game rendering, asset lookup, native protected
 frame behavior, input/gamepad focus, server reward or trait progression, animation
 timing, or SavedVariables disk writes. Passing them is not an in-game validation

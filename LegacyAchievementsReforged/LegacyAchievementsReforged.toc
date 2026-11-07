@@ -4,7 +4,7 @@
 ## Author: Landsurfer-Overland
 ## X-Original-Author: Piotr
 ## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
-## Version: 0.5.1-alpha.1
+## Version: 0.5.2-alpha.3
 ## SavedVariables: LegacyAchievementsReforgedDB
 ## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish
@@ -36,6 +36,9 @@ UI\AddonSettings.lua
 Diagnostics\LegacyInspector.lua
 Integrations\LegacyAdapter.lua
 Integrations\Performance.lua
+Integrations\AchievementEvidence.lua
+Integrations\DungeonRecovery.lua
+Integrations\AutomaticBossTracking.lua
 Integrations\CustomAdapter.lua
 Integrations\Presentation.lua
 Integrations\StatisticsAdapter.lua
@@ -43,3 +46,4 @@ UI\WrathAchievementUI.lua
 UI\WrathAchievementUI.xml
 Integrations\LegacyWindowBridge.lua
 Integrations\LegacyController.lua
+
