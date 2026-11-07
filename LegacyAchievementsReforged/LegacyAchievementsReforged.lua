@@ -1269,7 +1269,14 @@ local function DungeonAch(d)
     local names = {}
     for _, b in ipairs(d.bosses) do names[#names + 1] = b[1] end
     local function Killed(b)
-        if BossKilled(b) then return true end
+        if BossKilled(b) then
+            local evidence = DB().bossEvidence
+            evidence = type(evidence) == "table" and (evidence[b[2]] or evidence[b[1]])
+            Proof.SetProgressEvidence(d.key or ("dungeon" .. d.id),
+                type(evidence) == "table" and Proof.PlainText(evidence.source) or "previously recorded boss kill",
+                type(evidence) == "table" and evidence or {})
+            return true
+        end
         if ns.NativeAchievementEvidence and ns.NativeAchievementEvidence.Boss(d, b) then return true end
         -- The kill statistic names the first boss: it covers kills from before the addon.
         if d.stat and b == d.bosses[1] and (StatNumber(d.stat) or 0) > 0 then return true end
@@ -2088,7 +2095,7 @@ On("PLAYER_LOGIN", function()
     -- Achievements added in a new version are taken in quietly once (no
     -- toast storm for what was already true); two passes so the continent
     -- and Loremaster metas see the zones and continents earned in the first.
-    local DATA_VERSION = 11 -- quietly recover newly readable native history
+    local DATA_VERSION = 12 -- quietly recover newly readable native history
     local d = DB()
     if (d.dataVersion or (d.initialised and 1 or 0)) < DATA_VERSION then
         local before = Count(d.done)
@@ -2231,12 +2238,25 @@ local watchedTarget, watchedAlive, watchedName, watchedID
 
 -- Native encounter notifications establish a boss kill even when the target's
 -- combat fields were restricted or the player was targeting another unit.
-local function NoteBoss(id, unitName)
+local function NoteBoss(id, unitName, evidence)
+    id, unitName = Proof.PlainNumber(id), Proof.PlainText(unitName)
     local key = (id and BOSS_IDS[id]) and id or (unitName and BOSS_BY_NAME[unitName])
-    if not key or DB().bosses[key] then return end
-    DB().bosses[key] = time()
+    local d = DB()
+    if not key or d.bosses[key] or not Proof.BindCharacter(d) then return false end
+    d.bosses[key] = time()
+    if type(evidence) == "table" then
+        if d.bossEvidence == nil then d.bossEvidence = {} end
+        if type(d.bossEvidence) == "table" then
+            local proof = Proof.SafeObservations(evidence)
+            proof.source = Proof.PlainText(evidence.source) or "native boss kill"
+            proof.characterKey = Proof.CharacterIdentity().key
+            proof.observedAt = d.bosses[key]
+            d.bossEvidence[key] = proof
+        end
+    end
     print(TAG .. " boss slain: " .. (BOSS_IDS[key] or unitName))
     CheckAll()
+    return true
 end
 
 local watchedRare
@@ -2388,11 +2408,29 @@ for _, event in ipairs({ "ACHIEVEMENT_EARNED", "CRITERIA_UPDATE", "CRITERIA_COMP
 end
 
 -- Boss fights the client reports (the target may not be the boss at the end).
-On("ENCOUNTER_END", function(_, name, _, _, success)
-    if success == 1 and name and not secret(name) then NoteBoss(nil, name) end
+On("ENCOUNTER_END", function(encounterID, name, _, _, success, encounterUnitStatus)
+    if secret(success) or success ~= 1 then return end
+    -- Build 70862 supplies every engaged boss, independently of the selected
+    -- target or a shared account criterion. Only a defeated unit counts.
+    if not secret(encounterUnitStatus) and type(encounterUnitStatus) == "table" then
+        for i = 1, math.min(#encounterUnitStatus, 64) do
+            local unit = rawget(encounterUnitStatus, i)
+            if not secret(unit) and type(unit) == "table" then
+                local fields = Proof.ReadAPI(function() return unit.creatureID, unit.creatureName, unit.remainingHealthPercent end)
+                local id = fields and Proof.PlainNumber(fields[1])
+                local bossName = fields and Proof.PlainText(fields[2])
+                local health = fields and Proof.PlainNumber(fields[3])
+                if health == 0 then
+                    NoteBoss(id, bossName, { source = "native encounter boss-status list", encounterID = Proof.PlainNumber(encounterID),
+                        creatureID = id, remainingHealthPercent = 0, inferred = false })
+                end
+            end
+        end
+    end
+    if Proof.PlainText(name) then NoteBoss(nil, name, { source = "successful native encounter", encounterID = Proof.PlainNumber(encounterID), inferred = false }) end
 end)
-On("BOSS_KILL", function(_, name)
-    if name and not secret(name) then NoteBoss(nil, name) end
+On("BOSS_KILL", function(encounterID, name)
+    if Proof.PlainText(name) then NoteBoss(nil, name, { source = "native BOSS_KILL event", encounterID = Proof.PlainNumber(encounterID), inferred = false }) end
 end)
 
 -- Fishing: schools, the city diplomat and the rare fish, from the loot window.
@@ -3613,6 +3651,7 @@ ns.LAR = {
     EARN_HOOKS = EARN_HOOKS, CHECK_HOOKS = CHECK_HOOKS, VIEWS = VIEWS, SLASH = SLASH, COMPARE = COMPARE, LINK = LINK,
     CheckAll = CheckAll, TotalPoints = TotalPoints, SeriesPoints = SeriesPoints, ToggleTrack = ToggleTrack,
     Money = Money, StatText = StatText, NpcID = NpcID, IsDrink = IsDrink,
+    StatisticCount = StatNumber, NoteBossKill = NoteBoss,
     -- Read-only seams for a later compatible quest-database adapter. No new
     -- Questie integration or imported quest catalog is introduced here.
     QuestTracking = { CompletedIDs = CompletedIDs, Count = QuestCount,

@@ -51,6 +51,8 @@
     "dungeons": {
       "apis": [
         "GetStatistic",
+        "GetStatisticsCategoryList",
+        "GetCategoryNumAchievements",
         "GetAchievementInfo",
         "GetAchievementNumCriteria",
         "GetAchievementCriteriaInfo",
@@ -58,7 +60,8 @@
         "UnitGUID",
         "IsInInstance",
         "GetInstanceInfo",
-        "GetRealZoneText"
+        "GetRealZoneText",
+        "GetLootSourceInfo"
       ],
       "refreshEvents": [
         "PLAYER_LOGIN",
@@ -67,10 +70,12 @@
         "CRITERIA_EARNED",
         "ENCOUNTER_END",
         "BOSS_KILL",
-        "UPDATE_INSTANCE_INFO"
+        "UPDATE_INSTANCE_INFO",
+        "LOOT_OPENED",
+        "LOOT_READY"
       ],
-      "historicalCoverage": "Personal native criteria/statistics, context-bound native events or explicitly player-confirmed recovery, then observed kills",
-      "assumptions": "Shared account/OR criteria cannot identify the dungeon or character alone; recovery attestation and event context are labeled inferences; no multi-boss blanket credit; legacy head-quest fallback remains approximate"
+      "historicalCoverage": "Automatic personal counter discovery, successful encounter boss-status lists, native criteria and recorded personal kills",
+      "assumptions": "Shared account/OR criteria alone cannot identify a personal kill; loot/context paths are labeled inferences; optional confirmation is a repair tool, not the normal path; no multi-boss blanket credit; legacy head-quest fallback remains approximate"
     },
     "emotes": {
       "apis": [
@@ -392,8 +397,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Win Arathi Basin in 6 minutes.",
       "dynamicCriteria": false,
@@ -414,8 +419,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Complete 100 victories in Arathi Basin.",
       "dynamicCriteria": false,
@@ -440,8 +445,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Win Arathi Basin.",
       "dynamicCriteria": false,
@@ -466,8 +471,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain the Bloodsail Admiral's Hat.",
       "dynamicCriteria": false,
@@ -605,8 +610,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1438,
-        "lastLine": 1442
+        "firstLine": 1445,
+        "lastLine": 1449
       },
       "description": "Earn exalted reputation with the Alliance home cities.",
       "dynamicCriteria": false,
@@ -641,8 +646,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1438,
-        "lastLine": 1442
+        "firstLine": 1445,
+        "lastLine": 1449
       },
       "description": "Earn exalted reputation with the Horde home cities.",
       "dynamicCriteria": false,
@@ -671,8 +676,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Wielder of Atiesh, Greatstaff of the Guardian.",
       "dynamicCriteria": false,
@@ -700,8 +705,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Win Alterac Valley in 6 minutes.",
       "dynamicCriteria": false,
@@ -722,8 +727,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Complete 100 victories in Alterac Valley.",
       "dynamicCriteria": false,
@@ -748,8 +753,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Win Alterac Valley.",
       "dynamicCriteria": false,
@@ -780,8 +785,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1547,
-        "lastLine": 1551
+        "firstLine": 1554,
+        "lastLine": 1558
       },
       "description": "Win Warsong Gulch, Arathi Basin, Alterac Valley and Darkspear Islands.",
       "dynamicCriteria": false,
@@ -890,8 +895,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Personally carry and capture the flag in Warsong Gulch.",
       "dynamicCriteria": false,
@@ -916,8 +921,8 @@
       "class": "PALADIN",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Completed the paladin quest to obtain a Charger.",
       "dynamicCriteria": false,
@@ -947,8 +952,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1438,
-        "lastLine": 1442
+        "firstLine": 1445,
+        "lastLine": 1449
       },
       "description": "Exalted with the Frostwolf Clan, The Defilers and the Warsong Outriders.",
       "dynamicCriteria": false,
@@ -1277,8 +1282,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain the Deathcharger's Reins from Baron Rivendare in Stratholme.",
       "dynamicCriteria": false,
@@ -1306,8 +1311,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Complete 100 victories in Darkspear Islands.",
       "dynamicCriteria": false,
@@ -1331,8 +1336,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Win Darkspear Islands.",
       "dynamicCriteria": false,
@@ -1383,8 +1388,8 @@
       "class": "WARLOCK",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Completed the Dreadsteed of Xoroth warlock quest.",
       "dynamicCriteria": false,
@@ -1431,8 +1436,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Win a duel against another player.",
       "dynamicCriteria": false,
@@ -1456,8 +1461,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat General Drakkisath.",
       "dungeon": {
@@ -1515,8 +1520,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Edwin VanCleef.",
       "dungeon": {
@@ -1554,8 +1559,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Taragaman the Hungerer.",
       "dungeon": {
@@ -1591,8 +1596,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Mutanus the Devourer.",
       "dungeon": {
@@ -1628,8 +1633,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Archmage Arugal.",
       "dungeon": {
@@ -1666,8 +1671,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Aku'mai.",
       "dungeon": {
@@ -1700,8 +1705,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Bazil Thredd.",
       "dungeon": {
@@ -1737,8 +1742,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Mekgineer Thermaplugg.",
       "dungeon": {
@@ -1775,8 +1780,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Charlga Razorflank.",
       "dungeon": {
@@ -1814,8 +1819,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Amnennar the Coldbringer.",
       "dungeon": {
@@ -1859,8 +1864,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the Scarlet Crusade within the Scarlet Monastery.",
       "dungeon": {
@@ -1909,8 +1914,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Archaedas.",
       "dungeon": {
@@ -1948,8 +1953,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Chief Ukorz Sandscalp.",
       "dungeon": {
@@ -1983,8 +1988,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Princess Theradras.",
       "dungeon": {
@@ -2021,8 +2026,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Shade of Eranikus.",
       "dungeon": {
@@ -2058,8 +2063,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Emperor Dagran Thaurissan.",
       "dungeon": {
@@ -2097,8 +2102,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Overlord Wyrmthalak.",
       "dungeon": {
@@ -2142,8 +2147,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat each wing of Dire Maul.",
       "dungeon": {
@@ -2188,8 +2193,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the leaders of Scholomance.",
       "dungeon": {
@@ -2230,8 +2235,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the evil masterminds inhabiting Stratholme.",
       "dungeon": {
@@ -2269,8 +2274,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Nefarian.",
       "dungeon": {
@@ -2309,8 +2314,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Ragnaros.",
       "dungeon": {
@@ -2348,8 +2353,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat C'Thun.",
       "dungeon": {
@@ -2396,8 +2401,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Hakkar.",
       "dungeon": {
@@ -2434,8 +2439,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Ossirian the Unscarred.",
       "dungeon": {
@@ -2471,8 +2476,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Blazeroar.",
       "dungeon": {
@@ -2505,8 +2510,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the master of Blackmaw Hold.",
       "dungeon": {
@@ -2538,8 +2543,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the Shade of the Archmage.",
       "dungeon": {
@@ -2572,8 +2577,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the master of The Drowned City.",
       "dungeon": {
@@ -2605,8 +2610,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the Relic Guardian.",
       "dungeon": {
@@ -2638,8 +2643,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the master of Krol'dok Stronghold.",
       "dungeon": {
@@ -2671,8 +2676,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Rath'mael.",
       "dungeon": {
@@ -2705,8 +2710,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Nanaya.",
       "dungeon": {
@@ -2739,8 +2744,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Durgen Dirgehammer.",
       "dungeon": {
@@ -2772,8 +2777,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise a reputation to Exalted.",
       "dynamicCriteria": false,
@@ -2797,8 +2802,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 10 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -2822,8 +2827,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 15 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -2847,8 +2852,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 20 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -2872,8 +2877,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 25 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -2897,8 +2902,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 30 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -2922,8 +2927,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1423,
-        "lastLine": 1423
+        "firstLine": 1430,
+        "lastLine": 1430
       },
       "description": "Raise 5 reputations to Exalted.",
       "dynamicCriteria": false,
@@ -4688,8 +4693,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain an Aqual Quintessence.",
       "dynamicCriteria": false,
@@ -4999,8 +5004,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Slay the leaders of the Horde.",
       "dungeon": {
@@ -5054,8 +5059,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Slay the leaders of the Alliance.",
       "dungeon": {
@@ -5102,8 +5107,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain a Winterspring Frostsaber.",
       "dynamicCriteria": false,
@@ -5131,8 +5136,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Warrior.",
       "dynamicCriteria": true,
@@ -5158,8 +5163,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Druid.",
       "dynamicCriteria": true,
@@ -5185,8 +5190,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Hunter.",
       "dynamicCriteria": true,
@@ -5212,8 +5217,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Mage.",
       "dynamicCriteria": true,
@@ -5239,8 +5244,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Paladin.",
       "dynamicCriteria": true,
@@ -5266,8 +5271,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Priest.",
       "dynamicCriteria": true,
@@ -5293,8 +5298,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Rogue.",
       "dynamicCriteria": true,
@@ -5320,8 +5325,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Shaman.",
       "dynamicCriteria": true,
@@ -5347,8 +5352,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Warlock.",
       "dynamicCriteria": true,
@@ -5374,8 +5379,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Alchemy for the first time.",
       "dynamicCriteria": true,
@@ -5401,8 +5406,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Blacksmithing for the first time.",
       "dynamicCriteria": true,
@@ -5428,8 +5433,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Enchanting for the first time.",
       "dynamicCriteria": true,
@@ -5455,8 +5460,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Engineering for the first time.",
       "dynamicCriteria": true,
@@ -5482,8 +5487,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Leatherworking for the first time.",
       "dynamicCriteria": true,
@@ -5509,8 +5514,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Tailoring for the first time.",
       "dynamicCriteria": true,
@@ -5536,8 +5541,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete the following dungeons.",
       "dynamicCriteria": true,
@@ -5563,8 +5568,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Defeat the following encounters in Hyjal Summit.",
       "dynamicCriteria": true,
@@ -5589,8 +5594,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach the rank of Sergeant in the Player vs. Player Honor System.",
       "dynamicCriteria": true,
@@ -5616,8 +5621,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach the rank of Knight-Lieutenant or Blood Guard in the Player vs. Player Honor System.",
       "dynamicCriteria": true,
@@ -5643,8 +5648,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach the rank of Lieutenant-Commander or Champion in the Player vs. Player Honor System.",
       "dynamicCriteria": true,
@@ -5670,8 +5675,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete Week 4 of the Field of Honor Journey.",
       "dynamicCriteria": true,
@@ -5697,8 +5702,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Warrior.",
       "dynamicCriteria": true,
@@ -5724,8 +5729,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Warrior.",
       "dynamicCriteria": true,
@@ -5751,8 +5756,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Druid.",
       "dynamicCriteria": true,
@@ -5778,8 +5783,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Druid.",
       "dynamicCriteria": true,
@@ -5805,8 +5810,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Hunter.",
       "dynamicCriteria": true,
@@ -5832,8 +5837,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Hunter.",
       "dynamicCriteria": true,
@@ -5859,8 +5864,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Mage.",
       "dynamicCriteria": true,
@@ -5886,8 +5891,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Mage.",
       "dynamicCriteria": true,
@@ -5913,8 +5918,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Paladin.",
       "dynamicCriteria": true,
@@ -5940,8 +5945,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Paladin.",
       "dynamicCriteria": true,
@@ -5967,8 +5972,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Priest.",
       "dynamicCriteria": true,
@@ -5994,8 +5999,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Priest.",
       "dynamicCriteria": true,
@@ -6021,8 +6026,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 25 for the first time on a Rogue.",
       "dynamicCriteria": true,
@@ -6048,8 +6053,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Rogue.",
       "dynamicCriteria": true,
@@ -6075,8 +6080,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Shaman.",
       "dynamicCriteria": true,
@@ -6102,8 +6107,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Shaman.",
       "dynamicCriteria": true,
@@ -6129,8 +6134,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 45 for the first time on a Warlock.",
       "dynamicCriteria": true,
@@ -6156,8 +6161,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach level 60 for the first time on a Warlock.",
       "dynamicCriteria": true,
@@ -6183,8 +6188,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Alchemy for the first time.",
       "dynamicCriteria": true,
@@ -6210,8 +6215,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Alchemy for the first time.",
       "dynamicCriteria": true,
@@ -6237,8 +6242,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Blacksmithing for the first time.",
       "dynamicCriteria": true,
@@ -6264,8 +6269,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Blacksmithing for the first time.",
       "dynamicCriteria": true,
@@ -6291,8 +6296,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Enchanting for the first time.",
       "dynamicCriteria": true,
@@ -6318,8 +6323,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Enchanting for the first time.",
       "dynamicCriteria": true,
@@ -6345,8 +6350,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 150 skill in Engineering for the first time.",
       "dynamicCriteria": true,
@@ -6372,8 +6377,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Engineering for the first time.",
       "dynamicCriteria": true,
@@ -6399,8 +6404,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Leatherworking for the first time.",
       "dynamicCriteria": true,
@@ -6426,8 +6431,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Leatherworking for the first time.",
       "dynamicCriteria": true,
@@ -6453,8 +6458,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 225 skill in Tailoring for the first time.",
       "dynamicCriteria": true,
@@ -6480,8 +6485,8 @@
       "category": "professions",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach 300 skill in Tailoring for the first time.",
       "dynamicCriteria": true,
@@ -6507,8 +6512,8 @@
       "category": "quests",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete the questline beginning with An Earnest Proposition, and ending with Saving the Best for Last.",
       "dynamicCriteria": true,
@@ -6533,8 +6538,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete the following dungeons.",
       "dynamicCriteria": true,
@@ -6560,8 +6565,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete the following dungeons.",
       "dynamicCriteria": true,
@@ -6587,8 +6592,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Defeat the following encounters in the Barrow Deeps.",
       "dynamicCriteria": true,
@@ -6613,8 +6618,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach the rank of Field Marshal or Warlord in the Player vs. Player Honor System.",
       "dynamicCriteria": true,
@@ -6640,8 +6645,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Reach the rank of Grand Marshal or High Warlord in the Player vs. Player Honor System.",
       "dynamicCriteria": true,
@@ -6667,8 +6672,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete Week 7 of the Field of Honor Journey.",
       "dynamicCriteria": true,
@@ -6694,8 +6699,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1754,
-        "lastLine": 1765
+        "firstLine": 1761,
+        "lastLine": 1772
       },
       "description": "Complete Week 10 of the Field of Honor Journey.",
       "dynamicCriteria": true,
@@ -6838,8 +6843,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Get 30 honorable kills in a single battle in any battleground.",
       "dynamicCriteria": false,
@@ -6860,8 +6865,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Achieve an honorable kill.",
       "dynamicCriteria": false,
@@ -6885,8 +6890,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 100 honorable kills.",
       "dynamicCriteria": false,
@@ -6910,8 +6915,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 1000 honorable kills.",
       "dynamicCriteria": false,
@@ -6935,8 +6940,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 10000 honorable kills.",
       "dynamicCriteria": false,
@@ -6960,8 +6965,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 100000 honorable kills.",
       "dynamicCriteria": false,
@@ -6985,8 +6990,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 25000 honorable kills.",
       "dynamicCriteria": false,
@@ -7010,8 +7015,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 500 honorable kills.",
       "dynamicCriteria": false,
@@ -7035,8 +7040,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 5000 honorable kills.",
       "dynamicCriteria": false,
@@ -7060,8 +7065,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1521,
-        "lastLine": 1521
+        "firstLine": 1528,
+        "lastLine": 1528
       },
       "description": "Get 50000 honorable kills.",
       "dynamicCriteria": false,
@@ -7085,8 +7090,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Emote /hug on a dead enemy before they release corpse.",
       "dynamicCriteria": false,
@@ -7116,8 +7121,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1460,
-        "lastLine": 1464
+        "firstLine": 1467,
+        "lastLine": 1471
       },
       "description": "Honored with the Bloodsail Buccaneers, and Exalted with Booty Bay, Everlook, Gadgetzan, Ratchet, Ravenholdt and the Darkmoon Faire.",
       "dynamicCriteria": false,
@@ -7143,8 +7148,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1438,
-        "lastLine": 1442
+        "firstLine": 1445,
+        "lastLine": 1449
       },
       "description": "Exalted with the Stormpike Guard, The League of Arathor and the Silverwing Sentinels.",
       "dynamicCriteria": false,
@@ -7424,8 +7429,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Kel'Thuzad.",
       "dungeon": {
@@ -7501,8 +7506,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Onyxia.",
       "dungeon": {
@@ -7564,8 +7569,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Return 50 flags as a defender in Warsong Gulch.",
       "dynamicCriteria": false,
@@ -8145,8 +8150,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1373,
-        "lastLine": 1373
+        "firstLine": 1380,
+        "lastLine": 1380
       },
       "description": "Slay 1 different rare enemies.",
       "dynamicCriteria": false,
@@ -8169,8 +8174,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1373,
-        "lastLine": 1373
+        "firstLine": 1380,
+        "lastLine": 1380
       },
       "description": "Slay 10 different rare enemies.",
       "dynamicCriteria": false,
@@ -8193,8 +8198,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1373,
-        "lastLine": 1373
+        "firstLine": 1380,
+        "lastLine": 1380
       },
       "description": "Slay 100 different rare enemies.",
       "dynamicCriteria": false,
@@ -8217,8 +8222,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1373,
-        "lastLine": 1373
+        "firstLine": 1380,
+        "lastLine": 1380
       },
       "description": "Slay 25 different rare enemies.",
       "dynamicCriteria": false,
@@ -8241,8 +8246,8 @@
       "category": "general",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1373,
-        "lastLine": 1373
+        "firstLine": 1380,
+        "lastLine": 1380
       },
       "description": "Slay 50 different rare enemies.",
       "dynamicCriteria": false,
@@ -8298,8 +8303,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain the Swift Razzashi Raptor from Bloodlord Mandokir in Zul'Gurub.",
       "dynamicCriteria": false,
@@ -8402,8 +8407,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain a Red Qiraji Resonating Crystal.",
       "dynamicCriteria": false,
@@ -8431,8 +8436,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Azeroth Commerce Authority.",
       "dynamicCriteria": false,
@@ -8456,8 +8461,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Durotar Supply and Logistics.",
       "dynamicCriteria": false,
@@ -8481,8 +8486,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Emerald Wardens.",
       "dynamicCriteria": false,
@@ -8506,8 +8511,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Cenarion Scouts.",
       "dynamicCriteria": false,
@@ -8531,8 +8536,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Kirin Tor.",
       "dynamicCriteria": false,
@@ -8556,8 +8561,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Barkskin Burrow.",
       "dynamicCriteria": false,
@@ -8581,8 +8586,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Nightclaw Druids.",
       "dynamicCriteria": false,
@@ -8606,8 +8611,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Guardians of Hyjal.",
       "dynamicCriteria": false,
@@ -8631,8 +8636,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Windshapers.",
       "dynamicCriteria": false,
@@ -8656,8 +8661,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with High Order.",
       "dynamicCriteria": false,
@@ -8681,8 +8686,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Bolder'ok Clan.",
       "dynamicCriteria": false,
@@ -8706,8 +8711,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Earthen Ring.",
       "dynamicCriteria": false,
@@ -8731,8 +8736,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with The Watchers.",
       "dynamicCriteria": false,
@@ -8756,8 +8761,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Brotherhood of the Horse.",
       "dynamicCriteria": false,
@@ -8781,8 +8786,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Powderfuse.",
       "dynamicCriteria": false,
@@ -8806,8 +8811,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with The League of Arathor.",
       "dynamicCriteria": false,
@@ -8833,8 +8838,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Argent Dawn.",
       "dynamicCriteria": false,
@@ -8859,8 +8864,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Brood of Nozdormu.",
       "dynamicCriteria": false,
@@ -8885,8 +8890,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Cenarion Circle.",
       "dynamicCriteria": false,
@@ -8911,8 +8916,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Darkmoon Faire.",
       "dynamicCriteria": false,
@@ -8936,8 +8941,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with The Defilers.",
       "dynamicCriteria": false,
@@ -8963,8 +8968,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Frostwolf Clan.",
       "dynamicCriteria": false,
@@ -8990,8 +8995,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Hydraxian Waterlords.",
       "dynamicCriteria": false,
@@ -9016,8 +9021,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Warsong Outriders.",
       "dynamicCriteria": false,
@@ -9043,8 +9048,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Darkspear Raiders.",
       "dynamicCriteria": false,
@@ -9069,8 +9074,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Shen'dralar.",
       "dynamicCriteria": false,
@@ -9094,8 +9099,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Silverwing Sentinels.",
       "dynamicCriteria": false,
@@ -9121,8 +9126,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Stormpike Guard.",
       "dynamicCriteria": false,
@@ -9148,8 +9153,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Gain exalted reputation with the Theramore Expeditionary Force.",
       "dynamicCriteria": false,
@@ -9174,8 +9179,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Thorium Brotherhood.",
       "dynamicCriteria": false,
@@ -9199,8 +9204,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with Timbermaw Hold.",
       "dynamicCriteria": false,
@@ -9225,8 +9230,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Wintersaber Trainers.",
       "dynamicCriteria": false,
@@ -9251,8 +9256,8 @@
       "category": "reputation",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1432,
-        "lastLine": 1432
+        "firstLine": 1439,
+        "lastLine": 1439
       },
       "description": "Earn exalted status with the Zandalar Tribe.",
       "dynamicCriteria": false,
@@ -9346,8 +9351,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Opened the gates of Ahn'Qiraj.",
       "dynamicCriteria": false,
@@ -9375,8 +9380,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Wielder of Sulfuras, Hand of Ragnaros.",
       "dynamicCriteria": false,
@@ -9423,8 +9428,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Wielder of Thunderfury, Blessed Blade of the Windseeker.",
       "dynamicCriteria": false,
@@ -9449,8 +9454,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Defend 50 towers in Alterac Valley.",
       "dynamicCriteria": false,
@@ -9474,8 +9479,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Azuregos in Azshara.",
       "dungeon": {
@@ -9507,8 +9512,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Emeriss, a Dragon of Nightmare.",
       "dungeon": {
@@ -9540,8 +9545,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Lord Kazzak.",
       "dungeon": {
@@ -9573,8 +9578,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Lethon, a Dragon of Nightmare.",
       "dungeon": {
@@ -9612,8 +9617,8 @@
       ],
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat the four Dragons of Nightmare.",
       "dungeon": {
@@ -9658,8 +9663,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Taerar, a Dragon of Nightmare.",
       "dungeon": {
@@ -9691,8 +9696,8 @@
       "category": "dungeons",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1287,
-        "lastLine": 1298
+        "firstLine": 1294,
+        "lastLine": 1305
       },
       "description": "Defeat Ysondre, a Dragon of Nightmare.",
       "dungeon": {
@@ -9750,8 +9755,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Get 20 killing blows without dying in a single battle in any battleground.",
       "dynamicCriteria": false,
@@ -9772,8 +9777,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1533,
-        "lastLine": 1533
+        "firstLine": 1540,
+        "lastLine": 1540
       },
       "description": "Win Warsong Gulch in under 7 minutes.",
       "dynamicCriteria": false,
@@ -9794,8 +9799,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Complete 100 victories in Warsong Gulch.",
       "dynamicCriteria": false,
@@ -9820,8 +9825,8 @@
       "category": "pvp",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1526,
-        "lastLine": 1526
+        "firstLine": 1533,
+        "lastLine": 1533
       },
       "description": "Win Warsong Gulch.",
       "dynamicCriteria": false,
@@ -9846,8 +9851,8 @@
       "category": "feats",
       "definition": {
         "file": "LegacyAchievementsReforged/LegacyAchievementsReforged.lua",
-        "firstLine": 1669,
-        "lastLine": 1672
+        "firstLine": 1676,
+        "lastLine": 1679
       },
       "description": "Obtain the Swift Zulian Tiger from High Priest Thekal in Zul'Gurub.",
       "dynamicCriteria": false,

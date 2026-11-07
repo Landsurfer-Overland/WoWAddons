@@ -1,6 +1,6 @@
 # Achievement API audit — Forever 1.60.1.70862
 
-Reviewed November 7, 2026. Test build: **0.5.2-alpha.2**.
+Reviewed November 7, 2026. Test build: **0.5.2-alpha.3**.
 
 The audit inventories **all 322 production definitions: 263 custom achievements
 and 59 legacy native imports**. Seven custom definitions remain explicitly
@@ -32,6 +32,47 @@ at runtime; the 59 imported definitions are historical configured records, not a
 claim that the current native client contains only 59 achievements.
 
 ## Changes implemented
+
+### Permanent automatic path
+
+The confirmation command from alpha.2 is only an optional repair tool. Normal
+players should not need to attest to each clear. Alpha.3 adds automatic paths
+that remain useful after an account-wide criterion is already complete:
+
+1. **Successful native encounter boss list.** Build 70862 documents the sixth
+   `ENCOUNTER_END` payload as `encounterUnitStatus`: engaged creatures with
+   `creatureID`, `creatureName` and `remainingHealthPercent`. The previous handler
+   ignored this payload. It now credits only recognizable bosses at zero health
+   in a successful encounter. It does not require a selected target or equate
+   the encounter ID with an NPC ID. Existing exact-name `BOSS_KILL` and encounter
+   name handling remain supported.
+2. **Automatic historical counter discovery.** Native statistics categories are
+   read without changing native selection/search. Exact boss-kill labels are
+   matched to authored objectives, explicitly account-wide/unknown-scope rows
+   are excluded, and metadata is revalidated before reading a discovered ID.
+   Positive personal counts can backfill old clears even if the hard-coded
+   statistic ID changed. Unknown values, reused IDs, deaths, and unrelated
+   dungeon labels do not prove a kill. The API's availability on the running
+   client is capability-checked; a shared UI source declaration is not live
+   verification that the server supplies a useful counter.
+3. **Corpse-loot evidence.** Up to 32 readable exact creature GUID/name
+   observations are remembered for this character/session. Matching a boss's
+   actual corpse GUID in loot sources can record its defeat when encounter
+   notifications are absent. This is explicitly a loot-eligibility inference.
+   Merely targeting, losing a target, or looting a different GUID never counts.
+
+Discovery reads at most 256 categories / 2,500 records per scan, with three
+startup attempts and one additional native-addon readiness opportunity. Combat
+defers the scan; normal progress refreshes only re-read mapped counters. No
+unbounded numeric ID search or repeated catalog scan runs in the regular UI
+refresh path. Character switches clear transient unit evidence. Actual observed
+boss completion is persisted with its source and retains the original award date.
+
+There is no honest automatic personal backfill from the OR/account checkbox
+alone when the server exposes no other history. In that case alpha.3 keeps the
+old personal kill unproven while tracking subsequent clears automatically;
+it does not silently award both alternatives or every alt. The optional repair
+tool is not presented as the permanent solution or suggested by normal diagnostics.
 
 ### Live-client correction: shared account criterion
 
@@ -172,7 +213,7 @@ new mechanics or content evidence justifying re-enabling them.
 
 ## In-game diagnostics and acceptance checks
 
-Install the complete **0.5.2-alpha.2** addon folder and keep SavedVariables.
+Install the complete **0.5.2-alpha.3** addon folder and keep SavedVariables.
 The minimap launcher on this branch enables/opens the combined pane below 25.
 
 1. Run `/lar apicheck` to record the actual client build and API availability.
@@ -197,6 +238,12 @@ The minimap launcher on this branch enables/opens the combined pane below 25.
    boss kill. Only the confirmed kill/native progress should count.
 8. Verify old completion dates, point values, tracking and correction holds;
    compare fishing/native statistic units on real catches before changing estimates.
+9. Complete a boss while targeting another unit, with the native account
+   criterion already ticked. Confirm normal automatic credit and inspect its
+   encounter-unit evidence; no recovery command should be needed.
+10. With a readable personal boss statistic, relog and verify quiet historical
+    backfill. With no such record, verify the account OR row alone does not
+    manufacture personal credit. API diagnostics now report catalog discovery.
 
 Diagnostics query progress and may refresh the evaluator's ordinary observations;
 they do not call the award evaluator or mutate native achievements/rewards.

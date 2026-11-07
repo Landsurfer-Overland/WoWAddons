@@ -183,6 +183,12 @@ Hall/Ragefire isolation, explicit player-confirmed recovery, exact instance
 context, new native transitions, login/old-account exclusion, alias mapping,
 correction holds, malformed data, character switches and later GUID readiness.
 
+`test_automatic_boss_tracking.py` adds 17 regressions for the permanent path:
+the sixth encounter payload, dead/live unit distinction, existing account ticks,
+automatic login history discovery/new IDs, counter scope/identity, late native
+API readiness, bounded/combat-deferred scans, exact corpse GUIDs, character
+switches and duplicate-event dates. None of its positive cases use confirmation.
+
 These fixtures do not emulate actual game rendering, asset lookup, native protected
 frame behavior, input/gamepad focus, server reward or trait progression, animation
 timing, or SavedVariables disk writes. Passing them is not an in-game validation

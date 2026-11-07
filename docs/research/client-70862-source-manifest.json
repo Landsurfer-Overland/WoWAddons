@@ -140,6 +140,24 @@
       "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua",
       "gitBlobSHA": "0767f5042a47b9fd03621044cc94f26390e08e2b",
       "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/ChatInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterInfoDocumentation.lua",
+      "gitBlobSHA": "33451dabcd3812d147e279c0b70c3955484e3b87",
+      "purpose": "ENCOUNTER_END sixth payload and native boss-kill event",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/EncounterInfoDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_APIDocumentationGenerated/RaidLocksDocumentation.lua",
+      "gitBlobSHA": "5ee1794809973f56b2feac8d2270ea0d08da20bd",
+      "purpose": "Reviewed; current lockout APIs are not treated as lifetime kill history",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_APIDocumentationGenerated/RaidLocksDocumentation.lua"
+    },
+    {
+      "path": "Interface/AddOns/Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.lua",
+      "gitBlobSHA": "13b6f25d24bf99f7ccdbbe74d021fccd7c4c0b0e",
+      "purpose": "Native statistics-category enumeration contract; guarded on Forever runtime",
+      "url": "https://github.com/Gethe/wow-ui-source/blob/9dc84f0d3bbae1768ac3405b3716000bd93eda06/Interface/AddOns/Blizzard_AchievementUI/Mainline/Blizzard_AchievementUI.lua"
     }
   ]
 }

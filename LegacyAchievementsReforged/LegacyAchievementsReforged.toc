@@ -4,7 +4,7 @@
 ## Author: Landsurfer-Overland
 ## X-Original-Author: Piotr
 ## IconTexture: Interface\AddOns\LegacyAchievementsReforged\Media\icon
-## Version: 0.5.2-alpha.2
+## Version: 0.5.2-alpha.3
 ## SavedVariables: LegacyAchievementsReforgedDB
 ## SavedVariablesPerCharacter: LegacyAchievementsReforgedCharDB
 ## OptionalDeps: QuestieDB, QuickFish
@@ -38,6 +38,7 @@ Integrations\LegacyAdapter.lua
 Integrations\Performance.lua
 Integrations\AchievementEvidence.lua
 Integrations\DungeonRecovery.lua
+Integrations\AutomaticBossTracking.lua
 Integrations\CustomAdapter.lua
 Integrations\Presentation.lua
 Integrations\StatisticsAdapter.lua

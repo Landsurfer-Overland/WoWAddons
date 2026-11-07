@@ -1,5 +1,18 @@
 # Legacy Achievements Reforged
 
+## 0.5.2-alpha.3 — automatic personal boss tracking
+
+- Read build 70862's sixth ENCOUNTER_END argument: the defeated boss creature
+  list. Successful encounter credit no longer depends on the target, encounter
+  title, a new shared account criterion tick, or a confirmation command.
+- Automatically discover exact named, character-scoped boss-kill statistics
+  through native category APIs, revalidate their metadata, and backfill readable
+  history quietly. Missing/ambiguous account-only history remains unproven.
+- Add a bounded exact-GUID corpse-loot fallback for encounters without native
+  completion notifications. Record its loot-eligibility inference explicitly.
+- Preserve character-bound evidence, completion dates and correction holds.
+  Keep the manual repair command as an optional advanced tool, not a normal flow.
+
 ## 0.5.2-alpha.2 — shared dungeon criterion recovery
 
 - Reproduce the live build-70862 record: account-wide Novice Spelunker criterion

@@ -89,6 +89,7 @@ function E.MatchBoss(dungeon, boss, row)
 end
 
 function E.Boss(dungeon, boss)
+    if E.HistoricalBoss and E.HistoricalBoss(dungeon, boss) then return true end
     local record = E.PersonalBoss and E.PersonalBoss(dungeon, boss)
     if record then
         LAR.SetProgressEvidence(dungeon.key or ("dungeon" .. tostring(dungeon.id)), record.source, {
@@ -161,6 +162,7 @@ function E.Report(input)
     print(LAR.TAG .. " API check: client=" .. tostring(build and build[1] or "unavailable")
         .. " build=" .. tostring(build and build[2] or "unavailable") .. "; addon="
         .. tostring(version and R.Text(version[1]) or "unavailable") .. "; reviewed=" .. E.build)
+    if ns.AutomaticBossTracking then ns.AutomaticBossTracking.Report() end
     if input == "" then
         for _, api in ipairs({ { "GetAchievementInfo", GetAchievementInfo },
             { "GetAchievementCriteriaInfo", GetAchievementCriteriaInfo }, { "GetStatistic", GetStatistic },
@@ -212,9 +214,10 @@ function E.Report(input)
                                 .. " personal=" .. tostring(row.personal) .. " scope=" .. row.scope .. " asset=" .. tostring(row.assetID)
                                 .. " match=" .. tostring(kind))
                             local corroborated = E.PersonalBoss and E.PersonalBoss(a.dungeon, a.dungeon.bosses[1])
-                            if row.completed and not corroborated and (not row.personal or kind == "shared-dungeon") then
-                                print(LAR.TAG .. " Native progress needs character/dungeon attribution."
-                                    .. " If you personally completed this dungeon: /lar recover " .. a.key)
+                            local complete = r and R.Number(r[1]) and R.Number(r[2]) and r[2] > 0 and r[1] >= r[2]
+                            if row.completed and not complete and not corroborated and (not row.personal or kind == "shared-dungeon") then
+                                print(LAR.TAG .. " Shared native progress does not identify a personal kill."
+                                    .. " Automatic encounter, loot and history tracking are used for personal credit.")
                             end
                         end
                     end
