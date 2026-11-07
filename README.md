@@ -7,8 +7,9 @@ calculations. Native Legacy Rewards and Legacy Trees remain available.
 
 The minimap button opens achievements even before the native menu unlocks at
 level 25. Left-click to open or close the screen, right-click for addon settings,
-and drag to reposition. With `/lar legacyui on`, the button uses the Reforged
-interface; with it off, it opens native Challenges. Existing hidden-button and
+and drag to reposition. Clicking the button enables and opens the combined
+Reforged interface, including on a fresh installation or when native Legacy is
+already open. Existing hidden-button and
 position preferences are preserved. Use `/lar minimap show` to restore the button.
 
 [CurseForge project](https://www.curseforge.com/wow/addons/legacy-achivements-reforged)

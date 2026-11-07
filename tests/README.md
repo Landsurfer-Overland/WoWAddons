@@ -156,9 +156,10 @@ standalone consumer harness enables the policy deliberately to keep testing
 the archived implementation rather than silently skipping its regressions.
 Follow the [client checks](../docs/original-ui-quarantine.md) after installing.
 
-`test_minimap.py` runs eleven launcher scenarios plus a real-controller opening
+`test_minimap.py` runs thirteen launcher scenarios plus real-controller opening
 check: level-one/zero-point entry without the gated native toggle, lazy native
-addon loading, native and Reforged open/close, combat rejection, load failures,
+addon loading, combined open/close from fresh or disabled settings, switching an
+already-visible native pane into the combined pane, combat rejection, load failures,
 restricted frames, settings clicks, and saved visibility/position. The launcher
 never calls the archived alpha openers. Client checks: on a character below 25,
 left-click twice, open again and close with Escape; test right-click settings,

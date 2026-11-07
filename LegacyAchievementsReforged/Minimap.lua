@@ -29,18 +29,20 @@ function LAR.ToggleAchievements()
         print(LAR.TAG .. " The native achievement screen is unavailable in this client.")
         return false
     end
-    if root:IsShown() then
-        if ns.LegacyUIController and ns.LegacyUIController.root == root then
-            ns.LegacyUIController:Close()
-        else
-            HideUIPanel(root)
-        end
+    local controller = ns.LegacyUIController
+    if not controller then
+        print(LAR.TAG .. " The combined achievement screen is unavailable in this client.")
+        return false
+    end
+    if root:IsShown() and controller.root == root
+        and controller.cover and controller.cover:IsShown() then
+        controller:Close()
     else
         -- Attach before ShowChallenges so the first opening uses the normal
-        -- Reforged handoff. Respect the player's existing legacyUI setting.
-        if LAR.Settings().legacyUI and ns.LegacyUIController then
-            ns.LegacyUIController:Attach()
-        end
+        -- Reforged handoff. This launcher explicitly opens the combined pane,
+        -- including first use and a native pane which is already visible.
+        if LAR.Settings().legacyUI ~= true then controller:SetEnabled(true)
+        else controller:Attach() end
         -- Unlike ToggleLegacySystemUI, this presentation method has no Legacy
         -- point unlock check. It does not grant points, rewards or tree access.
         root:ShowChallenges()

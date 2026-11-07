@@ -46,6 +46,12 @@ local function scenario(name, run)
         LegacySystemFrame = root
         return root
     end
+    ns.LegacyUIController = {
+        cover = { IsShown = function() return log.attached and LegacySystemFrame.shown end },
+        Attach = function(self) self.root = LegacySystemFrame; log.attached = true end,
+        SetEnabled = function(self, value) settings.legacyUI = value; self:Attach() end,
+        Close = function() LegacySystemFrame.shown = false; log.closed = true end,
+    }
     HideUIPanel = function(root) assert(not log.combat); root.shown = false; log.closed = true end
     ns.AddonSettings = { Open = function() log.settings = true end }
     assert(loadfile(source))("LegacyAchievementsReforged", ns)
@@ -75,15 +81,25 @@ scenario("attach before opening and close through controller", function(c)
     local root = c.native()
     c.settings.legacyUI = true
     c.ns.LegacyUIController = { root = root,
+        cover = { IsShown = function() return root.shown end },
         Attach = function() assert(not root.shown); c.log.attached = true end,
         Close = function() c.log.controllerClose = true; root.shown = false end }
     c.click("LeftButton"); assert(c.log.attached and root.shown)
     c.click("LeftButton"); assert(c.log.controllerClose and not root.shown)
 end)
-scenario("disabled replacement remains disabled", function(c)
+scenario("disabled replacement opens combined pane", function(c)
     c.native(); c.settings.legacyUI = false
-    c.ns.LegacyUIController = { Attach = function() error("Disabled replacement attached") end }
-    c.click("LeftButton"); assert(c.log.opens == 1 and c.settings.legacyUI == false)
+    c.click("LeftButton")
+    assert(c.log.opens == 1 and c.settings.legacyUI == true and c.log.attached)
+end)
+scenario("visible native pane switches to combined instead of closing", function(c)
+    local root = c.native(); root.shown = true
+    c.click("LeftButton")
+    assert(root.shown and c.log.opens == 1 and c.settings.legacyUI and c.log.attached)
+end)
+scenario("missing combined controller reports failure", function(c)
+    c.native(); c.ns.LegacyUIController = nil
+    assert(c.ns.LAR.ToggleAchievements() == false and not c.log.opens)
 end)
 scenario("combat blocks loading and panel writes", function(c)
     c.log.combat = true
