@@ -36,6 +36,7 @@ UI\AddonSettings.lua
 Diagnostics\LegacyInspector.lua
 Integrations\LegacyAdapter.lua
 Integrations\Performance.lua
+Integrations\AchievementEvidence.lua
 Integrations\CustomAdapter.lua
 Integrations\Presentation.lua
 Integrations\StatisticsAdapter.lua
@@ -43,3 +44,4 @@ UI\WrathAchievementUI.lua
 UI\WrathAchievementUI.xml
 Integrations\LegacyWindowBridge.lua
 Integrations\LegacyController.lua
+

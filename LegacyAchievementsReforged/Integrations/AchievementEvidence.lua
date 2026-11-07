@@ -1,0 +1,164 @@
+-- Read native evidence for custom achievements without changing native progress.
+-- Source contract: Forever 1.60.1.70862. All reads remain capability guarded.
+local _, ns = ...
+local LAR, R = ns.LAR, ns.LegacyReadOnly
+local E = { build = "1.60.1.70862", wrapped = 0 }
+ns.NativeAchievementEvidence = E
+
+local function normalize(value)
+    value = R.Text(value)
+    if value then return value:lower():gsub("^the%s+", ""):gsub("[%p%s]", "") end
+end
+local function info(id)
+    local r = R.Call(GetAchievementInfo, id)
+    if not r or R.ID(r[1]) ~= id or not R.Text(r[2]) then return nil end
+    return { id = id, name = r[2], completed = R.Bool(r[4]), flags = R.Number(r[9]),
+        earnedByMe = R.Bool(r[13]) }
+end
+info = LAR.CacheProgressRead("native-evidence-info", info)
+
+local function criteria(id)
+    local out, count = {}, R.Call(GetAchievementNumCriteria, id)
+    count = count and R.Number(count[1])
+    if not count or count < 0 or count ~= math.floor(count) or count > 256 then return out end
+    for i = 1, count do
+        local r = R.Call(GetAchievementCriteriaInfo, id, i)
+        if r and R.Text(r[1]) then
+            out[#out + 1] = { name = r[1], type = R.Number(r[2]), completed = R.Bool(r[3]),
+                current = R.Number(r[4]), required = R.Number(r[5]), character = R.Text(r[6]),
+                assetID = R.ID(r[8]), criteriaID = R.ID(r[10]) }
+        end
+    end
+    return out
+end
+criteria = LAR.CacheProgressRead("native-evidence-criteria", criteria)
+
+local function criterionEarnedHere(row)
+    local identity = LAR.CharacterIdentity()
+    if not identity or identity.verified ~= true or not row.character or row.character == "" then return false end
+    local name = identity.name .. (identity.surname and identity.surname ~= "" and (" " .. identity.surname) or "")
+    local earner = row.character:lower()
+    return earner == name:lower() or earner == (name .. "-" .. identity.realm):lower()
+end
+
+local function dungeonCriteria()
+    local out = {}
+    for _, section in ipairs(ns.FOREVER_ACH or {}) do
+        if section.title == "DUNGEONS" then
+            for _, source in ipairs(section.list) do
+                for _, id in ipairs(source.ids) do
+                    local parent = info(id)
+                    -- Old IDs can be reused: verify their identity first.
+                    if parent and normalize(parent.name) == normalize(source.name) then
+                        local account = R.HasFlag(parent.flags, ACHIEVEMENT_FLAGS_ACCOUNT)
+                        -- Partial character-scoped criteria are usable before
+                        -- the whole meta is earned. Account/other-character
+                        -- completions alone cannot prove this character's kill.
+                        local personal = parent.earnedByMe == true
+                            or account == false and parent.completed == false
+                        for _, row in ipairs(criteria(id)) do
+                            row.achievementID, row.personal = id, personal or criterionEarnedHere(row)
+                            out[#out + 1] = row
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return out
+end
+dungeonCriteria = LAR.CacheProgressRead("native-dungeon-evidence", dungeonCriteria)
+
+function E.Boss(dungeon, boss)
+    for _, row in ipairs(dungeonCriteria()) do
+        if row.personal and row.completed == true then
+            local exact = row.type == 0 and boss[2] and row.assetID == boss[2]
+            local byName = normalize(row.name) == normalize(boss[1])
+            -- Bounded inference: a completed named dungeon in Spelunker proves
+            -- its sole authored final boss, never an entire multi-boss roster.
+            local byDungeon = #dungeon.bosses == 1 and normalize(row.name) == normalize(dungeon.name)
+            if exact or byName or byDungeon then
+                LAR.SetProgressEvidence(dungeon.key or ("dungeon" .. tostring(dungeon.id)),
+                    exact and "native boss criterion" or "native named criterion (objective inference)", {
+                        achievementID = row.achievementID, criteriaID = row.criteriaID, assetID = row.assetID,
+                        criterion = row.name, inferred = not exact,
+                        currentCharacter = true, clientBuild = E.build })
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function direct(a)
+    local native = a.id and info(a.id)
+    if native and native.completed == true and native.earnedByMe == true
+        and normalize(native.name) == normalize(a.name) then
+        LAR.SetProgressEvidence(a.key, "matching native achievement earned by this character", {
+            achievementID = a.id, inferred = false, currentCharacter = true, clientBuild = E.build })
+        return true
+    end
+    return false
+end
+for _, achievement in ipairs(LAR.ALL) do
+    local a = achievement
+    if not a.native and not a.unsupported and a.id and type(a.progress) == "function" then
+        local original = a.progress
+        a.progress = function()
+            local r = R.Call(original)
+            local current, required = r and R.Number(r[1]), r and R.Number(r[2])
+            if current and required and required > 0 and current >= required then
+                return current, required, r[3]
+            end
+            if direct(a) then
+                required = required and required > 0 and required or 1
+                return required, required
+            end
+            if r then return unpack(r, 1, r.n) end
+            return nil, required
+        end
+        E.wrapped = E.wrapped + 1
+    end
+end
+
+function E.Report(input)
+    input = (input or ""):match("^%s*(.-)%s*$")
+    local build = R.Call(GetBuildInfo)
+    print(LAR.TAG .. " API check: client=" .. tostring(build and build[1] or "unavailable")
+        .. " build=" .. tostring(build and build[2] or "unavailable") .. "; reviewed=" .. E.build)
+    if input == "" then
+        print(LAR.TAG .. " Use /lar apicheck <achievement key>|dungeons|all. This only reads progress.")
+        return
+    end
+    LAR.WithProgressSnapshot(function()
+        local found = false
+        for _, a in ipairs(LAR.ALL) do
+            if not a.native and (input == "all" or a.key == input or input == "dungeons" and a.dungeon) then
+                found = true
+                local r = R.Call(a.progress)
+                print(LAR.TAG .. " " .. a.key .. " (" .. a.name .. "): " .. tostring(r and r[1] or "unavailable")
+                    .. "/" .. tostring(r and r[2] or "unavailable"))
+                if a.dungeon and a.dungeon.stat then
+                    local stat = R.Call(GetStatistic, a.dungeon.stat)
+                    print(LAR.TAG .. " statistic " .. a.dungeon.stat .. "=" .. tostring(stat and R.Text(stat[1]) or "unavailable"))
+                end
+                if a.dungeon then
+                    for _, row in ipairs(dungeonCriteria()) do
+                        local matches = normalize(row.name) == normalize(a.dungeon.name)
+                        for _, boss in ipairs(a.dungeon.bosses) do
+                            matches = matches or normalize(row.name) == normalize(boss[1])
+                                or row.type == 0 and boss[2] and row.assetID == boss[2]
+                        end
+                        if matches then
+                            print(LAR.TAG .. " native=" .. row.achievementID .. " criterion=" .. tostring(row.criteriaID)
+                                .. " " .. row.name .. " complete=" .. tostring(row.completed)
+                                .. " personal=" .. tostring(row.personal) .. " asset=" .. tostring(row.assetID))
+                        end
+                    end
+                end
+            end
+        end
+        if not found then print(LAR.TAG .. " Unknown achievement key: " .. input) end
+    end)
+end
+LAR.SLASH.apicheck = E.Report
